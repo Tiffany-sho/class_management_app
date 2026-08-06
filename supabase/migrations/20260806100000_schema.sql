@@ -16,6 +16,8 @@ create type public.schedule_status   as enum ('draft', 'confirmed');
 create type public.attendance_status as enum ('present', 'absent', 'late');
 create type public.deadline_type     as enum ('parent', 'employee');
 create type public.fee_status        as enum ('unpaid', 'paid');
+create type public.request_status    as enum ('pending', 'approved', 'rejected');
+create type public.payroll_status    as enum ('draft', 'confirmed');
 
 -- -----------------------------------------------------------------------------
 -- 共通トリガー関数
@@ -203,7 +205,8 @@ create table public.preferences (
   slot_no      smallint    not null check (slot_no > 0),
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  constraint preferences_unique unique (student_id, session_date, slot_no)
+  -- 1日1コマまで。slot_no を含めると同じ日に2コマ選べてしまう
+  constraint preferences_one_per_day unique (student_id, session_date)
 );
 
 create index preferences_month_idx on public.preferences (year_month);
@@ -276,7 +279,10 @@ create table public.schedule_employees (
 
 create index schedule_employees_employee_idx on public.schedule_employees (employee_id);
 
--- 受講生徒 + 出席状態（attendance テーブルは作らない。1コマ1生徒で1行）
+-- 受講生徒 + 出席状態 + 授業記録
+-- attendance / lesson_notes テーブルは作らない。どちらも「1コマ × 1生徒」に1つしか
+-- 存在しないため、分けると join が増えるうえ、出欠だけある行と記録だけある行が
+-- 別々にできて食い違う。1行にまとめれば出欠を直せば記録側の出欠も必ず一致する。
 create table public.schedule_students (
   schedule_id       uuid not null,
   student_id        uuid not null,
@@ -284,6 +290,9 @@ create table public.schedule_students (
   attendance_status public.attendance_status,          -- null = 未マーク
   marked_at         timestamptz,
   marked_by         uuid references public.users(id) on delete set null,
+  note              text,                              -- null = 所見が未記入
+  noted_at          timestamptz,
+  noted_by          uuid references public.users(id) on delete set null,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   primary key (schedule_id, student_id),
@@ -302,7 +311,10 @@ create trigger schedule_students_set_updated_at
   before update on public.schedule_students
   for each row execute function public.set_updated_at();
 
--- 欠席連絡
+comment on column public.schedule_students.note is
+  '授業記録（講師の所見）。出欠と同じ行に持つ。欠席の回は null のまま行だけ残す。';
+
+-- 欠席連絡。handled_at が null = 管理者が未確認（受信ボックスの「要対応」）
 create table public.absence_reports (
   id          uuid        primary key default gen_random_uuid(),
   student_id  uuid        not null references public.students(id) on delete cascade,
@@ -310,8 +322,13 @@ create table public.absence_reports (
   reason      text,
   created_by  uuid        references public.users(id) on delete set null,
   created_at  timestamptz not null default now(),
+  handled_at  timestamptz,
+  handled_by  uuid        references public.users(id) on delete set null,
   constraint absence_reports_unique unique (student_id, schedule_id)
 );
+
+create index absence_reports_unhandled_idx
+  on public.absence_reports (created_at desc) where handled_at is null;
 
 -- =============================================================================
 -- 月謝・連絡
@@ -341,29 +358,59 @@ create trigger fees_set_updated_at
 comment on column public.fees.amount is
   '生成時に courses.monthly_fee をコピー。管理者が上書き可。過去分が料金改定で変わらないよう join しない。';
 
--- お知らせ
+-- お知らせ。scheduled_at を入れると予約投稿になり、その時刻まで対象者に見せない。
 create table public.announcements (
-  id          uuid        primary key default gen_random_uuid(),
-  title       text        not null,
-  body        text        not null,
-  author_id   uuid        not null references public.users(id) on delete restrict,
-  target_role text        check (target_role in ('parent','employee')),  -- null = 全ロール
-  business_id uuid        references public.businesses(id) on delete cascade, -- null = 全事業
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id           uuid        primary key default gen_random_uuid(),
+  title        text        not null,
+  body         text        not null,
+  author_id    uuid        not null references public.users(id) on delete restrict,
+  target_role  text        check (target_role in ('parent','employee')),  -- null = 全ロール
+  business_id  uuid        references public.businesses(id) on delete cascade, -- null = 全事業
+  scheduled_at timestamptz,                            -- null = 即時投稿
+  sent_at      timestamptz,                            -- null = 未送信（予約中）
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
 );
+
+create index announcements_pending_idx
+  on public.announcements (scheduled_at) where sent_at is null;
 
 create trigger announcements_set_updated_at
   before update on public.announcements
   for each row execute function public.set_updated_at();
 
+comment on column public.announcements.sent_at is
+  'null かつ scheduled_at が未来 = 予約中。RLS で対象者から隠す。送信は pg_cron が拾う。';
+
+-- 締め切りの繰り返しルール。2行だけ（保護者 / 従業員）。
+-- ここから deadlines を毎月生成する。ルールを直接評価せず行を作るのは、
+-- 判定側（is_submission_open）を「その月の行があるか」だけで済ませたいため。
+create table public.deadline_rules (
+  id           uuid        primary key default gen_random_uuid(),
+  type         public.deadline_type not null unique,
+  day_of_month smallint    not null check (day_of_month between 1 and 31),
+  time_of_day  time        not null default '23:59',
+  active       boolean     not null default true,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create trigger deadline_rules_set_updated_at
+  before update on public.deadline_rules
+  for each row execute function public.set_updated_at();
+
+comment on table public.deadline_rules is
+  '対象月の前月 day_of_month 日 time_of_day が締め切り。月末を超える指定は末日に丸める。';
+
 -- 希望提出の締め切り。事業共通（business_id は持たない）。
--- 行が無い年月は「まだ受付を開いていない」扱いになる（RLS で提出を弾く）。
+-- deadline_rules から対象月の前月1日に自動生成される。
+-- 行が無い／active=false の年月は「受付を開いていない」扱い（RLS で提出を弾く）。
 create table public.deadlines (
   id          uuid        primary key default gen_random_uuid(),
   year_month  text        not null check (year_month ~ '^\d{4}-(0[1-9]|1[0-2])$'),
   type        public.deadline_type not null,
   deadline_at timestamptz not null,
+  active      boolean     not null default true,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   constraint deadlines_unique unique (year_month, type)
@@ -373,15 +420,19 @@ create trigger deadlines_set_updated_at
   before update on public.deadlines
   for each row execute function public.set_updated_at();
 
--- アプリ内通知。メール・プッシュはこの行を作った副作用として送る
+-- アプリ内通知。メール・プッシュはこの行を作った副作用として送る。
+-- subject_table / subject_id で元データを指し、件名も状態もその場で組み立てる。
+-- 状態をコピーして持つと、承認したのに通知だけ承認待ちのまま、という食い違いが起きる。
 create table public.notifications (
-  id         uuid        primary key default gen_random_uuid(),
-  user_id    uuid        not null references public.users(id) on delete cascade,
-  type       text        not null,
-  title      text        not null,
-  body       text,
-  read_at    timestamptz,
-  created_at timestamptz not null default now()
+  id            uuid        primary key default gen_random_uuid(),
+  user_id       uuid        not null references public.users(id) on delete cascade,
+  type          text        not null,
+  title         text        not null,
+  body          text,
+  subject_table text,                                  -- 例: 'overtime_requests'
+  subject_id    uuid,
+  read_at       timestamptz,
+  created_at    timestamptz not null default now()
 );
 
 create index notifications_user_unread_idx
@@ -400,3 +451,123 @@ create table public.push_tokens (
 create trigger push_tokens_set_updated_at
   before update on public.push_tokens
   for each row execute function public.set_updated_at();
+
+-- =============================================================================
+-- 給与（shift_manage_app から統合）
+--
+-- schedule_employees が勤務実績そのものなので、シフトテーブルは作らない。
+-- 給与額は締めるまで保存せず、確定したコマから毎回計算する。
+-- 締め処理で payrolls に書き込んだ後は、そちらを正とする。
+-- =============================================================================
+
+-- 時給は「講師 × 業務（事業）」ごとに、適用開始日つきで持つ。
+-- 昇給しても過去分がさかのぼって変わらないよう、古い行は消さず残す。
+create table public.wage_rates (
+  id             uuid        primary key default gen_random_uuid(),
+  employee_id    uuid        not null references public.users(id) on delete cascade,
+  business_id    uuid        not null references public.businesses(id) on delete restrict,
+  job_label      text        not null,                 -- 例: 'プログラミング講師'
+  hourly_rate    integer     not null check (hourly_rate >= 0),
+  effective_from date        not null,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  constraint wage_rates_unique unique (employee_id, business_id, effective_from)
+);
+
+create index wage_rates_lookup_idx
+  on public.wage_rates (employee_id, business_id, effective_from desc);
+
+create trigger wage_rates_set_updated_at
+  before update on public.wage_rates
+  for each row execute function public.set_updated_at();
+
+-- 交通費は日額固定。出勤日数 × 日額。
+-- 日曜は2教室を掛け持ちするため、事業には割り振らない（共通費）。
+create table public.commute_allowances (
+  id             uuid        primary key default gen_random_uuid(),
+  employee_id    uuid        not null references public.users(id) on delete cascade,
+  daily_amount   integer     not null check (daily_amount >= 0),
+  effective_from date        not null,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  constraint commute_allowances_unique unique (employee_id, effective_from)
+);
+
+create trigger commute_allowances_set_updated_at
+  before update on public.commute_allowances
+  for each row execute function public.set_updated_at();
+
+-- シフト外の作業。承認した分だけ給与に乗る。
+-- 法定残業（1日8h／週40h超過の25%割増）とは別物で、割増は付かない。
+create table public.overtime_requests (
+  id          uuid        primary key default gen_random_uuid(),
+  employee_id uuid        not null references public.users(id) on delete cascade,
+  business_id uuid        not null references public.businesses(id) on delete restrict,
+  work_date   date        not null,
+  description text        not null,
+  hours       numeric(4,2) not null check (hours > 0),
+  status      public.request_status not null default 'pending',
+  decided_by  uuid        references public.users(id) on delete set null,
+  decided_at  timestamptz,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create index overtime_requests_pending_idx
+  on public.overtime_requests (created_at desc) where status = 'pending';
+create index overtime_requests_employee_idx
+  on public.overtime_requests (employee_id, work_date);
+
+create trigger overtime_requests_set_updated_at
+  before update on public.overtime_requests
+  for each row execute function public.set_updated_at();
+
+-- 締め処理で確定額を書き込む。確定後はロックし、以後の再計算で上書きしない。
+-- （時給を改定したときに、過去に支給済みの金額まで書き変わるのを防ぐ）
+create table public.payrolls (
+  id           uuid        primary key default gen_random_uuid(),
+  employee_id  uuid        not null references public.users(id) on delete restrict,
+  year_month   text        not null check (year_month ~ '^\d{4}-(0[1-9]|1[0-2])$'),
+  work_days    smallint    not null default 0 check (work_days >= 0),
+  work_hours   numeric(6,2) not null default 0 check (work_hours >= 0),
+  base_amount  integer     not null default 0 check (base_amount >= 0),
+  commute      integer     not null default 0 check (commute >= 0),
+  overtime     integer     not null default 0 check (overtime >= 0),
+  total        integer     not null default 0 check (total >= 0),
+  status       public.payroll_status not null default 'draft',
+  confirmed_at timestamptz,
+  confirmed_by uuid        references public.users(id) on delete set null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  constraint payrolls_unique unique (employee_id, year_month)
+);
+
+create index payrolls_month_idx on public.payrolls (year_month);
+
+create trigger payrolls_set_updated_at
+  before update on public.payrolls
+  for each row execute function public.set_updated_at();
+
+comment on table public.payrolls is
+  '締め前は行が無いか draft。画面はコマからの計算値を出す。confirmed になったらこの値が正。';
+
+-- 確定した給与は更新・削除させない（監査のため）
+create or replace function public.lock_confirmed_payroll()
+returns trigger language plpgsql as $$
+begin
+  if tg_op = 'DELETE' then
+    if old.status = 'confirmed' then
+      raise exception '確定済みの給与は削除できません（% / %）', old.employee_id, old.year_month;
+    end if;
+    return old;
+  end if;
+  if old.status = 'confirmed' and new.status = 'confirmed' then
+    raise exception '確定済みの給与は変更できません（% / %）', old.employee_id, old.year_month;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger payrolls_lock_confirmed
+  before update or delete on public.payrolls
+  for each row execute function public.lock_confirmed_payroll();

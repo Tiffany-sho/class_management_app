@@ -72,3 +72,17 @@ from (values
 ) as v(business_name, grade_label, grade_min, grade_max, sessions, fee, is_default, sort_order)
 join public.businesses b on b.name = v.business_name
 on conflict (business_id, grade_label, sessions_per_month) do nothing;
+
+-- -----------------------------------------------------------------------------
+-- 締め切りの繰り返しルール（2行）
+--   保護者は前月20日、講師は前月25日。管理者が画面から変更できる。
+--   この2行が無いと deadlines が生成されず、どの月も受付が開かない。
+-- -----------------------------------------------------------------------------
+insert into public.deadline_rules (type, day_of_month, time_of_day)
+values ('parent',   20, '23:59'),
+       ('employee', 25, '23:59')
+on conflict (type) do nothing;
+
+-- 直近2ヶ月ぶんの締め切りを作っておく（以降は pg_cron が毎月1日に生成する）
+select public.generate_deadlines(to_char(current_date, 'YYYY-MM'));
+select public.generate_deadlines(to_char(current_date + interval '1 month', 'YYYY-MM'));

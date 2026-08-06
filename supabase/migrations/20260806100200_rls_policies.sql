@@ -73,8 +73,13 @@ alter table public.absence_reports     enable row level security;
 alter table public.fees                enable row level security;
 alter table public.announcements       enable row level security;
 alter table public.deadlines           enable row level security;
+alter table public.deadline_rules      enable row level security;
 alter table public.notifications       enable row level security;
 alter table public.push_tokens         enable row level security;
+alter table public.wage_rates          enable row level security;
+alter table public.commute_allowances  enable row level security;
+alter table public.overtime_requests   enable row level security;
+alter table public.payrolls            enable row level security;
 
 -- =============================================================================
 -- マスタ — 全員が読める / 管理者だけが書ける
@@ -98,6 +103,11 @@ create policy courses_admin_write on public.courses
 create policy deadlines_select on public.deadlines
   for select to authenticated using (true);
 create policy deadlines_admin_write on public.deadlines
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+create policy deadline_rules_select on public.deadline_rules
+  for select to authenticated using (true);
+create policy deadline_rules_admin_write on public.deadline_rules
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- =============================================================================
@@ -298,12 +308,14 @@ create policy fees_admin_write on public.fees
 -- お知らせ — 宛先（ロール・事業）に合致するものだけ読める
 -- =============================================================================
 
+-- 予約中（sent_at が null で scheduled_at が未来）のものは対象者から隠す
 create policy announcements_select on public.announcements
   for select to authenticated
   using (
     public.is_admin()
     or (
-      (target_role is null or target_role = public.auth_user_role()::text)
+      (sent_at is not null or scheduled_at is null)
+      and (target_role is null or target_role = public.auth_user_role()::text)
       and public.is_related_to_business(business_id)
     )
   );
@@ -331,6 +343,56 @@ create policy notifications_admin_write on public.notifications
 create policy push_tokens_own on public.push_tokens
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- =============================================================================
+-- 給与 — 本人と管理者だけ（ドメインルール12: 講師どうしで金額が見えてはいけない）
+--
+-- 保護者には一切見せない。時給・交通費・時間外・支給額のすべてが対象。
+-- =============================================================================
+
+create policy wage_rates_select on public.wage_rates
+  for select to authenticated
+  using (public.is_admin() or employee_id = auth.uid());
+create policy wage_rates_admin_write on public.wage_rates
+  for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+create policy commute_allowances_select on public.commute_allowances
+  for select to authenticated
+  using (public.is_admin() or employee_id = auth.uid());
+create policy commute_allowances_admin_write on public.commute_allowances
+  for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+create policy overtime_requests_select on public.overtime_requests
+  for select to authenticated
+  using (public.is_admin() or employee_id = auth.uid());
+
+-- 申請は本人が出す。status は既定の pending のみ許す（自分で承認できてはいけない）
+create policy overtime_requests_own_insert on public.overtime_requests
+  for insert to authenticated
+  with check (employee_id = auth.uid() and status = 'pending');
+
+-- 承認待ちのうちは本人が取り下げ・修正できる。決裁後は触れない
+create policy overtime_requests_own_update on public.overtime_requests
+  for update to authenticated
+  using (employee_id = auth.uid() and status = 'pending')
+  with check (employee_id = auth.uid() and status = 'pending');
+
+create policy overtime_requests_own_delete on public.overtime_requests
+  for delete to authenticated
+  using (employee_id = auth.uid() and status = 'pending');
+
+create policy overtime_requests_admin_write on public.overtime_requests
+  for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+create policy payrolls_select on public.payrolls
+  for select to authenticated
+  using (public.is_admin() or employee_id = auth.uid());
+create policy payrolls_admin_write on public.payrolls
+  for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 -- =============================================================================
 -- 権限付与

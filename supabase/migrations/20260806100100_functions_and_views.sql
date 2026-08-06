@@ -64,7 +64,7 @@ returns boolean
 language sql stable security definer set search_path = public
 as $$
   select coalesce(
-    (select now() < d.deadline_at
+    (select d.active and now() < d.deadline_at
        from public.deadlines d
       where d.year_month = p_year_month and d.type = p_type),
     false
@@ -72,7 +72,81 @@ as $$
 $$;
 
 comment on function public.is_submission_open(text, public.deadline_type) is
-  '締め切り行が存在しない年月は false（未開放）を返す。管理者が締め切りを設定することで受付が開く。';
+  '締め切り行が無い年月、active=false の年月は false（未開放）を返す。行は deadline_rules から自動生成される。';
+
+-- -----------------------------------------------------------------------------
+-- 締め切りの自動生成（deadline_rules → deadlines）
+--
+-- 対象月の前月1日に、その月ぶんの行を作る。ルールを直接評価せず行を作るのは、
+-- 判定側（is_submission_open と RLS）を「その月の行があるか」だけで済ませたいため。
+-- 例外（特定月だけ日付を変える・受け付けない）は、できた行を直接いじって対応する。
+-- 既にある行は上書きしない ― 管理者が個別に動かした日付を戻してしまうため。
+-- -----------------------------------------------------------------------------
+
+create or replace function public.generate_deadlines(p_year_month text default null)
+returns integer
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_target date;
+  v_prev   date;
+  v_rule   record;
+  v_day    smallint;
+  v_count  integer := 0;
+begin
+  -- 引数が無ければ「翌月ぶん」を作る（毎月1日に実行する想定）
+  v_target := coalesce(to_date(p_year_month || '-01', 'YYYY-MM-DD'),
+                       date_trunc('month', current_date)::date + interval '1 month');
+  v_prev   := (v_target - interval '1 month')::date;
+
+  for v_rule in select * from public.deadline_rules where active loop
+    -- 月末を超える指定はその月の末日に丸める
+    v_day := least(v_rule.day_of_month,
+                   extract(day from (date_trunc('month', v_prev)
+                                     + interval '1 month - 1 day'))::smallint);
+
+    insert into public.deadlines (year_month, type, deadline_at)
+    values (
+      to_char(v_target, 'YYYY-MM'),
+      v_rule.type,
+      (date_trunc('month', v_prev) + make_interval(days => v_day - 1) + v_rule.time_of_day)
+        at time zone 'Asia/Tokyo'
+    )
+    on conflict (year_month, type) do nothing;   -- 既存の行は動かさない
+
+    v_count := v_count + 1;
+  end loop;
+
+  return v_count;
+end;
+$$;
+
+comment on function public.generate_deadlines(text) is
+  '対象月の前月1日に pg_cron から呼ぶ。既存行は上書きしない（管理者が動かした日付を戻さないため）。';
+
+-- -----------------------------------------------------------------------------
+-- 予約投稿したお知らせの送信（scheduled_at を過ぎたものに sent_at を入れる）
+-- -----------------------------------------------------------------------------
+
+create or replace function public.send_due_announcements()
+returns integer
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  update public.announcements
+     set sent_at = now()
+   where sent_at is null
+     and scheduled_at is not null
+     and scheduled_at <= now();
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+comment on function public.send_due_announcements() is
+  'pg_cron から数分おきに呼ぶ。sent_at が入ると RLS の条件を満たして対象者に見えるようになる。';
 
 -- -----------------------------------------------------------------------------
 -- 受講希望の整合性チェック
@@ -212,6 +286,38 @@ create trigger schedule_students_stamp_attendance
   before update on public.schedule_students
   for each row execute function public.stamp_attendance();
 
+-- -----------------------------------------------------------------------------
+-- 授業記録を書いたら noted_at / noted_by を自動で埋める
+-- 出欠を「欠席」にしたら所見を落とす（欠席の回に所見は残さない。行自体は残る）
+-- -----------------------------------------------------------------------------
+
+create or replace function public.stamp_lesson_note()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.attendance_status = 'absent' then
+    new.note := null;
+  end if;
+
+  if new.note is distinct from old.note then
+    if new.note is null then
+      new.noted_at := null;
+      new.noted_by := null;
+    else
+      new.noted_at := now();
+      new.noted_by := auth.uid();
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- stamp_attendance の後に動かす（欠席にした結果を受けて所見を落とすため）
+create trigger schedule_students_stamp_note
+  before update on public.schedule_students
+  for each row execute function public.stamp_lesson_note();
+
 -- =============================================================================
 -- ビュー（すべて security_invoker。呼び出したユーザーの RLS が適用される）
 -- =============================================================================
@@ -302,8 +408,129 @@ where s.active
 comment on view public.students_needing_course_change is
   '進級でコース変更が必要な生徒。検出のみ。適用は管理者が承認して初めて行う（ドメインルール9）。';
 
+-- -----------------------------------------------------------------------------
+-- 給与（ドメインルール11: 締めるまで保存せず、確定したコマから毎回計算する）
+--
+-- 1コマの長さは business_slots から取る（90分をコードに埋め込まない）。
+-- 時給・交通費は「その日に適用されていた行」を引くので、昇給しても過去分は動かない。
+-- -----------------------------------------------------------------------------
+
+-- 講師の勤務実績を1コマ1行で。確定したコマだけが勤務実績になる。
+create view public.employee_work_slots
+with (security_invoker = true)
+as
+select
+  se.employee_id,
+  sc.id                                as schedule_id,
+  sc.business_id,
+  sc.session_date,
+  sc.slot_no,
+  to_char(sc.session_date, 'YYYY-MM')  as year_month,
+  (extract(epoch from (bs.end_time - bs.start_time)) / 3600.0)::numeric(4,2) as hours,
+  coalesce(wr.hourly_rate, 0)          as hourly_rate,
+  round((extract(epoch from (bs.end_time - bs.start_time)) / 3600.0)
+        * coalesce(wr.hourly_rate, 0))::int as amount
+from public.schedule_employees se
+join public.schedules sc      on sc.id = se.schedule_id
+join public.business_slots bs on bs.business_id = sc.business_id
+                            and bs.slot_no     = sc.slot_no
+                            and bs.weekday     = extract(dow from sc.session_date)::smallint
+left join lateral (
+  select w.hourly_rate
+    from public.wage_rates w
+   where w.employee_id    = se.employee_id
+     and w.business_id    = sc.business_id
+     and w.effective_from <= sc.session_date
+   order by w.effective_from desc
+   limit 1
+) wr on true
+where sc.status = 'confirmed';
+
+comment on view public.employee_work_slots is
+  '確定したコマ = 勤務実績。1コマの長さは business_slots から計算する（コードに埋めない）。';
+
+-- 月ごとの支給額。締め前は計算値、確定後は payrolls の値が正。
+create view public.employee_monthly_pay
+with (security_invoker = true)
+as
+with slots as (
+  select employee_id, year_month,
+         count(*)::int                 as slots,
+         sum(hours)::numeric(6,2)      as work_hours,
+         sum(amount)::int              as base_amount
+    from public.employee_work_slots
+   group by employee_id, year_month
+),
+work_days as (
+  -- 交通費は出勤「日」に対して1日ぶん（日曜の掛け持ちでも1日）
+  select d.employee_id, d.year_month,
+         count(*)::int                        as work_days,
+         coalesce(sum(ca.daily_amount), 0)::int as commute
+    from (select distinct employee_id, year_month, session_date
+            from public.employee_work_slots) d
+    left join lateral (
+      select c.daily_amount
+        from public.commute_allowances c
+       where c.employee_id    = d.employee_id
+         and c.effective_from <= d.session_date
+       order by c.effective_from desc
+       limit 1
+    ) ca on true
+   group by d.employee_id, d.year_month
+),
+overtime as (
+  -- 承認した分だけ。割増は付かない（法定残業とは別物）
+  select o.employee_id,
+         to_char(o.work_date, 'YYYY-MM')                        as year_month,
+         sum(round(o.hours * coalesce(wr.hourly_rate, 0)))::int as overtime
+    from public.overtime_requests o
+    left join lateral (
+      select w.hourly_rate
+        from public.wage_rates w
+       where w.employee_id    = o.employee_id
+         and w.business_id    = o.business_id
+         and w.effective_from <= o.work_date
+       order by w.effective_from desc
+       limit 1
+    ) wr on true
+   where o.status = 'approved'
+   group by o.employee_id, to_char(o.work_date, 'YYYY-MM')
+),
+keys as (
+  select employee_id, year_month from slots
+  union
+  select employee_id, year_month from overtime
+  union
+  select employee_id, year_month from public.payrolls
+)
+select
+  k.employee_id,
+  k.year_month,
+  coalesce(p.status, 'draft')::public.payroll_status as status,
+  coalesce(p.work_days,   w.work_days,   0)                as work_days,
+  coalesce(p.work_hours,  s.work_hours,  0)::numeric(6,2)  as work_hours,
+  coalesce(p.base_amount, s.base_amount, 0)                as base_amount,
+  coalesce(p.commute,     w.commute,     0)                as commute,
+  coalesce(p.overtime,    o.overtime,    0)                as overtime,
+  coalesce(p.total,
+           coalesce(s.base_amount, 0) + coalesce(w.commute, 0) + coalesce(o.overtime, 0)) as total,
+  coalesce(s.slots, 0) as slots,
+  p.confirmed_at
+from keys k
+left join slots     s on s.employee_id = k.employee_id and s.year_month = k.year_month
+left join work_days w on w.employee_id = k.employee_id and w.year_month = k.year_month
+left join overtime  o on o.employee_id = k.employee_id and o.year_month = k.year_month
+left join public.payrolls p
+       on p.employee_id = k.employee_id and p.year_month = k.year_month
+      and p.status = 'confirmed';
+
+comment on view public.employee_monthly_pay is
+  '締め前はコマからの計算値、確定後は payrolls の値。画面はこのビューだけを見れば金額が食い違わない。';
+
 -- ビューは security_invoker なので行の絞り込みは元テーブルの RLS が行う。
 -- ここでは参照権限だけ明示的に付与する。
 grant select on public.students_with_grade             to authenticated;
 grant select on public.schedule_capacity               to authenticated;
 grant select on public.students_needing_course_change  to authenticated;
+grant select on public.employee_work_slots             to authenticated;
+grant select on public.employee_monthly_pay            to authenticated;
