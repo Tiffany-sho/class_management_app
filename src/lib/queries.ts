@@ -159,6 +159,12 @@ export async function setFeeStatus(
 /**
  * 指定月のコマを、担当講師・受講生徒・定員つきで返す。
  * 定員は schedule_capacity ビューから取る（担当講師数 × 係数を画面で計算しない）。
+ *
+ * 埋め込みの書き方について:
+ * `users:employee_id (...)` のように列名で引けるのは、その列単独の外部キーがある場合だけ。
+ * schedule_students → students は複合外部キー (student_id, business_id) で繋がっているため
+ * 列名では引けず、制約名 `!schedule_students_student_fk` で指定する必要がある。
+ * 列名で書くと実行時に 400（relationship not found）になり、型チェックでは気づけない。
  */
 export async function fetchScheduleMonth(yearMonth: string): Promise<ScheduleSlot[]> {
   const { from, to } = monthRange(yearMonth);
@@ -170,7 +176,7 @@ export async function fetchScheduleMonth(yearMonth: string): Promise<ScheduleSlo
         id, business_id, session_date, slot_no, status,
         schedule_employees ( employee_id, users:employee_id ( id, name ) ),
         schedule_students ( student_id, attendance_status, note, noted_at,
-                            students:student_id ( id, name ),
+                            students!schedule_students_student_fk ( id, name ),
                             noted_by_user:noted_by ( name ) )
       `)
       .gte('session_date', from)

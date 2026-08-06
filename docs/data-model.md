@@ -89,6 +89,10 @@
 | 定員 = 担当従業員数 × 係数 | ビュー `schedule_capacity` |
 | 進級でコース変更が要る生徒の検出 | ビュー `students_needing_course_change` |
 
+**Supabase 側にイベントトリガー `ensure_rls` が入っている**（プロジェクト標準。関数は `public.rls_auto_enable()`）。public にテーブルを作ると **RLS が自動で有効になる**。
+ただし**ポリシーは作られない**ため、新しいテーブルにポリシーを書き忘れると、エラーではなく**「行が1件も無いように見える」**形で表面化する。データが消えたと勘違いしやすい。
+マイグレーション側の `enable row level security` は残す。このトリガーは Supabase の仕組みなので、依存せず明示する。
+
 **締め切り行が無い年月は提出できない。** `is_submission_open()` が false を返し、RLS が保護者・従業員の書き込みを弾く。**その月の締め切り行ができることで受付が開く**という設計。
 
 ---
@@ -109,7 +113,8 @@
 ```bash
 npm i -D supabase
 npx supabase init            # config.toml を生成。既存の migrations は上書きされない
-npx supabase link --project-ref <ref>
+# project-ref はダッシュボードの URL に入っている 20 文字（Settings → General の Reference ID）
+npx supabase link --project-ref ktbbphglfgypmtrhhrvi
 npx supabase db push
 ```
 
@@ -128,11 +133,13 @@ npx supabase db push
 
 ### `pg_cron` で回すもの（適用後に設定する）
 
-マイグレーションには入れていない。プロジェクトで `pg_cron` を有効にしてから登録する。
+マイグレーションには入れていない。**拡張の有効化はプロジェクト側の操作**で、SQL ファイルからは行えないため。
+
+**有効にする**: ダッシュボードの **Database → Extensions** で `pg_cron` を検索してトグルを ON にする（新しい UI では **Integrations → Cron** からでもよい）。SQL Editor で `create extension if not exists pg_cron;` でも同じ。有効にすると `cron` スキーマができる。
 
 | いつ | 何を | なぜ |
 |------|------|------|
-| 毎月1日 00:05 | `select public.generate_deadlines();` | 翌月ぶんの締め切り行を作る。行ができて初めて受付が開く |
+| 毎月1日 00:05 UTC | `select public.generate_deadlines();` | 翌月ぶんの締め切り行を作る。行ができて初めて受付が開く |
 | 5分おき | `select public.send_due_announcements();` | 予約投稿の `sent_at` を埋める。埋まると RLS の条件を満たして対象者に見える |
 
 ```sql
@@ -140,4 +147,15 @@ select cron.schedule('generate-deadlines', '5 0 1 * *', $$select public.generate
 select cron.schedule('send-announcements', '*/5 * * * *', $$select public.send_due_announcements()$$);
 ```
 
-**この2つを登録し忘れると、翌月の受付が開かず、予約投稿も飛ばない。** どちらも「動いていないことに気づきにくい」種類の失敗なので、適用直後に手で1回実行して確認すること。
+**`cron.schedule` の時刻は UTC。** `'5 0 1 * *'` は日本時間の1日 9:05 にあたる。
+**これを「日本時間の 0:05」にしようとして UTC 15:05 に変えてはいけない。** その時刻は UTC ではまだ前月の末日で、`generate_deadlines()` が `current_date` から対象月を決めているため、1か月ずれた行ができる。
+（`deadlines.deadline_at` 自体は関数内で `at time zone 'Asia/Tokyo'` を明示しているので、DB のタイムゾーンに依存しない。）
+
+**この2つを登録し忘れると、翌月の受付が開かず、予約投稿も飛ばない。** どちらも「動いていないことに気づきにくい」種類の失敗なので、適用直後に手で1回実行して確認すること。登録後の確認は次の2つを見る。
+
+```sql
+select jobid, jobname, schedule, active from cron.job;
+-- 登録されていても中で失敗し続けることがある。結果はこちらにしか出ない
+select jobname, status, start_time, return_message
+  from cron.job_run_details order by start_time desc limit 10;
+```
