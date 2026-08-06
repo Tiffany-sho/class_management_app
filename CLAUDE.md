@@ -86,7 +86,14 @@ R-Tech の **プログラミング教室・イラスト教室（2事業）** の
 
 | 項目 | 状態 |
 |------|------|
-| モック（`mock/index.html`） | **全画面ぶん実装済み。** 単一ファイルでダブルクリックで開く |
-| DB スキーマ（`supabase/migrations/`） | 初版あり。**未反映の変更が残っている** → [`docs/data-model.md`](docs/data-model.md) |
-| Web アプリ本体 | 未着手 |
+| モック（`mock/index.html`） | **全画面ぶん実装済み。** 単一ファイルでダブルクリックで開く。**これが仕様の実物** |
+| DB スキーマ（`supabase/migrations/`） | **4ファイルとも最新。まだ本番に適用していない**（起きたら一度流す） |
+| Web アプリ | **土台一式 ＋ 管理者3画面**（ホーム / スケジュール確定 / 生徒）。残りは「未実装」と出る画面になっている |
 | iOS アプリ | 未着手（別リポジトリ） |
+
+### 次にやること
+
+1. **マイグレーションを適用する** — `npx supabase link` → `db push`、または SQL Editor に4ファイルを順に貼る
+2. `.env` を作って `npm run dev`（[`docs/architecture.md`](docs/architecture.md) に手順）
+3. `npm run gen:types` して `createClient<Database>` に差し替える
+4. 残りの管理者画面 → 保護者 → 講師 の順に、モックを見ながら実装する

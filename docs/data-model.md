@@ -121,15 +121,23 @@ npx supabase db push
 
 型定義は `npx supabase gen types typescript --linked > src/types/database.ts` で生成する。**手書きしない。**
 
-### 未反映のスキーマ変更
+### 適用状況
 
-**上の設計に書いてあるが、マイグレーションにまだ入っていないもの。** SQL を書くときはここを消化してから。
+**4ファイルとも上の設計を反映済み。まだ本番に流していない。**
+未適用なので、追加ファイルを重ねずに本体を書き換えてある。**一度適用したら、以後の変更は必ず新しいファイルを足すこと。**
 
-| 対象 | 内容 |
-|------|------|
-| `deadline_rules` / `deadlines` | 新テーブル `deadline_rules` と、`deadlines.active`。生成は対象月の前月1日に `pg_cron` で回す。判定側（`is_submission_open()` と RLS）は行を見るまま変えない。停止は `deadlines.active = false` で表し、`is_submission_open()` の条件に `and d.active` を足す |
-| `schedule_students` | `note` / `noted_at` / `noted_by` を追加。授業記録は出欠と同じ行に入れる。RLS は既存の出欠と同じ条件でよい（担当講師・その生徒の保護者・管理者） |
-| `absence_reports` | `handled_at` / `handled_by` を追加（受信ボックスの「要対応」判定に使う） |
-| `announcements` | `scheduled_at` / `sent_at` を追加 + `pg_cron` での送信 |
-| `notifications` | `subject_table` / `subject_id` を追加 |
-| 給与まわり | `wage_rates` / `commute_allowances` / `overtime_requests` / `payrolls` の4テーブルすべて。RLS は「本人と管理者だけ」（[domain.md](domain.md) ルール12） |
+### `pg_cron` で回すもの（適用後に設定する）
+
+マイグレーションには入れていない。プロジェクトで `pg_cron` を有効にしてから登録する。
+
+| いつ | 何を | なぜ |
+|------|------|------|
+| 毎月1日 00:05 | `select public.generate_deadlines();` | 翌月ぶんの締め切り行を作る。行ができて初めて受付が開く |
+| 5分おき | `select public.send_due_announcements();` | 予約投稿の `sent_at` を埋める。埋まると RLS の条件を満たして対象者に見える |
+
+```sql
+select cron.schedule('generate-deadlines', '5 0 1 * *', $$select public.generate_deadlines()$$);
+select cron.schedule('send-announcements', '*/5 * * * *', $$select public.send_due_announcements()$$);
+```
+
+**この2つを登録し忘れると、翌月の受付が開かず、予約投稿も飛ばない。** どちらも「動いていないことに気づきにくい」種類の失敗なので、適用直後に手で1回実行して確認すること。
