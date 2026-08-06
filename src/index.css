@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-surface-soft text-body font-sans;
+    font-size: 14px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-ink font-medium;
+    margin: 0;
+  }
+
+  /* 数字は必ず等幅にする。金額や日付が縦に並んだとき桁がずれると読み違える */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* キーボード操作の輪郭は消さない（消すとタブ移動で現在地が分からなくなる） */
+  :focus-visible {
+    outline: 2px solid theme('colors.primary');
+    outline-offset: 2px;
+  }
+}

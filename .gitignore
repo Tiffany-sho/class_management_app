@@ -28,3 +28,7 @@ Thumbs.db
 # ログ
 *.log
 npm-debug.log*
+
+# ビルド成果物（テスト用）
+dist-test/
+*.tsbuildinfo

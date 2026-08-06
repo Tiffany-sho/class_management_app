@@ -1,0 +1,122 @@
+import { useEffect, useState, type ReactNode } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { ADMIN_NAV } from './navItems';
+import { useAuth } from '@/features/auth/AuthProvider';
+
+/**
+ * 管理者のシェル。
+ * 900px 未満でサイドバーがドロワーになる（shift_manage_app と同じ挙動）。
+ * 画面ごとのヘッダーボタンは各ページが PageHeader で差し込む。
+ */
+export function AdminLayout() {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const { user, signOut } = useAuth();
+
+  // 画面を移ったらドロワーは閉じる（開いたまま残ると背面が触れない）
+  useEffect(() => { setOpen(false); }, [location.pathname]);
+
+  return (
+    <div className="flex min-h-full bg-surface-soft">
+      {open ? (
+        <div
+          className="fixed inset-0 z-40 bg-[rgba(24,29,38,.34)] app:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden
+        />
+      ) : null}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-hairline
+          bg-canvas transition-transform app:static app:translate-x-0
+          ${open ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="flex items-center gap-sm border-b border-hairline px-md py-md">
+          <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-[16px] font-medium text-on-primary">
+            R
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-[14px] font-medium text-ink">R-Tech 管理</div>
+            <div className="text-[10px] tracking-[0.08em] text-muted">ADMIN CONSOLE</div>
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-xs py-sm">
+          {ADMIN_NAV.map((g) => (
+            <div key={g.group} className="mb-sm">
+              <div className="px-sm py-[6px] text-[10px] font-medium tracking-[0.08em] text-muted">
+                {g.group}
+              </div>
+              {g.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-sm rounded-md px-sm py-[9px] text-[13px] transition-colors
+                     ${isActive
+                       ? 'bg-primary text-on-primary'
+                       : 'text-body hover:bg-surface-soft hover:text-ink'}`
+                  }
+                >
+                  <span aria-hidden className="w-[18px] text-center">{item.icon}</span>
+                  <span className="flex-1">{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-sm border-t border-hairline px-md py-sm">
+          <div className="grid h-8 w-8 place-items-center rounded-pill bg-surface-strong text-[13px] text-ink">
+            {user?.name?.[0] ?? '—'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] text-ink">{user?.name ?? '—'}</div>
+            <div className="text-[11px] text-muted">管理者</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="text-[12px] text-link underline"
+          >
+            ログアウト
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="sticky top-0 z-30 flex items-center gap-sm border-b border-hairline bg-canvas
+            px-md py-sm text-[14px] text-ink app:hidden"
+          aria-label="メニューを開く"
+        >
+          <span aria-hidden>☰</span> メニュー
+        </button>
+
+        <main className="min-w-0 flex-1 px-md py-lg app:px-xl">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+/** 各ページの見出し。右側にその画面だけのボタンを置く（全画面共通のボタンは置かない） */
+export function PageHeader({
+  title, description, actions,
+}: { title: string; description?: ReactNode; actions?: ReactNode }) {
+  return (
+    <header className="mb-lg flex flex-wrap items-start gap-md">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-title-md">{title}</h1>
+        {description ? (
+          <p className="mt-[4px] text-[13px] leading-relaxed text-muted">{description}</p>
+        ) : null}
+      </div>
+      {actions ? <div className="flex flex-wrap gap-xs">{actions}</div> : null}
+    </header>
+  );
+}
