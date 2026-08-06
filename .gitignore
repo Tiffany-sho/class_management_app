@@ -16,8 +16,9 @@ supabase/.branches/
 supabase/.temp/
 supabase/config.toml
 
-# 自動生成した型定義（各リポジトリで supabase gen types する）
-src/types/database.ts
+# 自動生成した型定義（src/types/database.ts）は、生成物だが git に含める。
+# 含めないとクローンしただけでは型チェックが通らず、生成には Supabase の
+# 認証情報が要るため。手書きはせず、スキーマ変更後は npm run gen:types で作り直す。
 
 # エディタ・OS
 .DS_Store

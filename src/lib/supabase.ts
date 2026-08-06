@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../types/database';
 
 /**
  * Supabase クライアント。
@@ -7,9 +8,10 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * 「壊れている」のか「設定していないだけ」なのか区別できないため、
  * isConfigured を見て画面側で案内を出す。
  *
- * 型付けについて: `npm run gen:types` を実行すると src/types/database.ts が
- * できるので、そのあと createClient<Database> に差し替える。
- * database.ts は生成物なので手書きしないこと（.gitignore に入れてある）。
+ * 型付けについて: src/types/database.ts は `npm run gen:types` の生成物。
+ * **手書きしないこと。** スキーマを変えたら流し直す。
+ * 生成物だが git に含めている。含めないとクローンしただけでは型チェックが
+ * 通らず、生成には Supabase の認証情報が要るため。
  */
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -18,7 +20,7 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const isConfigured = Boolean(url && anonKey);
 
 /** 未設定のときも import 側が落ちないよう、ダミーの URL でクライアントは作る */
-export const supabase: SupabaseClient = createClient(
+export const supabase: SupabaseClient<Database> = createClient<Database>(
   url ?? 'http://localhost:54321',
   anonKey ?? 'public-anon-key-not-set',
   {

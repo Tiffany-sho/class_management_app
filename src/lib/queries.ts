@@ -74,6 +74,30 @@ export async function fetchCourses(): Promise<Course[]> {
 /* ---------------------------------------------------------------- 生徒 */
 
 /**
+ * students_with_grade ビューの1行。
+ *
+ * 生成される型ではビューの列がすべて nullable になる。PostgreSQL がビューの列に
+ * NOT NULL を保証できないためで、実際に null が来るという意味ではない。
+ * このビューは students の NOT NULL 列と courses の**内部結合**なので、
+ * ここに挙げた列は必ず値が入る。
+ *
+ * ビュー定義を left join に変えるとこの前提が崩れる。変えるときは必ずここも直す。
+ */
+type StudentWithGradeRow = {
+  id: string;
+  name: string;
+  parent_id: string;
+  business_id: string;
+  course_id: string;
+  enrollment_year: number;
+  active: boolean;
+  grade: number;
+  grade_label: string;
+  sessions_per_month: number;
+  monthly_fee: number;
+};
+
+/**
  * 生徒一覧。学年は students_with_grade ビューが毎回計算したものを使う
  * （ドメインルール8。ここで再計算しない）。
  */
@@ -85,7 +109,7 @@ export async function fetchStudents(): Promise<Student[]> {
     .order('name');
   if (error) throw error;
 
-  const rows = data ?? [];
+  const rows = (data ?? []) as StudentWithGradeRow[];
   const parentIds = [...new Set(rows.map((r) => r.parent_id).filter(Boolean))];
   const names = await fetchUserNames(parentIds);
 
