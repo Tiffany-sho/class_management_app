@@ -1,0 +1,3535 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R-Tech 管理システム — モック</title>
+<style>
+  /* ===== Design tokens (DESIGN.md 準拠) ===== */
+  :root{
+    --primary:#1a2336; --primary-active:#121a29;
+    --ink:#181d26; --body:#333840; --muted:#41454d;
+    --hairline:#dddddd; --border-strong:#9297a0;
+    --canvas:#ffffff; --surface-soft:#f8fafc; --surface-strong:#e0e2e6;
+    --surface-dark:#1a2336;
+    --coral:#a83a3d;    /* イラスト教室 */
+    --forest:#1a5c34;   /* プログラミング教室 */
+    --cream:#f5e9d4; --peach:#fcab79; --mint:#a8d8c4;
+    --on-primary:#ffffff; --link:#1b61c9;
+    --success:#006400; --success-border:#39bf45; --info:#254fad;
+    --r-sm:6px; --r-md:10px; --r-lg:12px; --r-pill:9999px;
+    --s-xxs:4px; --s-xs:8px; --s-sm:12px; --s-md:16px; --s-lg:24px; --s-xl:32px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,"Helvetica Neue","Hiragino Sans","Noto Sans JP",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font);color:var(--body);background:var(--surface-soft);
+       font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{color:var(--ink);font-weight:500;margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  table{border-collapse:collapse;}
+
+  /* ===== モック用ロール切替バー（アプリ本体ではない） ===== */
+  .devbar{background:#0e1421;color:#aeb6c4;padding:8px 16px;display:flex;
+          align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;position:sticky;top:0;z-index:60;}
+  .devbar .lbl{letter-spacing:.06em;opacity:.7;}
+  .devbar .seg{display:flex;gap:4px;background:#1b2333;padding:3px;border-radius:var(--r-pill);}
+  .devbar .seg button{border:0;background:transparent;color:#aeb6c4;font-size:12px;
+    padding:5px 14px;border-radius:var(--r-pill);}
+  .devbar .seg button.on{background:var(--canvas);color:var(--ink);font-weight:500;}
+  .devbar .note{margin-left:auto;opacity:.55;}
+
+  /* ===== 共通パーツ ===== */
+  .btn{border-radius:var(--r-lg);padding:10px 18px;font-size:14px;font-weight:500;
+    border:1px solid transparent;line-height:1.4;display:inline-flex;align-items:center;gap:8px;}
+  .btn-primary{background:var(--primary);color:var(--on-primary);}
+  .btn-primary:hover{background:var(--primary-active);}
+  .btn-secondary{background:var(--canvas);color:var(--ink);border-color:var(--hairline);}
+  .btn-secondary:hover{border-color:var(--border-strong);}
+  .btn-sm{padding:6px 12px;font-size:13px;border-radius:var(--r-md);}
+  .btn-block{width:100%;justify-content:center;padding:14px;}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;}
+
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hairline);
+    background:var(--canvas);border-radius:var(--r-pill);padding:5px 13px;font-size:13px;color:var(--body);}
+  .chip.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
+  .dot.prog{background:var(--forest);} .dot.illust{background:var(--coral);}
+  .badge{font-size:11px;padding:2px 8px;border-radius:var(--r-pill);font-weight:500;display:inline-block;}
+  .badge.draft{background:var(--surface-strong);color:var(--muted);}
+  .badge.confirmed{background:#e6f0e6;color:var(--success);}
+  .badge.over{background:#f7e8e8;color:var(--coral);}
+  .badge.unpaid{background:#f7e8e8;color:var(--coral);}
+  .badge.paid{background:#e6f0e6;color:var(--success);}
+  .badge.prog{background:#e7efe9;color:var(--forest);}
+  .badge.illust{background:#f7e8e8;color:var(--coral);}
+
+  .card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);}
+  .panel{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);padding:20px;}
+  .muted{color:var(--muted);font-size:12px;}
+  .cream-note{display:flex;gap:10px;background:var(--cream);border:1px solid #e8d9bb;
+    border-radius:var(--r-md);padding:12px 16px;font-size:13px;color:#5a4a2a;margin-bottom:18px;}
+
+  table.data{width:100%;background:var(--canvas);}
+  table.data th,table.data td{padding:12px 14px;border-bottom:1px solid var(--hairline);
+    font-size:13.5px;text-align:left;}
+  table.data th{background:var(--surface-soft);color:var(--muted);font-weight:500;font-size:12px;}
+  table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  table.data td.name{color:var(--ink);font-weight:500;}
+  table.data tr:hover td{background:var(--surface-soft);}
+
+  .screen{display:none;} .screen.active{display:block;}
+  .view{display:none;} .view.active{display:block;}
+
+  /* ===== 管理者: サイドバー shell ===== */
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 37px);}
+  .sidebar{background:var(--canvas);border-right:1px solid var(--hairline);
+           display:flex;flex-direction:column;position:sticky;top:37px;height:calc(100vh - 37px);}
+  .brand{padding:20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--hairline);}
+  .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--primary);
+    color:#fff;display:grid;place-items:center;font-weight:600;font-size:15px;}
+  .brand .name{font-weight:500;color:var(--ink);font-size:15px;line-height:1.2;}
+  .brand .sub{font-size:11px;color:var(--muted);letter-spacing:.02em;}
+  .nav{padding:12px;display:flex;flex-direction:column;gap:2px;flex:1;}
+  .nav .grp{font-size:11px;color:var(--border-strong);padding:12px 12px 4px;letter-spacing:.06em;}
+  .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:transparent;border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--body);font-size:14px;}
+  .nav button .ic{width:18px;text-align:center;opacity:.75;}
+  .nav button:hover{background:var(--surface-soft);}
+  .nav button.on{background:var(--surface-strong);color:var(--ink);font-weight:500;}
+  .navbadge{margin-left:auto;background:var(--coral);color:#fff;font-size:11px;font-weight:600;
+    min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-pill);display:grid;place-items:center;}
+  .who{padding:14px 16px;border-top:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:var(--r-pill);background:var(--forest);
+    color:#fff;display:grid;place-items:center;font-size:13px;flex:none;}
+  .who .meta{font-size:13px;} .who .meta .r{font-size:11px;color:var(--muted);}
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .topbar{height:60px;background:var(--canvas);border-bottom:1px solid var(--hairline);
+    display:flex;align-items:center;gap:16px;padding:0 24px;position:sticky;top:37px;z-index:5;}
+  .topbar h1{font-size:20px;} .topbar .spacer{flex:1;}
+  .content{padding:24px;max-width:1280px;width:100%;}
+  .toolbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .monthnav{display:flex;align-items:center;gap:6px;}
+  .monthnav .m{font-size:17px;font-weight:500;color:var(--ink);min-width:150px;text-align:center;}
+  .iconbtn{width:34px;height:34px;border-radius:var(--r-pill);border:1px solid var(--hairline);
+    background:var(--canvas);color:var(--ink);font-size:15px;display:grid;place-items:center;}
+  .iconbtn:hover{background:var(--surface-soft);}
+  .hamb{display:none;}
+
+  /* 定員つきコマカード */
+  .daygroup{margin-bottom:22px;}
+  .dayhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;}
+  .dayhead .d{font-size:15px;font-weight:500;color:var(--ink);}
+  .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+  .slot{border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--canvas);overflow:hidden;}
+  .slot .sh{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--hairline);}
+  .slot .sh .t{font-weight:500;color:var(--ink);font-size:13.5px;}
+  .slot .sh .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .slot .sb{padding:12px 14px;}
+  .cap{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted);}
+  .capbar{flex:1;height:6px;background:var(--surface-strong);border-radius:var(--r-pill);overflow:hidden;}
+  .capbar i{display:block;height:100%;background:var(--forest);}
+  .capbar.over i{background:var(--coral);}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .tag{font-size:12px;padding:3px 9px;border-radius:var(--r-pill);background:var(--surface-soft);
+    border:1px solid var(--hairline);color:var(--body);}
+  .tag.emp{background:var(--surface-dark);color:#fff;border-color:var(--surface-dark);}
+  .lbl{font-size:11px;color:var(--border-strong);margin-bottom:5px;letter-spacing:.04em;}
+  /* 希望チップ: 点線＝希望のみ / 塗り＝仮確定 */
+  .wish{font-size:12.5px;padding:5px 12px;border-radius:var(--r-pill);font-family:inherit;
+    background:var(--canvas);border:1px dashed var(--border-strong);color:var(--muted);}
+  .wish:hover{border-color:var(--primary);color:var(--ink);}
+  .wish.on{border-style:solid;color:#fff;font-weight:500;}
+  .wish.on.emp{background:var(--surface-dark);border-color:var(--surface-dark);}
+  .wish.on.prog{background:var(--forest);border-color:var(--forest);}
+  .wish.on.illust{background:var(--coral);border-color:var(--coral);}
+  .wish.on:hover{filter:brightness(1.12);color:#fff;}
+
+  /* ===== 保護者・従業員: モバイル shell ===== */
+  .mobile{max-width:560px;margin:0 auto;background:var(--canvas);min-height:calc(100vh - 37px);
+    display:flex;flex-direction:column;border-left:1px solid var(--hairline);border-right:1px solid var(--hairline);}
+  .mhead{padding:16px 18px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:12px;
+    position:sticky;top:37px;background:var(--canvas);z-index:5;}
+  .mhead h2{font-size:17px;} .mhead .spacer{flex:1;}
+  .mbody{padding:18px;flex:1;padding-bottom:90px;}
+  .tabs{position:fixed;bottom:0;left:0;right:0;max-width:560px;margin:0 auto;background:var(--canvas);
+    border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(4,1fr);z-index:10;}
+  .tabs.t3{grid-template-columns:repeat(3,1fr);}
+  .tabs button{border:0;background:transparent;padding:9px 4px 12px;display:flex;flex-direction:column;
+    align-items:center;gap:3px;color:var(--border-strong);font-size:11px;}
+  .tabs button .ic{font-size:19px;line-height:1;}
+  .tabs button.on{color:var(--primary);font-weight:500;}
+
+  .kidswitch{display:flex;gap:8px;margin-bottom:16px;}
+  .kidswitch button{flex:1;border:1px solid var(--hairline);background:var(--canvas);border-radius:var(--r-md);
+    padding:10px;text-align:left;color:var(--body);}
+  .kidswitch button.on{border-color:var(--primary);background:var(--surface-soft);}
+  .kidswitch .n{font-size:14px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:6px;}
+  .kidswitch .g{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  .next{border-radius:var(--r-md);padding:18px;color:#fff;margin-bottom:16px;}
+  .next.prog{background:var(--forest);} .next.illust{background:var(--coral);}
+  .next .k{font-size:11px;opacity:.85;letter-spacing:.06em;margin-bottom:6px;}
+  .next .v{font-size:22px;font-weight:500;line-height:1.25;}
+  .next .s{font-size:13px;opacity:.9;margin-top:6px;font-variant-numeric:tabular-nums;}
+
+  .listitem{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--hairline);align-items:flex-start;}
+  .listitem:last-child{border-bottom:0;}
+  .listitem .t{font-size:14px;color:var(--ink);}
+  .listitem .m{font-size:12px;color:var(--muted);margin-top:3px;}
+
+  /* ===== 受信ボックス（管理者に届く通知） ===== */
+  .nrow{display:flex;gap:13px;padding:15px 20px;border-bottom:1px solid var(--hairline);
+        align-items:flex-start;background:var(--canvas);}
+  .nrow:last-child{border-bottom:0;}
+  .nrow.unread{background:#f5f8fd;}
+  .nrow.need{box-shadow:inset 4px 0 0 var(--coral);}
+  .nrow .ni{width:32px;height:32px;border-radius:var(--r-md);background:var(--surface-soft);
+    border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;}
+  .nrow .nt{font-size:14px;color:var(--ink);}
+  .nrow.unread .nt{font-weight:500;}
+  .nrow .nb{font-size:13px;color:var(--muted);margin-top:4px;}
+  .nrow .nm{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:10px;
+    align-items:center;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+  .nrow .nact{display:flex;gap:8px;align-items:center;flex:none;padding-top:2px;}
+  .nrow .udot{width:8px;height:8px;border-radius:50%;background:var(--link);flex:none;margin-top:11px;}
+  .nrow .udot.off{background:transparent;}
+  .nlink{color:var(--link);text-decoration:underline;cursor:pointer;}
+  @media (max-width:760px){
+    .nrow{flex-wrap:wrap;padding:14px 16px;}
+    .nrow .nact{width:100%;padding-left:45px;}
+  }
+
+  /* 希望提出 */
+  .counter{display:flex;align-items:center;gap:10px;background:var(--surface-soft);
+    border:1px solid var(--hairline);border-radius:var(--r-md);padding:12px 14px;margin-bottom:14px;}
+  .counter .c{font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .pick{border:1px solid var(--hairline);border-radius:var(--r-md);padding:12px 14px;margin-bottom:9px;
+    display:flex;align-items:center;gap:12px;background:var(--canvas);width:100%;text-align:left;}
+  .pick.on{border-color:var(--forest);background:#f2f7f4;}
+  .pick.on.illust{border-color:var(--coral);background:#fbf3f3;}
+  .pick.off{opacity:.45;}
+  .pick .box{width:20px;height:20px;border-radius:var(--r-sm);border:1.5px solid var(--border-strong);
+    display:grid;place-items:center;color:#fff;font-size:12px;flex:none;}
+  .pick.on .box{background:var(--forest);border-color:var(--forest);}
+  .pick.on.illust .box{background:var(--coral);border-color:var(--coral);}
+  .pick .d{font-size:14px;color:var(--ink);} .pick .tm{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* 出席マーク */
+  .att{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--hairline);}
+  .att .nm{flex:1;font-size:14px;color:var(--ink);}
+  /* ===== 従業員詳細（shift_manage_app の時給設定より移設） ===== */
+  .draw-sec{font-size:12px;color:var(--muted);font-weight:500;margin:24px 0 10px;
+    padding-bottom:6px;border-bottom:1px solid var(--hairline);}
+  .wage-item{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    border:1px solid var(--hairline);border-radius:var(--r-sm);padding:11px 14px;margin-bottom:8px;}
+  .wage-item .job{font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .wage-item .from{font-size:11px;color:var(--muted);margin-top:3px;}
+  .wage-item .rate{font-size:16px;font-weight:500;color:var(--ink);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .hist-label{font-size:11px;color:var(--border-strong);margin:10px 0 4px 2px;}
+  .hist .h{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);
+    padding:5px 10px;border-left:2px solid var(--hairline);margin:0 0 2px 8px;
+    font-variant-numeric:tabular-nums;}
+
+  /* 並び替え可能な列見出し */
+  .sortbtn{border:0;background:transparent;font-family:inherit;font-size:12px;color:var(--muted);
+    font-weight:500;padding:0;display:inline-flex;align-items:center;white-space:nowrap;}
+  .sortbtn:hover{color:var(--ink);}
+  .sortbtn.on{color:var(--ink);}
+  .sortbtn i{font-style:normal;font-size:10px;}
+
+  .stu-link{border:0;background:transparent;text-align:left;font-family:inherit;padding:0;color:var(--ink);}
+  .stu-link:hover{color:var(--link);}
+  /* 過去の日の受講生徒（出席と記録つき・生徒ページへ遷移） */
+  .stu-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-family:inherit;
+    background:var(--canvas);border:0;border-bottom:1px solid var(--hairline);
+    padding:10px 2px;font-size:13.5px;}
+  .stu-row:last-child{border-bottom:0;}
+  .stu-row:hover{background:var(--surface-soft);}
+  .att .seg3{display:flex;gap:4px;}
+  .att .seg3 button{border:1px solid var(--hairline);background:var(--canvas);border-radius:var(--r-sm);
+    padding:6px 10px;font-size:12px;color:var(--body);}
+  .att .seg3 button.on{border-color:var(--primary);background:var(--primary);color:#fff;}
+
+  /* ===== カレンダー（shift_manage_app と同じレイアウト） ===== */
+  .calendar{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);overflow:hidden;}
+  .cal-head,.cal-row{display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal-head div{padding:10px 8px;font-size:12px;color:var(--muted);text-align:left;
+    border-bottom:1px solid var(--hairline);background:var(--surface-soft);}
+  .cal-head div.sun{color:var(--coral);} .cal-head div.sat{color:var(--info);}
+  /* 管理者ホームのカレンダーは左右に余白を取り、1画面に6週が収まる高さにする */
+  .cal-wrap{padding:0 40px;}
+  @media(max-width:1100px){ .cal-wrap{padding:0 16px;} }
+  @media(max-width:900px){ .cal-wrap{padding:0;} }
+  .cell{min-height:92px;border-right:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
+    padding:6px;display:flex;flex-direction:column;gap:4px;position:relative;
+    background:var(--canvas);text-align:left;font-family:inherit;border-top:0;border-left:0;
+    align-items:stretch;}
+  .cell:nth-child(7n){border-right:0;}
+  .cell.dim{background:#fbfcfd;}
+  .cell.has{cursor:pointer;}
+  .cell.has:hover{background:var(--surface-soft);}
+  .cell .dnum{font-size:12px;color:var(--body);font-variant-numeric:tabular-nums;}
+  .cell .dnum.sun{color:var(--coral);} .cell .dnum.sat{color:var(--info);}
+  .cell.today .dnum{background:var(--primary);color:#fff;border-radius:var(--r-pill);
+    width:22px;height:22px;display:grid;place-items:center;font-weight:500;}
+  /* 日の確定状態: 両事業とも確定 → 緑 / 片方でも未確定 → コーラル
+     背景・左バー・状態ラベルの3つで示す（バーだけでは見分けにくいため） */
+  .cell.confirmed{background:#eef7f1;box-shadow:inset 4px 0 0 var(--forest);}
+  .cell.pending{background:#fdeeeb;box-shadow:inset 4px 0 0 var(--coral);}
+  .cell.off{background:var(--surface-strong);}
+  .dhead{display:flex;align-items:center;gap:6px;min-height:22px;}
+  .dstate{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:var(--r-pill);
+    font-weight:500;letter-spacing:.02em;white-space:nowrap;}
+  .dstate.ok{background:#d3e6da;color:var(--forest);}
+  .dstate.ng{background:#f6d6d1;color:var(--coral);}
+  .ev{border-radius:var(--r-sm);padding:3px 7px;font-size:11.5px;color:#fff;cursor:pointer;
+    display:flex;justify-content:space-between;gap:4px;line-height:1.3;border:1px solid transparent;}
+  .ev.prog{background:var(--forest);} .ev.illust{background:var(--coral);}
+  .ev.draft{background:var(--canvas);color:var(--muted);border:1px dashed var(--border-strong);}
+  .ev .t{opacity:.85;font-variant-numeric:tabular-nums;font-size:10.5px;}
+  .cell.has:hover .ev{filter:brightness(1.08);}
+  .offlabel{font-size:11px;color:var(--muted);}
+  .mlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+  .mlegend span{display:inline-flex;align-items:center;gap:6px;}
+  .mlegend i{width:14px;height:11px;border-radius:3px;display:inline-block;flex:none;}
+  @media(max-width:900px){ .cell{min-height:88px;} }
+  @media(max-width:640px){
+    .cell{min-height:76px;padding:4px;gap:3px;}
+    .ev{font-size:10px;padding:2px 5px;} .ev .t{display:none;}
+    .home-lower{grid-template-columns:1fr !important;}
+  }
+  @media(max-width:900px){ .rev-cols{grid-template-columns:1fr !important;} }
+
+  /* ===== 収入・収益 ===== */
+  .kvrow{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;
+         border-bottom:1px solid var(--hairline);}
+  .kvrow:last-child{border-bottom:0;}
+  .kvrow .v{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;}
+  .kvrow.total{border-top:1px solid var(--border-strong);border-bottom:0;margin-top:2px;padding-top:13px;}
+  .kvrow.total .v{font-size:17px;font-weight:500;}
+
+  /* ===== 締め切り: 繰り返しルール ===== */
+  .rule{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 0;
+        border-bottom:1px solid var(--hairline);}
+  .rule:last-child{border-bottom:0;}
+  .rule .who{min-width:170px;color:var(--ink);font-size:14px;}
+  .num-in{border:1px solid var(--hairline);border-radius:var(--r-sm);padding:6px 8px;
+    font-family:inherit;font-size:14px;color:var(--ink);width:56px;text-align:right;
+    font-variant-numeric:tabular-nums;background:var(--canvas);}
+  .num-in:focus{outline:2px solid var(--primary);outline-offset:-1px;}
+
+  /* ===== 給与（shift_manage_app より移設） ===== */
+  .summ{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+  .summ .card{padding:18px 20px;} .summ .k{font-size:12px;color:var(--muted);margin-bottom:8px;}
+  .summ .v{font-size:24px;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;}
+  .summ .v small{font-size:13px;color:var(--muted);font-weight:400;margin-left:2px;}
+  .sub{font-size:11px;color:var(--border-strong);font-weight:400;}
+  table.data tfoot td{border-top:2px solid var(--border-strong);border-bottom:0;
+    font-weight:600;color:var(--ink);background:var(--surface-soft);}
+  .btn-danger{background:var(--canvas);color:var(--coral);border-color:var(--hairline);}
+
+  /* ===== 入力 ===== */
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+  .input{width:100%;height:44px;border:1px solid var(--hairline);border-radius:var(--r-sm);
+    padding:11px 14px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--canvas);}
+  .input:focus{outline:2px solid #458fff;border-color:#458fff;}
+  .seg-opt{display:flex;gap:6px;flex-wrap:wrap;}
+  .seg-opt button{flex:1;min-width:80px;border:1px solid var(--hairline);border-radius:var(--r-sm);
+    padding:9px 8px;text-align:center;font-size:13px;background:var(--canvas);color:var(--body);}
+  .seg-opt button.sel{border-color:var(--primary);background:var(--surface-soft);
+    color:var(--ink);font-weight:500;}
+  .lnk{display:block;text-align:center;margin-top:14px;color:var(--link);font-size:13px;cursor:pointer;}
+
+  /* ===== ログイン ===== */
+  .login-wrap{min-height:calc(100vh - 37px);display:grid;place-items:center;padding:24px;}
+  .login-card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-lg);
+    padding:32px;width:100%;max-width:400px;}
+
+  /* ===== 欠席連絡シート ===== */
+  .overlay{position:fixed;inset:0;background:rgba(24,29,38,.35);opacity:0;visibility:hidden;
+    transition:opacity .18s;z-index:70;}
+  .overlay.show{opacity:1;visibility:visible;}
+  .sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(102%);bottom:0;
+    width:100%;max-width:560px;background:var(--canvas);z-index:71;
+    border-radius:var(--r-lg) var(--r-lg) 0 0;transition:transform .22s ease;
+    display:flex;flex-direction:column;max-height:88vh;}
+  .sheet.show{transform:translateX(-50%) translateY(0);}
+  .sheet-h{padding:18px 20px;border-bottom:1px solid var(--hairline);
+    display:flex;align-items:center;justify-content:space-between;}
+  .sheet-b{padding:20px;overflow:auto;flex:1;}
+  .sheet-f{padding:14px 20px;border-top:1px solid var(--hairline);display:flex;gap:10px;}
+
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--primary);color:#fff;padding:12px 20px;border-radius:var(--r-md);font-size:13px;
+    opacity:0;visibility:hidden;transition:all .2s;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.2);}
+  .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{position:fixed;left:0;top:37px;z-index:30;transform:translateX(-100%);transition:transform .2s;width:232px;}
+    .sidebar.open{transform:translateX(0);}
+    .hamb{display:grid !important;}
+    .content{padding:16px;}
+    .slots{grid-template-columns:1fr;}
+    .mobile{border-left:0;border-right:0;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== モック用ロール切替 ===================== -->
+<div class="devbar">
+  <span class="lbl">MOCK — 表示ロール</span>
+  <div class="seg">
+    <button class="on" onclick="setRole('admin',this)">管理者</button>
+    <button onclick="setRole('parent',this)">保護者</button>
+    <button onclick="setRole('employee',this)">従業員</button>
+    <button onclick="setRole('login',this)">ログイン</button>
+  </div>
+  <span class="note">ダミーデータ／保存はされません</span>
+</div>
+
+<!-- ===================== ログイン（共通） ===================== -->
+<div class="view" id="view-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand" style="border:0;padding:0 0 22px;">
+        <div class="logo">R</div>
+        <div>
+          <div class="name">R-Tech 管理システム</div>
+          <div class="sub">プログラミング教室・イラスト教室</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>メールアドレス</label>
+        <input class="input" type="email" value="tanaka@example.com">
+      </div>
+      <div class="field">
+        <label>パスワード</label>
+        <input class="input" type="password" value="············">
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:6px;"
+              onclick="toast('ロールに応じた画面へ遷移します（上のバーで切替）')">ログイン</button>
+      <a class="lnk" onclick="toast('パスワード再設定メールを送信しました')">パスワードをお忘れですか？</a>
+      <div class="cream-note" style="margin:22px 0 0;">
+        <span>🔑</span>
+        <div><strong>アカウントは管理者が発行します。</strong>自己登録はできません。
+        ログインできない場合は教室までご連絡ください。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 管理者 ===================== -->
+<div class="view active" id="view-admin">
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">R</div>
+      <div>
+        <div class="name">R-Tech 管理</div>
+        <div class="sub">ADMIN CONSOLE</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="grp">ホーム</div>
+      <button class="on" data-s="home"><span class="ic">🏠</span>ホーム</button>
+      <div class="grp">教室運用</div>
+      <button data-s="schedule"><span class="ic">🗓</span>スケジュール確定</button>
+      <button data-s="students"><span class="ic">👦</span>生徒</button>
+      <button data-s="staff"><span class="ic">🧑‍🏫</span>講師</button>
+      <!-- 承認して初めて効く申請ものを1か所に集める（時間外勤務・進級によるコース変更） -->
+      <div class="grp">申請・承認</div>
+      <button data-s="overtime"><span class="ic">🏠</span>時間外勤務 申請<span class="navbadge" id="navOt">0</span></button>
+      <button data-s="promotion"><span class="ic">🎓</span>進級処理<span class="navbadge">4</span></button>
+      <div class="grp">経営</div>
+      <button data-s="revenue"><span class="ic">📈</span>収入・収益</button>
+      <button data-s="payroll"><span class="ic">🧮</span>給与計算・締め処理</button>
+      <div class="grp">連絡</div>
+      <button data-s="inbox"><span class="ic">🔔</span>受信ボックス<span class="navbadge" id="navInbox">0</span></button>
+      <button data-s="announce"><span class="ic">📢</span>お知らせ</button>
+      <div class="grp">マスタ</div>
+      <button data-s="courses"><span class="ic">📋</span>コース・料金</button>
+      <button data-s="slots"><span class="ic">⏰</span>開催枠</button>
+      <button data-s="deadlines"><span class="ic">⏳</span>締め切り設定<span class="navbadge">1</span></button>
+      <button data-s="users"><span class="ic">👥</span>ユーザー・招待</button>
+    </nav>
+    <div class="who">
+      <div class="avatar">森</div>
+      <div class="meta"><div>森川</div><div class="r">管理者</div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="iconbtn hamb" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <h1 id="pageTitle">スケジュール確定</h1>
+      <div class="spacer"></div>
+      <div id="topActions" style="display:flex;gap:10px;"></div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== ホーム ===== -->
+      <section class="screen active" id="s-home">
+        <!-- カレンダーは上部を全幅で使う（左右に余白） -->
+        <div class="cal-wrap">
+        <div class="toolbar" style="margin-bottom:12px;">
+          <div class="monthnav">
+            <button class="iconbtn" onclick="shiftMonth('admin',-1)">‹</button>
+            <div class="m" id="adminMonthLabel">2026年 8月</div>
+            <button class="iconbtn" onclick="shiftMonth('admin',1)">›</button>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <div class="mlegend">
+            <span><span class="dot prog"></span> プログラミング教室</span>
+            <span><span class="dot illust"></span> イラスト教室</span>
+            <span><i style="border:1px dashed var(--border-strong)"></i> 未確定のコマ</span>
+            <span><i style="background:#eef7f1;box-shadow:inset 4px 0 0 var(--forest)"></i> 確定した日</span>
+            <span><i style="background:#fdeeeb;box-shadow:inset 4px 0 0 var(--coral)"></i> 未確定を含む日</span>
+          </div>
+        </div>
+        <div class="calendar">
+          <div class="cal-head">
+            <div class="sun">日</div><div>月</div><div>火</div><div>水</div>
+            <div>木</div><div>金</div><div class="sat">土</div>
+          </div>
+          <div id="adminCal"></div>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          チップは<strong>教室ごとの開催コマ数</strong>です。教室のある日をクリックすると、その日の<strong>従業員と生徒</strong>が見られます。
+          <strong>両方の教室が確定して初めて「確定した日」</strong>になり、片方でも未確定なら未確定の扱いです。
+        </p>
+        </div>
+
+        <!-- 下段は2カラム -->
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;
+                    align-items:start;margin-top:28px;" class="home-lower">
+          <div>
+            <div class="lbl">次回の教室</div>
+            <div id="nextClass" style="margin-bottom:24px;"></div>
+            <div class="lbl">前回の教室</div>
+            <div id="prevClass"></div>
+          </div>
+          <div>
+            <div class="lbl">要対応</div>
+            <div class="panel" style="padding:0;margin-bottom:22px;" id="todoList"></div>
+            <div class="lbl">今月のサマリ</div>
+            <div class="panel" id="homeSummary"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== スケジュール確定 ===== -->
+      <section class="screen" id="s-schedule">
+        <div class="toolbar">
+          <div class="monthnav">
+            <button class="iconbtn">‹</button>
+            <div class="m">2026年 9月</div>
+            <button class="iconbtn">›</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <span class="chip active">すべて</span>
+            <span class="chip"><span class="dot prog"></span>プログラミング</span>
+            <span class="chip"><span class="dot illust"></span>イラスト</span>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <span class="badge draft">下書き</span>
+        </div>
+
+        <div class="cream-note">
+          <span>👆</span>
+          <div><strong>提出された希望をクリックすると仮確定できます。</strong>
+          点線＝希望のみ、塗りつぶし＝仮確定です。<br>
+          <strong>定員 = 仮確定した従業員数 × 3人</strong>（事業ごとに変更可）。従業員を足すと定員が伸び、超過警告が消えます。<br>
+          ここで仮確定した担当が、そのまま<strong>従業員の出勤日・勤務時間</strong>になります（給与計算にも使われます）。</div>
+        </div>
+
+        <div id="schedList"></div>
+      </section>
+
+      <!-- ===== 生徒 ===== -->
+      <section class="screen" id="s-students">
+        <div class="toolbar">
+          <input class="input" placeholder="🔍 生徒・保護者を検索" style="max-width:210px;height:38px;"
+                 oninput="stuF.q = this.value.trim(); renderStudents()">
+          <div style="display:flex;gap:8px;" id="stuBizChips">
+            <span class="chip active" onclick="setStuBiz('all',this)">すべて</span>
+            <span class="chip" onclick="setStuBiz('prog',this)"><span class="dot prog"></span>プログラミング</span>
+            <span class="chip" onclick="setStuBiz('illust',this)"><span class="dot illust"></span>イラスト</span>
+          </div>
+          <span class="chip" id="chipUnpaid" onclick="toggleUnpaid(this)">未払いのみ</span>
+          <div class="spacer" style="flex:1"></div>
+          <span class="muted" id="stuCount"></span>
+          <button class="btn btn-secondary btn-sm" onclick="setScreen('users')">保護者の招待から登録</button>
+        </div>
+        <div class="cream-note">
+          <span>💡</span>
+          <div>生徒の<strong>新規登録は「ユーザー・招待」から</strong>行います（保護者と同時に登録）。
+          この画面は在籍中の生徒の<strong>確認と変更</strong>用です。</div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th><button class="sortbtn" onclick="sortStu('n')">生徒<i id="sort-n"></i></button></th>
+              <th><button class="sortbtn" onclick="sortStu('biz')">教室<i id="sort-biz"></i></button></th>
+              <th class="num"><button class="sortbtn" onclick="sortStu('grade')">学年<i id="sort-grade"></i></button></th>
+              <th>コース</th>
+              <th class="num"><button class="sortbtn" onclick="sortStu('sess')">月間<i id="sort-sess"></i></button></th>
+              <th><button class="sortbtn" onclick="sortStu('fee')">今月の月謝<i id="sort-fee"></i></button></th>
+              <th>保護者</th><th></th>
+            </tr></thead>
+            <tbody id="studentRows"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          学年は保存していません。<strong>入学年度から毎回計算</strong>しています（毎年4月の一括更新が不要になり、更新漏れによる料金誤りが起きません）。
+        </p>
+      </section>
+
+      <!-- ===== 進級処理 ===== -->
+      <section class="screen" id="s-promotion">
+        <div class="cream-note">
+          <span>🎓</span>
+          <div><strong>2027年4月時点の判定（プレビュー）</strong>。学年区分が変わってコース変更が必要な生徒です。
+          <strong>ここでは何も変更されません。</strong>「承認」を押して初めて適用され、保護者への連絡なしに請求額が変わることを防ぎます。</div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th>生徒</th><th>事業</th><th class="num">学年</th>
+              <th>現在のコース</th><th>変更後</th><th class="num">差額</th><th></th>
+            </tr></thead>
+            <tbody id="promoRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== コース・料金 ===== -->
+      <section class="screen" id="s-courses">
+        <div class="cream-note">
+          <span>💡</span>
+          <div>料金・回数はここ（マスタ）で編集します。<strong>コードには一切埋め込んでいません。</strong>
+          管理画面が間に合わない間は Supabase のダッシュボードから直接編集できます。</div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th>事業</th><th>学年区分</th><th class="num">対象学年</th>
+              <th class="num">月2回</th><th class="num">月3回</th>
+            </tr></thead>
+            <tbody id="courseRows"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          ● が各学年区分の標準コース。<strong>5・6学年・中学生だけ標準が月3回</strong>で、月2回にすると安くなります（他学年と増減が逆）。
+        </p>
+      </section>
+
+      <!-- ===== 開催枠 ===== -->
+      <section class="screen" id="s-slots">
+        <div class="cream-note">
+          <span>💡</span>
+          <div>開催曜日とコマ時間もマスタです。<strong>日曜は2教室が同じ時間帯に並行開催</strong>されるため、
+          スケジュールは「事業 × 日付 × コマ」で管理しています。</div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr><th>事業</th><th>曜日</th><th>コマ</th><th>時間</th><th class="num">定員係数</th></tr></thead>
+            <tbody id="slotRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== 時間外勤務 申請（shift_manage_app より移設） ===== -->
+      <section class="screen" id="s-overtime">
+        <div class="toolbar">
+          <div>
+            <h2 style="font-size:17px;margin-bottom:4px;">時間外勤務 申請</h2>
+            <div class="muted">シフト外に自宅等で行った勤務。承認した分だけが給与に加算されます。</div>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <div style="display:flex;gap:8px;">
+            <span class="chip active">承認待ち 2</span><span class="chip">承認済み</span><span class="chip">却下</span>
+          </div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th>従業員</th><th>勤務日</th><th>作業内容</th>
+              <th class="num">申請時間</th><th class="num">適用時給</th><th class="num">加算額</th>
+              <th>状態</th><th></th>
+            </tr></thead>
+            <tbody id="otRows"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          <strong>法定残業（1日8h／週40h超過の25%割増）とは別物</strong>です。加算単価はその業務の通常時給で、割増は付きません。
+          承認・却下の履歴は監査のため記録されます。
+        </p>
+      </section>
+
+      <!-- ===== 収入・収益 =====
+           収入は固定月額の合計、支出は確定したコマから計算した人件費。
+           どちらも別画面と同じデータを見ているので、数字が食い違わない。 -->
+      <section class="screen" id="s-revenue">
+        <div class="toolbar">
+          <div class="monthnav">
+            <button class="iconbtn" onclick="shiftRev(-1)">‹</button>
+            <div class="m" id="revMonthLabel" style="min-width:150px;">2026年 8月</div>
+            <button class="iconbtn" onclick="shiftRev(1)">›</button>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <span id="revState"></span>
+        </div>
+        <div class="summ" id="revSumm"></div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;
+                    align-items:start;" class="rev-cols">
+          <div>
+            <div class="lbl">事業別の内訳</div>
+            <div class="panel" style="padding:0;overflow-x:auto;">
+              <table class="data">
+                <thead><tr>
+                  <th>事業</th><th class="num">生徒</th><th class="num">月謝収入</th>
+                  <th class="num">人件費</th><th class="num">差引</th>
+                </tr></thead>
+                <tbody id="revBizRows"></tbody>
+              </table>
+            </div>
+            <p class="muted" style="margin-top:10px;">
+              交通費は<strong>出勤日に対して1日ぶん</strong>払うもので、日曜は2教室を掛け持ちします。
+              事業に割り振れないため<strong>共通費</strong>として下の支出内訳にだけ出しています。
+            </p>
+          </div>
+          <div>
+            <div class="lbl">支出の内訳</div>
+            <div class="panel" id="revCost"></div>
+          </div>
+        </div>
+
+        <div class="toolbar" style="margin-top:26px;">
+          <div>
+            <h2 style="font-size:15px;margin-bottom:4px;">月謝の支払い状況</h2>
+            <div class="muted" id="revFeeSub"></div>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <input class="input" placeholder="🔍 生徒・保護者を検索" style="max-width:200px;height:38px;"
+                 oninput="revF.q = this.value.trim(); renderRevFees()">
+          <div style="display:flex;gap:8px;" id="revBizChips">
+            <span class="chip active" onclick="setRevF('biz','all',this)">すべて</span>
+            <span class="chip" onclick="setRevF('biz','prog',this)"><span class="dot prog"></span>プログラミング</span>
+            <span class="chip" onclick="setRevF('biz','illust',this)"><span class="dot illust"></span>イラスト</span>
+          </div>
+          <div style="display:flex;gap:8px;" id="revPayChips">
+            <span class="chip active" onclick="setRevF('pay','all',this)">全件</span>
+            <span class="chip" onclick="setRevF('pay','unpaid',this)">未払いのみ</span>
+            <span class="chip" onclick="setRevF('pay','paid',this)">支払済みのみ</span>
+          </div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th>生徒</th><th>教室</th><th>コース</th>
+              <th class="num">請求額</th><th>状態</th><th>入金日</th><th>備考</th><th></th>
+            </tr></thead>
+            <tbody id="revFeeRows"></tbody>
+            <tfoot id="revFeeFoot"></tfoot>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          <strong>収入は固定月額の合計</strong>です。欠席や休講があっても変わりません（日割り・繰越なし）。
+          <strong>支出はスケジュール確定で割り当てたコマから計算</strong>しているので、
+          <strong>未確定の月は見込み</strong>です。確定すると数字が動きます。
+          家賃・光熱費・教材費などの固定費は<strong>まだ入っていません</strong>。
+        </p>
+      </section>
+
+      <!-- ===== 給与計算・締め処理（shift_manage_app より移設） ===== -->
+      <section class="screen" id="s-payroll">
+        <div class="toolbar">
+          <div class="monthnav">
+            <button class="iconbtn">‹</button>
+            <div class="m" style="min-width:200px;">2026年 8月度（月末締め）</div>
+            <button class="iconbtn">›</button>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <span class="badge over" style="padding:6px 12px;">未確定</span>
+        </div>
+        <div class="cream-note">
+          <span>⚠</span>
+          <div>締め前です。<strong>実績（欠勤・遅刻・時間変更）の確認・修正</strong>を済ませてから確定してください。
+          確定後はシフトがロックされ、編集できなくなります。</div>
+        </div>
+        <div class="summ" id="paySumm"></div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th>従業員</th><th class="num">出勤<br><span class="sub">日数</span></th>
+              <th class="num">勤務<br><span class="sub">時間</span></th><th class="num">基本給</th>
+              <th class="num">深夜割増<br><span class="sub">25%</span></th>
+              <th class="num">残業割増<br><span class="sub">法定25%</span></th>
+              <th class="num">時間外<br><span class="sub">承認済</span></th>
+              <th class="num">交通費</th><th class="num">支給総額</th><th></th>
+            </tr></thead>
+            <tbody id="payRows"></tbody>
+            <tfoot id="payFoot"></tfoot>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          基本給 = Σ(勤務時間 × 該当時給)。時給は<strong>「従業員 × 業務」</strong>ごとに設定します。
+          交通費は 出勤日数 × 日額。端数処理ルールは未確定のため未適用です。
+        </p>
+      </section>
+
+      <!-- ===== 従業員・時給設定（shift_manage_app より移設） ===== -->
+      <section class="screen" id="s-staff">
+        <div class="toolbar">
+          <input class="input" placeholder="🔍 講師を検索" style="max-width:200px;height:38px;"
+                 oninput="staffQ = this.value.trim(); renderStaff()">
+          <div style="display:flex;gap:8px;" id="staffChips">
+            <span class="chip active" onclick="setStaffFilter('active',this)">在籍のみ</span>
+            <span class="chip" onclick="setStaffFilter('all',this)">退職含む</span>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <span class="muted" id="staffCount"></span>
+          <button class="btn btn-secondary btn-sm" onclick="setScreen('users')">講師の招待から登録</button>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr>
+              <th>講師</th><th>担当事業</th><th>時給（業務別・現在）</th>
+              <th class="num">交通費<br><span class="sub">日額</span></th>
+              <th class="num">今月の担当<br><span class="sub">コマ / 時間</span></th>
+              <th>状態</th><th></th>
+            </tr></thead>
+            <tbody id="staffRows"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          時給は<strong>「講師 × 業務（教室）」</strong>の組み合わせで設定し、適用開始日を持つので昇給履歴に対応します。
+          退職は<strong>論理削除</strong>（データは保持）。
+          <strong>今月の担当は、スケジュール確定で割り当てたコマから自動集計</strong>しています。
+        </p>
+      </section>
+
+      <!-- ===== 受信ボックス（管理者に届く通知） =====
+           「お知らせ」が管理者から送る側、こちらが管理者に届く側。
+           時間外勤務の申請・欠席連絡・希望提出など、他のロールの操作がここに集まる。 -->
+      <section class="screen" id="s-inbox">
+        <div class="toolbar">
+          <div>
+            <h2 style="font-size:17px;margin-bottom:4px;">受信ボックス</h2>
+            <div class="muted">講師・保護者からの申請や連絡が届きます。<strong>対応が必要なものが上</strong>に並びます。</div>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <span class="muted" id="inboxCount"></span>
+          <button class="btn btn-secondary btn-sm" onclick="markAllRead()">すべて既読にする</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="inboxChips"></div>
+        <div class="panel" style="padding:0;overflow:hidden;" id="inboxList"></div>
+        <p class="muted" style="margin-top:12px;">
+          通知は<strong>すべて notifications テーブルに1件残り</strong>、メール・プッシュはその副作用として送られます。
+          ここでの<strong>承認・却下・確認は、申請元の画面と同じデータ</strong>を更新します（時間外勤務 申請の一覧にも即座に反映されます）。
+        </p>
+      </section>
+
+      <!-- ===== お知らせ ===== -->
+      <section class="screen" id="s-announce">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start;">
+          <div class="panel" style="padding:0;">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--hairline);
+                        display:flex;align-items:center;gap:10px;">
+              <h3 style="font-size:14px;">お知らせ一覧</h3>
+              <span style="flex:1"></span>
+              <span class="muted" id="anPending"></span>
+            </div>
+            <div style="padding:6px 20px 16px;" id="announceList"></div>
+          </div>
+          <div class="panel">
+            <h3 style="font-size:14px;margin-bottom:14px;">新規投稿</h3>
+            <div class="field">
+              <label>タイトル</label>
+              <input class="input" id="anTitle" placeholder="例）9月の受講希望について">
+            </div>
+            <div class="field">
+              <label>本文</label>
+              <textarea class="input" id="anBody" rows="3" style="height:auto;resize:vertical;"
+                placeholder="本文を入力"></textarea>
+            </div>
+            <div class="field">
+              <label>宛先ロール</label>
+              <div class="seg-opt" id="anRole">
+                <button class="sel" onclick="pickSeg(this)">全員</button>
+                <button onclick="pickSeg(this)">保護者</button>
+                <button onclick="pickSeg(this)">従業員</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>宛先の事業</label>
+              <div class="seg-opt" id="anBiz">
+                <button class="sel" onclick="pickSeg(this)">全事業</button>
+                <button onclick="pickSeg(this)">プログラミング</button>
+                <button onclick="pickSeg(this)">イラスト</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>送信タイミング</label>
+              <div class="seg-opt" id="anWhen">
+                <button class="sel" onclick="pickWhen(this,'now')">今すぐ送信</button>
+                <button onclick="pickWhen(this,'later')">日時を指定</button>
+              </div>
+            </div>
+            <div class="field" id="anAtField" style="display:none;">
+              <label>送信日時</label>
+              <input class="input" id="anAt" type="datetime-local" value="2026-08-17T09:00">
+              <p class="muted" style="margin-top:6px;">
+                指定した日時になると<strong>自動で送信</strong>されます。それまでは対象者に表示されません。
+              </p>
+            </div>
+            <button class="btn btn-primary btn-block" id="anSubmit" onclick="postAnnounce()">投稿する</button>
+            <p class="muted" style="margin-top:10px;">
+              送信時に対象者へアプリ内通知・メール・プッシュが届きます。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 締め切り設定 ===== -->
+      <section class="screen" id="s-deadlines">
+        <div class="cream-note">
+          <span>🔁</span>
+          <div><strong>締め切りは「毎月◯日」の繰り返しルールで自動生成します。</strong>
+          毎月の設定は要りません。<strong>ルールを1度決めれば、以降の月は自動で受付が開きます</strong>。
+          締め切り後も<strong>管理者だけは編集できます</strong>。</div>
+        </div>
+
+        <div class="lbl">繰り返しルール</div>
+        <div class="panel" style="margin-bottom:6px;">
+          <div id="dlRules"></div>
+          <p class="muted" style="margin-top:14px;">
+            対象月の<strong>前月</strong>の指定日が締め切りです。例）毎月20日 → <strong>9月分は8月20日</strong>が締め切り。
+            <strong>31日を指定した月末は、その月の末日に丸めます</strong>（2月なら28日）。<br>
+            受付は<strong>対象月の前月1日</strong>に自動で開きます。
+          </p>
+        </div>
+
+        <p class="muted" style="margin-top:12px;">
+          締め切りは<strong>事業共通</strong>です（プログラミングとイラストで分けていません）。<br>
+          <strong>繰り返しにすると「設定を忘れて受付が開かない」事故は無くなります。</strong>
+          特定の月だけ変えたいとき（連休で早めるなど）は、その月が来てから変更してください。
+        </p>
+      </section>
+
+      <!-- ===== ユーザー・招待 ===== -->
+      <section class="screen" id="s-users">
+        <div class="toolbar">
+          <div style="display:flex;gap:8px;">
+            <span class="chip active">すべて</span><span class="chip">保護者</span><span class="chip">従業員</span>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <button class="btn btn-primary btn-sm" onclick="openInv()">＋ ユーザーを招待</button>
+        </div>
+        <div class="cream-note">
+          <span>🔑</span>
+          <div>アカウントは<strong>招待制</strong>です。自己登録はできません。
+          <strong>保護者を招待するときは、お子さまも同じ画面でまとめて登録します</strong>（別途の生徒登録は不要です）。</div>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="data">
+            <thead><tr><th>氏名</th><th>メール</th><th>ロール</th><th>担当・お子さま</th><th>状態</th><th></th></tr></thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== 保護者 ===================== -->
+<div class="view" id="view-parent">
+  <div class="mobile">
+    <div class="mhead">
+      <div class="avatar" style="background:var(--primary)">田</div>
+      <div><h2 id="pTitle">マイページ</h2><div class="muted">田中 さくら（保護者）</div></div>
+    </div>
+    <div class="mbody">
+
+      <section class="screen active" id="p-home">
+        <div class="lbl">お子さま</div>
+        <div class="kidswitch" id="kidSwitch"></div>
+        <div id="nextCard"></div>
+
+        <!-- 月を ‹ › と左右スワイプで前後できる。受講状況と授業記録は同じ回のものなので1つにまとめる -->
+        <div class="panel" style="margin-bottom:16px;" id="attendPanel">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <h3 style="font-size:14px;">受講状況</h3>
+            <span style="flex:1"></span>
+            <button class="iconbtn" onclick="shiftKidMonth(-1)" id="kidPrev">‹</button>
+            <div style="min-width:96px;text-align:center;font-variant-numeric:tabular-nums;"
+                 id="kidMonthLabel">2026年8月</div>
+            <button class="iconbtn" onclick="shiftKidMonth(1)" id="kidNext">›</button>
+          </div>
+          <div id="attendSummary"></div>
+          <p class="muted" style="margin-top:10px;">
+            左右にスワイプしても月を切り替えられます。<br>
+            月謝は固定月額です。<strong>欠席しても請求額は変わりません。</strong>
+          </p>
+        </div>
+
+        <div class="panel">
+          <h3 style="font-size:14px;margin-bottom:10px;">お知らせ</h3>
+          <div class="listitem">
+            <span>📢</span>
+            <div><div class="t">9月の受講希望は8月20日締切です</div><div class="m">8月1日</div></div>
+          </div>
+          <div class="listitem">
+            <span>🎨</span>
+            <div><div class="t">イラスト教室 作品展のお知らせ</div><div class="m">7月28日</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="p-submit">
+        <div class="lbl">お子さま</div>
+        <div class="kidswitch" id="kidSwitch2"></div>
+        <div class="counter">
+          <div><div class="muted">選択中</div><div class="c"><span id="pickCount">2</span> / <span id="pickMax">2</span> コマ</div></div>
+          <div class="spacer" style="flex:1"></div>
+          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:13px;color:var(--ink);">8月20日 23:59</div></div>
+        </div>
+        <div class="lbl" id="pickHint">2026年9月 の候補日</div>
+        <div id="pickList"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="toast('9月分の受講希望を提出しました')">この内容で提出する</button>
+        <p class="muted" style="margin-top:12px;">
+          <strong>同じ日に2コマは受講できません（1日1コマまで）。</strong>
+          コースの上限を超える選択もできません。
+          締切を過ぎると編集できなくなります（管理者は締切後も変更できます）。
+        </p>
+      </section>
+
+      <section class="screen" id="p-schedule">
+        <div class="lbl">確定スケジュール</div>
+        <div id="parentSched"></div>
+        <p class="muted" style="margin-top:12px;">確定前の予定はここには出ません。</p>
+      </section>
+
+      <section class="screen" id="p-news">
+        <div class="lbl">通知</div>
+        <div class="panel" style="margin-bottom:18px;">
+          <div class="listitem" style="background:#f4f8ff;margin:-13px -20px 0;padding:13px 20px;">
+            <span>🔴</span>
+            <div><div class="t">9月のスケジュールが確定しました</div>
+            <div class="m">8月5日 ・ 未読</div></div>
+          </div>
+          <div class="listitem">
+            <span>✅</span>
+            <div><div class="t">田中 咲希さんの欠席連絡を受け付けました</div>
+            <div class="m">8月8日</div></div>
+          </div>
+          <div class="listitem">
+            <span>⏳</span>
+            <div><div class="t">9月分の受講希望 締切まであと3日です</div>
+            <div class="m">8月17日</div></div>
+          </div>
+        </div>
+
+        <div class="lbl">お知らせ</div>
+        <div class="panel">
+          <div class="listitem">
+            <span>📢</span>
+            <div><div class="t">9月の受講希望は8月20日締切です</div>
+            <div class="m">8月1日 ・ 全体</div></div>
+          </div>
+          <div class="listitem">
+            <span>🎨</span>
+            <div><div class="t">イラスト教室 作品展のお知らせ</div>
+            <div class="m">7月28日 ・ イラスト教室</div></div>
+          </div>
+          <div class="listitem">
+            <span>🏫</span>
+            <div><div class="t">8月16日は休講です（お盆）</div>
+            <div class="m">7月20日 ・ 全体</div></div>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:12px;">
+          <strong>通知</strong>は自分宛の連絡、<strong>お知らせ</strong>は教室からの掲示です。
+        </p>
+      </section>
+
+    </div>
+    <div class="tabs" id="parentTabs">
+      <button class="on" data-s="p-home"><span class="ic">🏠</span>ホーム</button>
+      <button data-s="p-submit"><span class="ic">📅</span>希望提出</button>
+      <button data-s="p-schedule"><span class="ic">✓</span>予定</button>
+      <button data-s="p-news"><span class="ic">🔔</span>お知らせ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 従業員 ===================== -->
+<div class="view" id="view-employee">
+  <div class="mobile">
+    <div class="mhead">
+      <div class="avatar">中</div>
+      <div><h2 id="eTitle">担当コマ</h2><div class="muted">中村（プログラミング・イラスト）</div></div>
+    </div>
+    <div class="mbody">
+
+      <section class="screen active" id="e-today">
+        <div class="lbl">直近の担当</div>
+        <div id="empNext" style="margin-bottom:16px;"></div>
+        <div class="panel">
+          <h3 style="font-size:14px;margin-bottom:2px;">出席</h3>
+          <div class="muted" style="margin-bottom:6px;">タップで記録されます</div>
+          <div id="attList"></div>
+        </div>
+        <div class="panel" style="margin-top:14px;">
+          <h3 style="font-size:14px;margin-bottom:2px;">同日の自分の担当</h3>
+          <div class="muted" style="margin-bottom:6px;">担当していない教室のコマは出ません</div>
+          <div id="empOther"></div>
+        </div>
+      </section>
+
+      <section class="screen" id="e-submit">
+        <div class="counter">
+          <div><div class="muted">選択中</div><div class="c"><span id="ePickCount">5</span> コマ</div></div>
+          <div class="spacer" style="flex:1"></div>
+          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:13px;color:var(--ink);">8月25日 23:59</div></div>
+        </div>
+        <div class="lbl">2026年9月 勤務可能なコマ</div>
+        <div id="ePickList"></div>
+        <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="toast('9月分の勤務希望を提出しました')">この内容で提出する</button>
+        <p class="muted" style="margin-top:12px;">
+          担当できる事業の開催日だけが出ます。<strong>日曜は2教室が並行開催</strong>されるため、事業ごとに分かれています。
+        </p>
+      </section>
+
+      <section class="screen" id="e-schedule">
+        <div class="toolbar" style="margin-bottom:10px;">
+          <div class="monthnav">
+            <button class="iconbtn" onclick="shiftMonth('emp',-1)">‹</button>
+            <div class="m" id="empMonthLabel" style="font-size:15px;min-width:120px;">2026年 8月</div>
+            <button class="iconbtn" onclick="shiftMonth('emp',1)">›</button>
+          </div>
+        </div>
+        <div class="calendar">
+          <div class="cal-head">
+            <div class="sun">日</div><div>月</div><div>火</div><div>水</div>
+            <div>木</div><div>金</div><div class="sat">土</div>
+          </div>
+          <div id="empCal"></div>
+        </div>
+        <div class="mlegend" style="margin-top:10px;">
+          <span><span class="dot prog"></span> プログラミング</span>
+          <span><span class="dot illust"></span> イラスト</span>
+        </div>
+        <p class="muted" style="margin-top:10px;">
+          <strong>自分が担当するコマだけ</strong>が表示されます。担当していない教室のコマは出ません。
+          日付をクリックすると詳細が見られます。
+        </p>
+
+        <div class="lbl" style="margin-top:22px;">9月の確定した勤務</div>
+        <div id="empSched"></div>
+      </section>
+
+      <section class="screen" id="e-news">
+        <div class="lbl">通知</div>
+        <div class="panel" style="margin-bottom:18px;">
+          <div class="listitem" style="background:#f4f8ff;margin:-13px -20px 0;padding:13px 20px;">
+            <span>🔴</span>
+            <div><div class="t">田中 咲希さんから欠席連絡が届きました</div>
+            <div class="m">8月8日 ・ 未読 ・ イラスト 第1コマ</div></div>
+          </div>
+          <div class="listitem">
+            <span>📅</span>
+            <div><div class="t">9月の勤務スケジュールが確定しました</div>
+            <div class="m">8月5日</div></div>
+          </div>
+        </div>
+        <div class="lbl">お知らせ</div>
+        <div class="panel">
+          <div class="listitem">
+            <span>📢</span>
+            <div><div class="t">9月の勤務希望は8月25日締切です</div>
+            <div class="m">8月1日 ・ 従業員向け</div></div>
+          </div>
+          <div class="listitem">
+            <span>🏫</span>
+            <div><div class="t">8月16日は休講です（お盆）</div>
+            <div class="m">7月20日 ・ 全体</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 講師: 給与 ===== -->
+      <section class="screen" id="e-pay">
+        <!-- 一番上のカードで月を送る（‹ › と左右スワイプ）。内訳はこの月に追従する -->
+        <div id="paySwipe">
+          <div class="next" id="payHero"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin:-6px 0 18px;">
+            <button class="iconbtn" onclick="shiftPayMonth(-1)" id="payPrev">‹</button>
+            <div class="muted" style="flex:1;text-align:center;">左右スワイプでも切り替えられます</div>
+            <button class="iconbtn" onclick="shiftPayMonth(1)" id="payNext">›</button>
+          </div>
+          <div class="lbl" id="payBreakLbl">内訳</div>
+          <div class="panel" id="payBreak" style="margin-bottom:22px;"></div>
+        </div>
+        <div class="lbl">自分の時給・交通費</div>
+        <div class="panel" id="payWages"></div>
+      </section>
+
+    </div>
+    <div class="tabs" id="empTabs">
+      <button class="on" data-s="e-today"><span class="ic">👥</span>担当</button>
+      <button data-s="e-submit"><span class="ic">📅</span>希望提出</button>
+      <button data-s="e-schedule"><span class="ic">✓</span>予定</button>
+      <button data-s="e-pay"><span class="ic">💴</span>給与</button>
+      <button data-s="e-news"><span class="ic">🔔</span>お知らせ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 欠席連絡シート（保護者） ===== -->
+<div class="overlay" id="absOverlay" onclick="closeAbs()"></div>
+<div class="sheet" id="absSheet">
+  <div class="sheet-h">
+    <h3 style="font-size:16px;">欠席のご連絡</h3>
+    <button class="iconbtn" onclick="closeAbs()">✕</button>
+  </div>
+  <div class="sheet-b">
+    <div class="card" style="padding:14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;">
+      <span class="dot" id="absDot"></span>
+      <div><div style="color:var(--ink);font-size:14px;" id="absWhen">—</div>
+      <div class="muted" style="margin-top:2px;" id="absWho">—</div></div>
+    </div>
+    <div class="field">
+      <label>理由（任意）</label>
+      <textarea class="input" id="absReason" rows="3" style="height:auto;resize:vertical;"
+        placeholder="例）発熱のため欠席します"></textarea>
+    </div>
+    <div class="cream-note" style="margin-bottom:0;">
+      <span>💴</span>
+      <div>月謝は<strong>固定月額</strong>です。欠席されても<strong>請求額は変わりません</strong>。振替もありません。</div>
+    </div>
+  </div>
+  <div class="sheet-f">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeAbs()">やめる</button>
+    <button class="btn btn-primary" style="flex:1" onclick="submitAbs()">送信する</button>
+  </div>
+</div>
+
+<!-- ===== 従業員詳細シート ===== -->
+<div class="overlay" id="stfOverlay" onclick="closeStaff()"></div>
+<div class="sheet" id="stfSheet" style="max-width:620px;">
+  <div class="sheet-h">
+    <div>
+      <h3 style="font-size:17px;" id="stfName">—</h3>
+      <div class="muted" id="stfSub">—</div>
+    </div>
+    <button class="iconbtn" onclick="closeStaff()">✕</button>
+  </div>
+  <div class="sheet-b" id="stfBody"></div>
+  <div class="sheet-f">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeStaff()">閉じる</button>
+    <button class="btn btn-primary" style="flex:1" onclick="toast('講師情報の編集フォームを開きます')">編集</button>
+  </div>
+</div>
+
+<!-- ===== 授業記録シート（従業員が記入） ===== -->
+<div class="overlay" id="recOverlay" onclick="closeRec()"></div>
+<div class="sheet" id="recSheet" style="max-width:540px;">
+  <div class="sheet-h">
+    <div>
+      <h3 style="font-size:16px;">授業記録</h3>
+      <div class="muted" id="recWho">—</div>
+    </div>
+    <button class="iconbtn" onclick="closeRec()">✕</button>
+  </div>
+  <div class="sheet-b">
+    <div class="field">
+      <label>今日の様子・学習内容</label>
+      <textarea class="input" id="recBody" rows="5" style="height:auto;resize:vertical;"
+        placeholder="例）条件分岐の課題に取り組みました。自分で図を書いて整理できていました。"></textarea>
+    </div>
+    <div class="cream-note" style="margin:0;">
+      <span>👀</span>
+      <div>この記録は <strong>保護者・管理者・その生徒を担当する従業員</strong> が閲覧できます。
+      他のご家庭や、担当していない従業員には見えません。</div>
+    </div>
+    <div class="lbl" style="margin-top:22px;">これまでの記録</div>
+    <div id="recPast"></div>
+  </div>
+  <div class="sheet-f">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeRec()">キャンセル</button>
+    <button class="btn btn-primary" style="flex:1" onclick="saveRec()">保存する</button>
+  </div>
+</div>
+
+<!-- ===== 日別詳細シート（管理者ホーム／従業員の予定 共用） ===== -->
+<div class="overlay" id="dayOverlay" onclick="closeDay()"></div>
+<div class="sheet" id="daySheet" style="max-width:600px;">
+  <div class="sheet-h">
+    <div>
+      <h3 style="font-size:17px;" id="dayTitle">—</h3>
+      <div class="muted" id="daySub">—</div>
+    </div>
+    <button class="iconbtn" onclick="closeDay()">✕</button>
+  </div>
+  <div class="sheet-b" id="dayBody"></div>
+  <div class="sheet-f" id="dayFoot"></div>
+</div>
+
+<!-- ===== 生徒詳細シート（情報・出席・月謝ログ） ===== -->
+<div class="overlay" id="stuOverlay" onclick="closeStu()"></div>
+<div class="sheet" id="stuSheet" style="max-width:680px;">
+  <div class="sheet-h">
+    <div>
+      <h3 style="font-size:17px;" id="stuName">—</h3>
+      <div class="muted" id="stuSub">—</div>
+    </div>
+    <button class="iconbtn" onclick="closeStu()">✕</button>
+  </div>
+  <div class="sheet-b" id="stuBody"></div>
+  <div class="sheet-f" id="stuFoot"></div>
+</div>
+
+<!-- ===== ユーザー招待シート（保護者は子どもを同時に登録） ===== -->
+<div class="overlay" id="invOverlay" onclick="closeInv()"></div>
+<div class="sheet" id="invSheet" style="max-width:520px;">
+  <div class="sheet-h">
+    <h3 style="font-size:16px;">ユーザーを招待</h3>
+    <button class="iconbtn" onclick="closeInv()">✕</button>
+  </div>
+  <div class="sheet-b">
+    <div class="field">
+      <label>ロール</label>
+      <div class="seg-opt" id="invRole">
+        <button class="sel" onclick="setInvRole('parent',this)">保護者</button>
+        <button onclick="setInvRole('employee',this)">従業員</button>
+        <button onclick="setInvRole('admin',this)">管理者</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>氏名</label>
+      <input class="input" placeholder="例）田中 さくら">
+    </div>
+    <div class="field">
+      <label>メールアドレス</label>
+      <input class="input" type="email" placeholder="例）tanaka@example.com">
+    </div>
+
+    <!-- 保護者のとき: 子どもを同時に登録 -->
+    <div id="invKids">
+      <div style="display:flex;align-items:center;gap:8px;margin:22px 0 10px;
+                  padding-bottom:7px;border-bottom:1px solid var(--hairline);">
+        <span style="font-size:12px;color:var(--muted);font-weight:500;">お子さま</span>
+        <span class="muted" id="invKidCount"></span>
+        <span style="flex:1"></span>
+        <button class="btn btn-secondary btn-sm" onclick="addKidRow()">＋ 追加</button>
+      </div>
+      <div id="invKidRows"></div>
+      <div class="cream-note" style="margin:12px 0 0;">
+        <span>👦</span>
+        <div>お子さまは<strong>アカウントを持ちません</strong>。ログインするのは保護者だけです。
+        兄弟で<strong>教室・コースが違っても大丈夫</strong>です。</div>
+      </div>
+    </div>
+
+    <!-- 従業員のとき: 担当事業 -->
+    <div id="invBiz" style="display:none;">
+      <div class="field" style="margin-top:22px;">
+        <label>担当できる事業（複数可）</label>
+        <div class="seg-opt">
+          <button class="sel">プログラミング</button>
+          <button class="sel">イラスト</button>
+        </div>
+      </div>
+      <p class="muted">担当外の事業には、勤務希望を出すこともコマに割り当てることもできません。</p>
+    </div>
+
+    <div id="invAdmin" style="display:none;">
+      <div class="cream-note" style="margin-top:22px;">
+        <span>🔑</span>
+        <div>管理者はすべての機能を操作できます。付与は慎重に行ってください。</div>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-f">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeInv()">やめる</button>
+    <button class="btn btn-primary" style="flex:1"
+            onclick="closeInv();toast('招待メールを送信しました（保護者と生徒を同時に登録）')">招待を送る</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== ダミーデータ ========== */
+const PROG = {key:'prog',   name:'プログラミング教室', short:'プログラミング', sort:1};
+const ILLU = {key:'illust', name:'イラスト教室',       short:'イラスト',       sort:2};
+
+/* 生徒15名（CLAUDE.md の想定規模）。プログラミング6名 / イラスト9名
+   田中家は兄弟2人で教室が違う（陽翔=プログラミング / 咲希=イラスト） */
+const students = [
+  {n:'田中 陽翔', b:PROG, grade:2, label:'1・2学年',         sess:2, fee:7500,  parent:'田中 さくら'},
+  {n:'佐藤 結衣', b:PROG, grade:4, label:'3・4学年',         sess:2, fee:9500,  parent:'佐藤 みどり'},
+  {n:'鈴木 蓮',   b:PROG, grade:6, label:'5・6学年・中学生', sess:3, fee:12500, parent:'鈴木 健一'},
+  {n:'高橋 芽依', b:PROG, grade:3, label:'3・4学年',         sess:3, fee:11500, parent:'高橋 直樹'},
+  {n:'中島 悠真', b:PROG, grade:5, label:'5・6学年・中学生', sess:3, fee:12500, parent:'中島 亮'},
+  {n:'岡田 湊',   b:PROG, grade:1, label:'1・2学年',         sess:2, fee:7500,  parent:'岡田 千夏'},
+  {n:'田中 咲希', b:ILLU, grade:5, label:'5・6学年・中学生', sess:3, fee:12000, parent:'田中 さくら'},
+  {n:'伊藤 陸',   b:ILLU, grade:2, label:'1・2学年',         sess:2, fee:7000,  parent:'伊藤 涼子'},
+  {n:'渡辺 心春', b:ILLU, grade:7, label:'5・6学年・中学生', sess:2, fee:10000, parent:'渡辺 剛'},
+  {n:'山本 大和', b:ILLU, grade:4, label:'3・4学年',         sess:2, fee:9000,  parent:'山本 恵'},
+  {n:'小川 結菜', b:ILLU, grade:3, label:'3・4学年',         sess:2, fee:9000,  parent:'小川 美穂'},
+  {n:'藤田 陽向', b:ILLU, grade:6, label:'5・6学年・中学生', sess:3, fee:12000, parent:'藤田 直人'},
+  {n:'松本 楓',   b:ILLU, grade:1, label:'1・2学年',         sess:2, fee:7000,  parent:'松本 彩'},
+  {n:'井上 大翔', b:ILLU, grade:8, label:'5・6学年・中学生', sess:2, fee:10000, parent:'井上 拓也'},
+  {n:'森 陽菜',   b:ILLU, grade:9, label:'5・6学年・中学生', sess:3, fee:12000, parent:'森 香織'},
+];
+
+const gradeName = g => g <= 6 ? '小' + g : '中' + (g - 6);
+
+/* 9月のスケジュール（定員 = 担当従業員数 × 3）
+   empWish / studWish = 提出された希望。emps / studs = 管理者が仮確定した分。
+   中村＝両教室担当、小林＝イラストのみ。担当外の事業には希望を出せない。 */
+const sched = [
+  {date:'9月5日（土）', slots:[
+    {b:ILLU, no:1, time:'13:00〜14:30',
+     empWish:['小林'],        studWish:['伊藤 陸','渡辺 心春','山本 大和'],
+     emps:['小林'],           studs:['伊藤 陸','渡辺 心春']},
+    {b:ILLU, no:2, time:'15:00〜16:30',
+     empWish:['小林','中村'], studWish:['山本 大和','田中 咲希'],
+     emps:[],                 studs:['山本 大和']},
+  ]},
+  {date:'9月6日（日）', slots:[
+    {b:PROG, no:1, time:'13:00〜14:30',
+     empWish:['中村'],        studWish:['田中 陽翔','佐藤 結衣','鈴木 蓮','高橋 芽依'],
+     emps:['中村'],           studs:['田中 陽翔','佐藤 結衣','鈴木 蓮']},
+    {b:PROG, no:2, time:'15:00〜16:30',
+     empWish:['中村'],        studWish:['高橋 芽依','鈴木 蓮'],
+     emps:['中村'],           studs:['高橋 芽依','鈴木 蓮']},
+    {b:ILLU, no:1, time:'13:00〜14:30',
+     empWish:['小林','中村'], studWish:['田中 咲希','伊藤 陸','渡辺 心春','山本 大和'],
+     emps:['小林'],           studs:['田中 咲希','伊藤 陸','渡辺 心春','山本 大和']},
+    {b:ILLU, no:2, time:'15:00〜16:30',
+     empWish:['小林','中村'], studWish:['田中 咲希','山本 大和'],
+     emps:['小林'],           studs:['田中 咲希','山本 大和']},
+  ]},
+];
+
+const promo = [
+  {n:'田中 陽翔', b:PROG, from:2, to:3, cur:'1・2学年 月2回',         nxt:'3・4学年 月2回',         diff:2000},
+  {n:'伊藤 陸',   b:ILLU, from:2, to:3, cur:'1・2学年 月2回',         nxt:'3・4学年 月2回',         diff:2000},
+  {n:'佐藤 結衣', b:PROG, from:4, to:5, cur:'3・4学年 月2回',         nxt:'5・6学年・中学生 月2回', diff:1000},
+  {n:'森 陽菜',   b:ILLU, from:9, to:10, cur:'5・6学年・中学生 月3回', nxt:null,                    diff:null},
+];
+
+const courses = [
+  {b:PROG, label:'1・2学年',         gr:'小1〜小2',   f2:7500,  f3:9500,  def:2},
+  {b:PROG, label:'3・4学年',         gr:'小3〜小4',   f2:9500,  f3:11500, def:2},
+  {b:PROG, label:'5・6学年・中学生', gr:'小5〜中3',   f2:10500, f3:12500, def:3},
+  {b:ILLU, label:'1・2学年',         gr:'小1〜小2',   f2:7000,  f3:9000,  def:2},
+  {b:ILLU, label:'3・4学年',         gr:'小3〜小4',   f2:9000,  f3:11000, def:2},
+  {b:ILLU, label:'5・6学年・中学生', gr:'小5〜中3',   f2:10000, f3:12000, def:3},
+];
+
+const slotMaster = [
+  {b:PROG, w:'日曜', no:1, t:'13:00〜14:30'},
+  {b:PROG, w:'日曜', no:2, t:'15:00〜16:30'},
+  {b:ILLU, w:'土曜', no:1, t:'13:00〜14:30'},
+  {b:ILLU, w:'土曜', no:2, t:'15:00〜16:30'},
+  {b:ILLU, w:'日曜', no:1, t:'13:00〜14:30'},
+  {b:ILLU, w:'日曜', no:2, t:'15:00〜16:30'},
+];
+
+const yen = n => '¥' + n.toLocaleString('ja-JP');
+const bBadge = b => `<span class="badge ${b.key}">${b.short}</span>`;
+
+/* ========== 管理者: スケジュール確定（希望をクリックで仮確定） ========== */
+function renderSched(){
+  document.getElementById('schedList').innerHTML = sched.map((d, di) => `
+    <div class="daygroup">
+      <div class="dayhead"><div class="d">${d.date}</div>
+        <div class="muted">${d.slots.length} コマ</div></div>
+      <div class="slots">
+        ${d.slots.map((s, si) => {
+          const cap = s.emps.length * 3, over = s.studs.length > cap;
+          const pct = cap === 0 ? 100 : Math.min(100, s.studs.length / cap * 100);
+          const wish = (list, picked, kind, fn) => list.length
+            ? list.map(x => {
+                const on = picked.includes(x);
+                return `<button class="wish ${on ? 'on ' + kind : ''}"
+                  onclick="${fn}(${di},${si},'${x}')">${on ? '✓ ' : ''}${x}</button>`;
+              }).join('')
+            : '<span class="muted">希望なし</span>';
+          return `<div class="slot">
+            <div class="sh"><span class="dot ${s.b.key}"></span>
+              <span class="t">${s.b.short} 第${s.no}コマ</span>
+              <span class="time">${s.time}</span>
+              <span style="flex:1"></span>
+              ${!s.emps.length ? '<span class="badge unpaid">担当未定</span>'
+                     : over ? '<span class="badge over">定員超過</span>'
+                     : '<span class="badge draft">仮確定</span>'}</div>
+            <div class="sb">
+              <div class="cap">
+                <span>${s.studs.length} / ${cap} 名</span>
+                <span class="capbar ${over ? 'over' : ''}"><i style="width:${pct}%"></i></span>
+              </div>
+              <div class="lbl">勤務希望を出した従業員</div>
+              <div class="row">${wish(s.empWish, s.emps, 'emp', 'togEmp')}</div>
+              <div class="lbl">受講希望を出した生徒</div>
+              <div class="row">${wish(s.studWish, s.studs, s.b.key, 'togStu')}</div>
+            </div></div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+function toggle(arr, name){
+  const i = arr.indexOf(name);
+  if (i >= 0) arr.splice(i, 1); else arr.push(name);
+}
+function togEmp(di, si, name){
+  const s = sched[di].slots[si];
+  toggle(s.emps, name);
+  renderSched();
+  toast(s.emps.includes(name)
+    ? `${name} を仮確定しました（定員 ${s.emps.length * 3}名に更新）`
+    : `${name} の仮確定を外しました（定員 ${s.emps.length * 3}名に更新）`);
+}
+function togStu(di, si, name){
+  const s = sched[di].slots[si];
+  toggle(s.studs, name);
+  renderSched();
+  if (s.studs.length > s.emps.length * 3) toast('定員を超えています。従業員を追加してください');
+}
+renderSched();
+
+/* ========== 管理者: 生徒 ========== */
+/* 絞り込み・並び替えの状態 */
+const stuF = { q: '', biz: 'all', unpaid: false, sort: 'n', asc: true };
+
+function setStuBiz(b, el){
+  stuF.biz = b;
+  [...document.querySelectorAll('#stuBizChips .chip')].forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderStudents();
+}
+function toggleUnpaid(el){
+  stuF.unpaid = !stuF.unpaid;
+  el.classList.toggle('active', stuF.unpaid);
+  renderStudents();
+}
+function sortStu(k){
+  if (stuF.sort === k) stuF.asc = !stuF.asc; else { stuF.sort = k; stuF.asc = true; }
+  renderStudents();
+}
+
+function renderStudents(){
+  let list = students.map((s, i) => ({ ...s, i,
+    paid: !!feeState[i], feeDate: (feeOf(i, TODAY_M).date || '').slice(5) }));
+
+  if (stuF.q)      list = list.filter(s => s.n.includes(stuF.q) || s.parent.includes(stuF.q));
+  if (stuF.biz !== 'all') list = list.filter(s => s.b.key === stuF.biz);
+  if (stuF.unpaid) list = list.filter(s => !s.paid);
+
+  /* 月謝は「未払いが先、その中で金額順」。督促する側が見たい順にする。 */
+  const val = s => ({ n: s.n, biz: s.b.sort, grade: s.grade, sess: s.sess,
+                      fee: (s.paid ? 1e7 : 0) + s.fee })[stuF.sort];
+  list.sort((a, b) => {
+    const x = val(a), y = val(b);
+    const c = typeof x === 'string' ? x.localeCompare(y, 'ja') : x - y;
+    return (stuF.asc ? c : -c) || a.n.localeCompare(b.n, 'ja');
+  });
+
+  ['n','biz','grade','sess','fee'].forEach(k => {
+    const el = document.getElementById('sort-' + k);
+    el.textContent = stuF.sort === k ? (stuF.asc ? ' ▲' : ' ▼') : '';
+    el.parentNode.classList.toggle('on', stuF.sort === k);
+  });
+
+  document.getElementById('stuCount').textContent =
+    list.length === students.length ? `${students.length}名`
+                                    : `${list.length} / ${students.length}名`;
+
+  document.getElementById('studentRows').innerHTML = list.length ? list.map(s => `
+    <tr style="cursor:pointer;" onclick="openStu(${s.i},'admin')">
+      <td class="name">${s.n}</td>
+      <td>${bBadge(s.b)}</td>
+      <td class="num">${gradeName(s.grade)}</td>
+      <td>${s.label}</td>
+      <td class="num">月${s.sess}回</td>
+      <td style="white-space:nowrap;">
+        <span class="badge ${s.paid ? 'paid' : 'unpaid'}">${s.paid ? '支払済' : '未払い'}</span>
+        <div class="sub" style="font-variant-numeric:tabular-nums;">${
+          s.paid ? '入金 ' + s.feeDate : '入金待ち'}</div>
+      </td>
+      <td class="muted">${s.parent}</td>
+      <td style="color:var(--border-strong);">›</td>
+    </tr>`).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px;">該当する生徒がいません</td></tr>';
+}
+/* 初期描画は attData / feeState の定義後（末尾）で行う */
+
+/* ========== 生徒詳細シート ========== */
+const openStuByName = (n, mode) =>
+  openStu(students.findIndex(s => s.n === n), mode || 'admin');
+
+/* mode: 'admin' = すべて / 'employee' = 基本情報・直近の出席・授業記録のみ
+   （従業員は月謝を一切見られない。RLS の fees ポリシーと同じ制限） */
+function openStu(i, mode){
+  mode = mode || 'admin';
+  const s = students[i], [n,p,l,a] = attData[i];
+  const log = feeLog(i);
+  const cum = log.filter(x => x.paid).reduce((t, x) => t + x.amount, 0);
+  const unpaid = log.filter(x => !x.paid);
+  const last = lastAttendance(s.n);
+
+  document.getElementById('stuName').textContent = s.n;
+  document.getElementById('stuSub').innerHTML =
+    `${bBadge(s.b)} ${gradeName(s.grade)} ・ ${s.label} 月${s.sess}回`;
+
+  const kv = (k, v) => `<div><div class="muted">${k}</div>
+    <div style="color:var(--ink);font-size:14px;margin-top:3px;">${v}</div></div>`;
+  const lastCard = last
+    ? `<div class="card" style="padding:14px;margin-bottom:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+         <div><div class="muted">前回の受講</div>
+           <div style="color:var(--ink);font-size:15px;margin-top:3px;">${last.label} ${last.slot}</div></div>
+         <span style="flex:1"></span>
+         <span class="badge ${last.status === '出席' ? 'paid' : last.status === '欠席' ? 'unpaid' : 'draft'}">${last.status}</span>
+       </div>`
+    : '<p class="muted" style="margin-bottom:20px;">まだ受講記録がありません。</p>';
+
+  /* ---- 従業員向け: 基本情報・前回の出席・授業記録のみ ---- */
+  if (mode === 'employee') {
+    document.getElementById('stuBody').innerHTML = `
+      <div class="lbl">基本情報</div>
+      <div class="panel" style="margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;">
+          ${kv('教室', s.b.name)}
+          ${kv('学年', gradeName(s.grade))}
+          ${kv('コース', s.label + ' 月' + s.sess + '回')}
+          ${kv('保護者', s.parent)}
+        </div>
+      </div>
+      <div class="lbl">前回の受講</div>
+      ${lastCard}
+      <div class="lbl">授業記録</div>
+      ${recordList(s.n, 'まだ記録がありません。')}
+      <div class="cream-note" style="margin-top:18px;">
+        <span>🔒</span>
+        <div>月謝や支払い状況は<strong>従業員には表示されません</strong>。個人情報のため、管理者と保護者のみが閲覧できます。</div>
+      </div>`;
+    document.getElementById('stuFoot').innerHTML =
+      `<button class="btn btn-secondary" style="flex:1" onclick="closeStu()">閉じる</button>`;
+    document.getElementById('stuOverlay').classList.add('show');
+    document.getElementById('stuSheet').classList.add('show');
+    return;
+  }
+
+  /* ---- 管理者向け: すべて ---- */
+  document.getElementById('stuBody').innerHTML = `
+    <div class="lbl">基本情報</div>
+    <div class="panel" style="margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;">
+        ${kv('教室', s.b.name)}
+        ${kv('学年', gradeName(s.grade) + `<span class="muted"> （${2026 - s.grade + 1}年度入学）</span>`)}
+        ${kv('コース', s.label + ' 月' + s.sess + '回')}
+        ${kv('月額', yen(s.fee))}
+        ${kv('保護者', s.parent)}
+      </div>
+    </div>
+
+    <div class="lbl">前回の受講</div>
+    ${lastCard}
+
+    <div class="lbl">出席状況（2026年度）</div>
+    <div class="panel" style="margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;">
+        ${[['受講',n],['出席',p],['遅刻',l],['欠席',a]].map(([k,v]) => `
+          <div class="card" style="padding:11px;">
+            <div class="muted">${k}</div>
+            <div style="font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums;">${v}</div>
+          </div>`).join('')}
+      </div>
+      <p class="muted" style="margin-top:12px;">
+        月謝は固定月額です。<strong>欠席が多くても請求額は変わりません。</strong>
+      </p>
+    </div>
+
+    <div class="lbl">授業記録（従業員が記入）</div>
+    <div style="margin-bottom:20px;">
+      ${recordList(s.n, 'まだ記録がありません。')}
+    </div>
+
+    <div class="lbl">月謝</div>
+    <div class="panel" style="padding:0;margin-bottom:8px;">
+      <div style="padding:16px 18px;display:flex;gap:24px;align-items:baseline;
+                  border-bottom:1px solid var(--hairline);flex-wrap:wrap;">
+        <div><div class="muted">支払累計</div>
+          <div style="font-size:22px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;">${yen(cum)}</div></div>
+        <div><div class="muted">今月（8月）</div>
+          <div style="margin-top:5px;"><span class="badge ${feeState[i]?'paid':'unpaid'}">${feeState[i]?'支払済':'未払い'}</span></div></div>
+        ${unpaid.length ? `<div><div class="muted">未払い</div>
+          <div style="font-size:15px;color:var(--coral);margin-top:4px;">${unpaid.length}件 ${yen(unpaid.reduce((t,x)=>t+x.amount,0))}</div></div>` : ''}
+        <span style="flex:1"></span>
+        <button class="btn btn-secondary btn-sm" onclick="toast('${s.n} の請求額を編集します（手入力で上書き可）')">請求を編集</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data">
+          <thead><tr><th>対象月</th><th class="num">請求額</th><th>状況</th><th>入金日</th><th>備考</th></tr></thead>
+          <tbody>
+            ${log.slice().reverse().map(x => `
+              <tr>
+                <td class="name">${x.m.replace('-','年')}月分</td>
+                <td class="num">${yen(x.amount)}</td>
+                <td><span class="badge ${x.paid?'paid':'unpaid'}">${x.paid?'支払済':'未払い'}</span></td>
+                <td class="muted" style="font-variant-numeric:tabular-nums;">${x.date || '—'}</td>
+                <td class="muted">${x.note || ''}</td>
+              </tr>`).join('')}
+          </tbody>
+          <tfoot><tr>
+            <td>支払累計</td><td class="num">${yen(cum)}</td><td colspan="3"></td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <p class="muted">
+      請求額はコースの月額をコピーした値です。<strong>過去分は料金改定の影響を受けません</strong>（改定しても遡って変わりません）。
+    </p>`;
+  document.getElementById('stuFoot').innerHTML =
+    `<button class="btn btn-secondary" style="flex:1" onclick="closeStu()">閉じる</button>
+     <button class="btn btn-primary" style="flex:1" onclick="toast('生徒情報の編集フォームを開きます')">編集</button>`;
+  document.getElementById('stuOverlay').classList.add('show');
+  document.getElementById('stuSheet').classList.add('show');
+}
+function closeStu(){
+  document.getElementById('stuOverlay').classList.remove('show');
+  document.getElementById('stuSheet').classList.remove('show');
+}
+
+/* ========== シフト・給与（shift_manage_app より移設） ==========
+   シフトカレンダーは廃止。従業員の出勤日・勤務時間は
+   「スケジュール確定」で仮確定した担当コマからそのまま決まる。 */
+
+/* 時間外勤務 申請 */
+const overtime = [
+  {n:'中村', d:'2026-08-02', w:'教材スライド作成（次回授業用）', b:PROG, h:2.0, rate:1300, st:'pending'},
+  {n:'小林', d:'2026-08-01', w:'生徒作品の添削・コメント作成',   b:ILLU, h:1.5, rate:1100, st:'pending'},
+  {n:'中村', d:'2026-07-26', w:'授業準備・提出コードの添削',     b:PROG, h:1.0, rate:1300, st:'approved'},
+  {n:'小林', d:'2026-07-20', w:'生徒からの質問対応（チャット）', b:ILLU, h:0.5, rate:1100, st:'rejected'},
+];
+document.getElementById('otRows').innerHTML = overtime.map((o,i) => {
+  const amt = o.st === 'rejected' ? 0 : Math.round(o.h * o.rate);
+  const badge = {pending:'<span class="badge over">承認待ち</span>',
+    approved:'<span class="badge paid">承認済み</span>',
+    rejected:'<span class="badge unpaid">却下</span>'}[o.st];
+  return `<tr id="ot${i}">
+    <td class="name">${o.n}</td>
+    <td class="muted" style="font-variant-numeric:tabular-nums;">${o.d}</td>
+    <td>${o.w}<div class="sub">${o.b.short}</div></td>
+    <td class="num">${o.h.toFixed(1)}h</td>
+    <td class="num">${yen(o.rate)}</td>
+    <td class="num">${yen(amt)}</td>
+    <td id="otSt${i}">${badge}</td>
+    <td style="white-space:nowrap;">${o.st === 'pending'
+      ? `<button class="btn btn-primary btn-sm" onclick="decideOt(${i},1)">承認</button>
+         <button class="btn btn-danger btn-sm" onclick="decideOt(${i},0)">却下</button>`
+      : '<span class="sub">森川 / ' + o.d.slice(5) + '</span>'}</td>
+  </tr>`;
+}).join('');
+function decideOt(i, ok){
+  overtime[i].st = ok ? 'approved' : 'rejected';   // 受信ボックスもこの状態を見ている
+  document.getElementById('otSt' + i).innerHTML = ok
+    ? '<span class="badge paid">承認済み</span>' : '<span class="badge unpaid">却下</span>';
+  document.querySelector('#ot' + i + ' td:last-child').innerHTML = '<span class="sub">森川 / いま</span>';
+  /* 承認額は給与・収支にそのまま乗るので、金額を出す画面も作り直す */
+  renderInbox(); renderTodos(); renderPayroll(); renderRevenue(); renderEmpPay();
+  toast(overtime[i].n + ' の申請を' + (ok ? '承認' : '却下') + 'しました。申請者に通知されます');
+}
+
+/* 給与計算。金額は持たず staffPay() から作る（収入・収益／講師の給与ページと同じ計算）。
+   深夜割増・残業割増は 13:00〜16:30 の授業では発生しないので常に0。 */
+function renderPayroll(){
+  const rows = staff.filter(s => s.active).map(s => ({s, p:staffPay(s.n, TODAY_M)}));
+  const sum = f => rows.reduce((a, x) => a + f(x), 0);
+  document.getElementById('paySumm').innerHTML = [
+    ['対象講師', rows.length + '<small>名</small>'],
+    ['総勤務時間', sum(x => x.p.hours).toFixed(1) + '<small>h</small>'],
+    ['時間外（承認済）', yen(sum(x => x.p.otSum))],
+    ['支給総額（見込）', yen(Math.round(sum(x => x.p.total)))],
+  ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  document.getElementById('payRows').innerHTML = rows.map(({s, p}) => `
+    <tr>
+      <td class="name">${s.n}<div class="sub">${[PROG, ILLU].filter(b => p.slots[b.key])
+        .map(b => b.short).join(' / ') || '担当なし'}</div></td>
+      <td class="num">${p.days}</td><td class="num">${p.hours.toFixed(1)}</td>
+      <td class="num">${yen(Math.round(p.baseSum))}</td><td class="num">${yen(0)}</td><td class="num">${yen(0)}</td>
+      <td class="num">${yen(p.otSum)}</td><td class="num">${yen(p.commute)}</td>
+      <td class="num" style="color:var(--ink);font-weight:600;">${yen(Math.round(p.total))}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="toast('${s.n} の給与明細（PDF）を作成しました')">明細</button></td>
+    </tr>`).join('');
+  document.getElementById('payFoot').innerHTML = `<tr>
+    <td>合計</td><td class="num">${sum(x => x.p.days)}</td><td class="num">${sum(x => x.p.hours).toFixed(1)}</td>
+    <td class="num">${yen(Math.round(sum(x => x.p.baseSum)))}</td><td class="num">${yen(0)}</td>
+    <td class="num">${yen(0)}</td><td class="num">${yen(sum(x => x.p.otSum))}</td>
+    <td class="num">${yen(sum(x => x.p.commute))}</td>
+    <td class="num">${yen(Math.round(sum(x => x.p.total)))}</td><td></td></tr>`;
+}
+
+/* ========== 従業員・時給設定（shift_manage_app より移設） ==========
+   時給は「従業員 × 業務」ごとに、適用開始日つきで持つ（cur=false は昇給前の履歴）。
+   退職は論理削除でデータを残す。 */
+const staff = [
+  {n:'中村', mail:'nakamura@example.com', biz:'両方', commute:800, commuteFrom:'2026-04-01',
+   active:1, since:'2025-04-01',
+   wages:[
+     {j:'プログラミング講師', r:1300, from:'2026-04-01', cur:true},
+     {j:'イラスト補助',       r:1100, from:'2026-04-01', cur:true},
+     {j:'プログラミング講師', r:1250, from:'2025-04-01', cur:false},
+   ]},
+  {n:'小林', mail:'kobayashi@example.com', biz:'イラスト', commute:1000, commuteFrom:'2026-04-01',
+   active:1, since:'2025-10-01',
+   wages:[
+     {j:'イラスト講師', r:1200, from:'2026-04-01', cur:true},
+     {j:'イラスト補助', r:1100, from:'2025-10-01', cur:false},
+   ]},
+  {n:'大西 由紀', mail:'onishi@example.com', biz:'イラスト', commute:900, commuteFrom:'2024-04-01',
+   active:0, since:'2024-04-01', retiredOn:'2025-12-31',
+   wages:[{j:'イラスト補助', r:1100, from:'2024-04-01', cur:true}]},
+];
+
+const jobDot = j => j.includes('プログラ')
+  ? '<span class="dot prog"></span>' : '<span class="dot illust"></span>';
+const bizDots = b => b === '両方'
+  ? '<span class="dot prog"></span> <span class="dot illust"></span> 両方'
+  : b === 'プログラミング' ? '<span class="dot prog"></span> プログラミング'
+                           : '<span class="dot illust"></span> イラスト';
+
+/* 今月の担当を、確定したコマ割り当てから集計する（1コマ = 90分） */
+function staffStats(name, m){
+  let slots = 0; const studs = new Set(), days = new Set();
+  for (let d = 1; d <= MONTHS[m].days; d++) {
+    const st = stateOf(m, d);
+    if (!st || st === 'off') continue;
+    for (const s of slotsOf(m, d)) {
+      if (!s.emps.includes(name)) continue;
+      slots++; days.add(d); s.studs.forEach(x => studs.add(x));
+    }
+  }
+  return { slots, hours: slots * 1.5, days: days.size, studs: studs.size };
+}
+
+let staffQ = '', staffFilter = 'active';
+function setStaffFilter(f, el){
+  staffFilter = f;
+  [...document.querySelectorAll('#staffChips .chip')].forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderStaff();
+}
+function renderStaff(){
+  const list = staff
+    .map((s, i) => ({ ...s, i }))
+    .filter(s => (staffFilter === 'all' || s.active) && (!staffQ || s.n.includes(staffQ)));
+  document.getElementById('staffCount').textContent =
+    list.length === staff.length ? `${staff.length}名` : `${list.length} / ${staff.length}名`;
+  document.getElementById('staffRows').innerHTML = list.length ? list.map(s => {
+    const st = staffStats(s.n, TODAY_M);
+    return `<tr style="cursor:pointer;${s.active ? '' : 'opacity:.6;'}" onclick="openStaff(${s.i})">
+      <td class="name">${s.n}<div class="sub">${s.mail}</div></td>
+      <td>${bizDots(s.biz)}</td>
+      <td>${s.wages.filter(w => w.cur).map(w => `${jobDot(w.j)} ${yen(w.r)}`).join('　')}</td>
+      <td class="num">${yen(s.commute)}</td>
+      <td class="num">${s.active ? `${st.slots}コマ<div class="sub">${st.hours.toFixed(1)}h</div>` : '—'}</td>
+      <td><span class="badge ${s.active ? 'paid' : 'draft'}">${s.active ? '在籍' : '退職'}</span></td>
+      <td style="color:var(--border-strong);">›</td>
+    </tr>`;
+  }).join('')
+  : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;">該当する講師がいません</td></tr>';
+}
+
+function openStaff(i){
+  const s = staff[i], st = staffStats(s.n, TODAY_M);
+  const cur = s.wages.filter(w => w.cur), past = s.wages.filter(w => !w.cur);
+  document.getElementById('stfName').textContent = s.n;
+  document.getElementById('stfSub').innerHTML =
+    `${bizDots(s.biz)} ・ <span class="badge ${s.active ? 'paid' : 'draft'}">${s.active ? '在籍' : '退職'}</span>`;
+
+  const kv = (k, v) => `<div><div class="muted">${k}</div>
+    <div style="color:var(--ink);font-size:14px;margin-top:3px;">${v}</div></div>`;
+
+  document.getElementById('stfBody').innerHTML = `
+    <div class="lbl">基本情報</div>
+    <div class="panel" style="margin-bottom:4px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+        ${kv('メールアドレス', s.mail)}
+        ${kv('担当事業', bizDots(s.biz))}
+        ${kv('入社日', s.since)}
+        ${kv('在籍状態', s.active ? '在籍中' : `退職（${s.retiredOn}）`)}
+      </div>
+      ${s.active ? '' : `<div class="cream-note" style="margin:16px 0 0;">
+        <span>🗄</span><div>退職者は<strong>論理削除</strong>です。過去のシフト・給与・授業記録は保持され、
+        給与明細の再発行もできます。</div></div>`}
+    </div>
+
+    <div class="draw-sec">今月の担当（2026年8月）</div>
+    ${s.active ? `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;">
+        ${[['出勤', st.days + '日'], ['コマ', st.slots + 'コマ'],
+           ['勤務時間', st.hours.toFixed(1) + 'h'], ['担当生徒', st.studs + '名']].map(([k, v]) => `
+          <div class="card" style="padding:11px;">
+            <div class="muted">${k}</div>
+            <div style="font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;">${v}</div>
+          </div>`).join('')}
+      </div>
+      <p class="muted" style="margin-top:10px;">
+        <strong>スケジュール確定で割り当てたコマがそのまま勤務実績</strong>になります（1コマ90分）。
+        給与計算はこの時間を使います。
+      </p>`
+    : '<p class="muted">退職済みのため担当はありません。</p>'}
+
+    <div class="draw-sec">月別の出勤と給与</div>
+    ${s.active ? `
+      <div class="panel" style="padding:0;overflow-x:auto;">
+        <table class="data">
+          <thead><tr>
+            <th>対象月</th><th class="num">出勤</th><th class="num">コマ</th><th class="num">勤務</th>
+            <th class="num">基本給</th><th class="num">交通費</th><th class="num">時間外</th>
+            <th class="num">支給額</th><th>状態</th>
+          </tr></thead>
+          <tbody>${MONTH_KEYS.slice().reverse().map(m => {
+            const x = staffPay(s.n, m);
+            return `<tr>
+              <td class="name">${MONTHS[m].label}</td>
+              <td class="num">${x.days}日</td>
+              <td class="num">${x.n}</td>
+              <td class="num">${x.hours.toFixed(1)}h</td>
+              <td class="num">${yen(Math.round(x.baseSum))}</td>
+              <td class="num">${yen(x.commute)}</td>
+              <td class="num">${x.otSum ? yen(x.otSum) : '—'}</td>
+              <td class="num" style="color:var(--ink);">${yen(Math.round(x.total))}</td>
+              <td><span class="badge ${STATE_CLS[x.state]}">${STATE_LABEL[x.state]}</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+          <tfoot><tr>
+            <td class="name">3ヶ月 合計</td>
+            <td class="num">${MONTH_KEYS.reduce((a, m) => a + staffPay(s.n, m).days, 0)}日</td>
+            <td class="num">${MONTH_KEYS.reduce((a, m) => a + staffPay(s.n, m).n, 0)}</td>
+            <td class="num">${MONTH_KEYS.reduce((a, m) => a + staffPay(s.n, m).hours, 0).toFixed(1)}h</td>
+            <td class="num" colspan="3"></td>
+            <td class="num">${yen(Math.round(MONTH_KEYS.reduce((a, m) => a + staffPay(s.n, m).total, 0)))}</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+      <p class="muted" style="margin-top:10px;">
+        <strong>金額は保存せず、確定したコマから毎回計算しています。</strong>
+        コマを編集すれば締め前の月はここも変わります。
+        <strong>${MONTHS[TODAY_M].label}は締め前、${MONTHS[9].label}はスケジュール未確定の見込み</strong>です。
+      </p>`
+    : '<p class="muted">退職済みのため出勤・給与の新規計上はありません（過去分は保持されています）。</p>'}
+
+    <div class="draw-sec">時給設定（講師 × 業務）</div>
+    ${cur.map(w => `
+      <div class="wage-item">
+        <div><div class="job">${jobDot(w.j)} ${w.j}</div><div class="from">適用 ${w.from} 〜</div></div>
+        <div class="rate">${yen(w.r)}<span class="muted" style="font-size:11px;"> /時</span></div>
+      </div>`).join('')}
+    ${past.length ? `<div class="hist-label">昇給・改定履歴</div><div class="hist">${
+      past.map(w => `<div class="h"><span>${w.j}　${yen(w.r)}</span><span>${w.from} 〜</span></div>`).join('')
+    }</div>` : ''}
+    <button class="btn btn-secondary btn-sm" style="margin-top:10px;"
+      onclick="toast('新しい適用開始日で時給を追加します（過去分は履歴として残ります）')">＋ 時給を改定</button>
+
+    <div class="draw-sec">交通費（日額固定）</div>
+    <div class="wage-item">
+      <div><div class="job">🚃 交通費</div><div class="from">適用 ${s.commuteFrom} 〜</div></div>
+      <div class="rate">${yen(s.commute)}<span class="muted" style="font-size:11px;"> /日</span></div>
+    </div>
+    <p class="muted">
+      <strong>出勤日数 × 日額</strong>で給与に自動反映されます。
+      今月は ${st.days}日 × ${yen(s.commute)} = <strong>${yen(st.days * s.commute)}</strong> の見込みです。
+    </p>`;
+  document.getElementById('stfOverlay').classList.add('show');
+  document.getElementById('stfSheet').classList.add('show');
+}
+function closeStaff(){
+  document.getElementById('stfOverlay').classList.remove('show');
+  document.getElementById('stfSheet').classList.remove('show');
+}
+
+/* ========== 管理者: 進級処理 ========== */
+document.getElementById('promoRows').innerHTML = promo.map(p => `
+  <tr>
+    <td class="name">${p.n}</td>
+    <td>${bBadge(p.b)}</td>
+    <td class="num">${gradeName(p.from)} → ${p.to>9?'卒業':gradeName(p.to)}</td>
+    <td class="muted">${p.cur}</td>
+    <td>${p.nxt ? p.nxt : '<span style="color:var(--coral)">該当コースなし</span>'}</td>
+    <td class="num">${p.diff!==null ? '<span style="color:var(--coral)">+'+p.diff.toLocaleString()+'</span>' : '—'}</td>
+    <td>${p.nxt
+      ? `<button class="btn btn-primary btn-sm" onclick="toast('${p.n} のコース変更を適用しました')">承認</button>`
+      : `<span class="muted">中学卒業後の扱いは保留中</span>`}</td>
+  </tr>`).join('');
+
+/* ========== 管理者: コース・開催枠 ========== */
+document.getElementById('courseRows').innerHTML = courses.map(c => `
+  <tr>
+    <td>${bBadge(c.b)}</td>
+    <td class="name">${c.label}</td>
+    <td class="num muted">${c.gr}</td>
+    <td class="num">${yen(c.f2)} ${c.def===2?'<span style="color:var(--forest)">●</span>':''}</td>
+    <td class="num">${yen(c.f3)} ${c.def===3?'<span style="color:var(--forest)">●</span>':''}</td>
+  </tr>`).join('');
+
+document.getElementById('slotRows').innerHTML = slotMaster.map(s => `
+  <tr>
+    <td>${bBadge(s.b)}</td><td>${s.w}</td><td>第${s.no}コマ</td>
+    <td style="font-variant-numeric:tabular-nums">${s.t}</td><td class="num">3人</td>
+  </tr>`).join('');
+
+/* =========================================================================
+   月カレンダー（2026年8月・1日=土曜）
+   管理者ホームと従業員の予定ページで共用する。
+   日の色: 両事業とも確定 → confirmed / 片方でも未確定 → pending
+   ========================================================================= */
+/* 表示できる月。first = 1日の曜日(0=日)、conf = 確定状況
+     7月: 実施済み（全て確定）／ 8月: 今月（全て確定・8/16はお盆で休講）
+     9月: 来月（希望提出の締切が 8/20 なので、まだ確定していない） */
+const MONTHS = {
+  7: { label: '2026年 7月', first: 3, days: 31, off: [],   conf: 'all'  },
+  8: { label: '2026年 8月', first: 6, days: 31, off: [16], conf: 'all'  },
+  9: { label: '2026年 9月', first: 2, days: 30, off: [],   conf: 'none' },
+};
+const TODAY_M = 8, TODAY_D = 7;
+const isPast = (m, d) => m < TODAY_M || (m === TODAY_M && d < TODAY_D);
+
+/* その日の状態。土日だけ開催（プログラミング=日曜のみ / イラスト=土日） */
+function stateOf(m, d){
+  const M = MONTHS[m];
+  if (!M || d < 1 || d > M.days) return null;
+  const w = (M.first + d - 1) % 7;
+  if (w !== 0 && w !== 6) return null;          // 平日は開催なし
+  if (M.off.includes(d)) return 'off';
+  return M.conf === 'all' ? 'ok' : 'part';
+}
+
+/* 管理者が編集した内容を保持する（'8-2' → [{emps, studs}, ...]） */
+const dayOverride = {};
+
+/* 月ごとの受講割り当て。決定的で、以下2つのドメインルールを必ず満たす。
+     ・生徒はコースの月間回数（月2回 / 月3回）を超えない
+     ・同じ日に2コマは受講しない（1日1コマまで）
+   生徒ごとに開催日を等間隔で拾い、開始位置をずらすことで両方を自動的に守る。 */
+const monthlyPlan = {};
+function planFor(m){
+  if (monthlyPlan[m]) return monthlyPlan[m];
+  const plan = {};
+  for (const b of [PROG, ILLU]) {
+    const days = [];
+    for (let d = 1; d <= MONTHS[m].days; d++) {
+      const st = stateOf(m, d);
+      if (!st || st === 'off') continue;
+      const w = (MONTHS[m].first + d - 1) % 7;
+      if (b === PROG && w !== 0) continue;      // プログラミングは日曜のみ
+      days.push(d);
+    }
+    if (!days.length) continue;
+    students.filter(s => s.b === b).forEach((s, si) => {
+      const n = Math.min(s.sess, days.length);
+      const step = Math.max(1, Math.floor(days.length / n));
+      for (let k = 0; k < n; k++) {
+        const d = days[(si + k * step) % days.length];
+        // 少ない方のコマへ入れて偏りを防ぐ（定員 = 担当従業員数 × 3 を超えないため）
+        const a = (plan[`${d}|1|${b.key}`] ??= []);
+        const c = (plan[`${d}|2|${b.key}`] ??= []);
+        (a.length <= c.length ? a : c).push(s.n);
+      }
+    });
+  }
+  return (monthlyPlan[m] = plan);
+}
+
+function slotsOf(m, d){
+  const base = baseSlotsOf(m, d), ov = dayOverride[`${m}-${d}`];
+  if (ov) base.forEach((s, i) => {
+    if (ov[i]) { s.emps = [...ov[i].emps]; s.studs = [...ov[i].studs]; }
+  });
+  return base;
+}
+function baseSlotsOf(m, d){
+  const st = stateOf(m, d);
+  if (!st || st === 'off') return [];
+  const w = (MONTHS[m].first + d - 1) % 7;
+  const ok = st === 'ok';
+  const P = planFor(m);
+  const at = (b, no) => P[`${d}|${no}|${b.key}`] || [];
+  if (w === 0) return [                                     // 日曜: 2教室が並行
+    {b:PROG, no:1, time:'13:00〜14:30', ok, emps:['中村'],        studs:at(PROG, 1)},
+    {b:PROG, no:2, time:'15:00〜16:30', ok, emps:['中村'],        studs:at(PROG, 2)},
+    {b:ILLU, no:1, time:'13:00〜14:30', ok, emps:['小林'],        studs:at(ILLU, 1)},
+    {b:ILLU, no:2, time:'15:00〜16:30', ok, emps:['小林','中村'], studs:at(ILLU, 2)},
+  ];
+  return [                                                  // 土曜: イラストのみ
+    {b:ILLU, no:1, time:'13:00〜14:30', ok, emps:['小林'], studs:at(ILLU, 1)},
+    {b:ILLU, no:2, time:'15:00〜16:30', ok, emps:['小林'], studs:at(ILLU, 2)},
+  ];
+}
+const dayLabel = (m, d) => `${m}月${d}日（${'日月火水木金土'[(MONTHS[m].first + d - 1) % 7]}）`;
+
+/* mode: 'admin' = 全部 / 'employee' = 自分の担当コマかつ確定分のみ（RLSと同じ制限）
+   レイアウトは shift_manage_app と同じ: 週ごとの .cal-row に .cell を7つ。
+   コマは事業色の塗りチップ（.ev）、未確定は破線チップ（.ev.draft）。 */
+function buildCal(targetId, mode, me, m){
+  const M = MONTHS[m];
+  let html = '', n = 0, row = '<div class="cal-row">';
+  const push = s => {
+    row += s; n++;
+    if (n % 7 === 0) { html += row + '</div>'; row = '<div class="cal-row">'; }
+  };
+  for (let i = 0; i < M.first; i++) push('<div class="cell dim"></div>');
+
+  for (let d = 1; d <= M.days; d++) {
+    const w = (M.first + d - 1) % 7, st = stateOf(m, d);
+    let slots = slotsOf(m, d);
+    if (mode === 'employee') slots = slots.filter(s => s.ok && s.emps.includes(me));
+
+    const has = slots.length > 0;
+    const allOk = has && slots.every(s => s.ok);
+    const cls = ['cell',
+      m === TODAY_M && d === TODAY_D ? 'today' : '',
+      st === 'off' ? 'off' : has ? (allOk ? 'confirmed' : 'pending') : '',
+      has || st === 'off' ? 'has' : ''].filter(Boolean).join(' ');
+
+    // 状態ラベルは管理者のみ。従業員は確定分しか見えないので出しても意味がない
+    const state = mode === 'admin' && has && st !== 'off'
+      ? `<span class="dstate ${allOk ? 'ok' : 'ng'}">${allOk ? '✓ 確定' : '未確定'}</span>` : '';
+    let inner = `<div class="dhead">
+      <div class="dnum ${w === 0 ? 'sun' : w === 6 ? 'sat' : ''}">${d}</div>${state}</div>`;
+    if (st === 'off') {
+      inner += '<div class="offlabel">休講</div>';
+    } else if (mode === 'admin') {
+      // 管理者: 教室ごとに1チップ（教室名 + コマ数）。破線 = その教室に未確定のコマあり
+      inner += [PROG, ILLU].filter(b => slots.some(s => s.b === b)).map(b => {
+        const ss = slots.filter(s => s.b === b), ok = ss.every(s => s.ok);
+        return `<div class="ev ${ok ? b.key : 'draft'}">
+          <span>${b.short}</span><span class="t">${ss.length}コマ</span></div>`;
+      }).join('');
+    } else {
+      // 従業員: 自分の担当コマごとに1チップ（担当者名 + 開始時刻）
+      inner += slots.map(s => `<div class="ev ${s.ok ? s.b.key : 'draft'}">
+        <span>${s.emps.join('・') || '担当未定'}</span>
+        <span class="t">${s.time.slice(0, 5)}</span></div>`).join('');
+    }
+    push(`<button class="${cls}" ${has || st === 'off'
+      ? `onclick="openDay(${m},${d},'${mode}','${me || ''}')"` : 'disabled'}>${inner}</button>`);
+  }
+  while (n % 7 !== 0) push('<div class="cell dim"></div>');
+  document.getElementById(targetId).innerHTML = html;
+}
+
+/* 月の切り替え */
+let adminMonth = TODAY_M, empMonth = TODAY_M;
+function shiftMonth(who, delta){
+  if (who === 'admin') {
+    if (!MONTHS[adminMonth + delta]) { toast('この月のデータはモックにありません（7〜9月）'); return; }
+    adminMonth += delta;
+    document.getElementById('adminMonthLabel').textContent = MONTHS[adminMonth].label;
+    buildCal('adminCal', 'admin', '', adminMonth);
+  } else {
+    if (!MONTHS[empMonth + delta]) { toast('この月のデータはモックにありません（7〜9月）'); return; }
+    empMonth += delta;
+    document.getElementById('empMonthLabel').textContent = MONTHS[empMonth].label;
+    buildCal('empCal', 'employee', '中村', empMonth);
+  }
+}
+
+/* 日別詳細シート */
+function openDay(m, d, mode, me){
+  let slots = slotsOf(m, d);
+  if (mode === 'employee') slots = slots.filter(s => s.ok && s.emps.includes(me));
+  const off = stateOf(m, d) === 'off';
+  document.getElementById('dayTitle').textContent = dayLabel(m, d);
+  document.getElementById('daySub').innerHTML = off ? '休講日'
+    : slots.every(s => s.ok) ? '<span class="badge paid">確定済み</span>'
+    : '<span class="badge over">未確定を含む</span>';
+
+  document.getElementById('dayBody').innerHTML = off
+    ? '<div class="cream-note" style="margin:0;"><span>🏫</span><div>この日は休講です（お盆）。</div></div>'
+    : slots.map(s => `
+      <div class="card" style="padding:14px;margin-bottom:11px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span class="dot ${s.b.key}"></span>
+          <span style="color:var(--ink);font-weight:500;">${s.b.short} 第${s.no}コマ</span>
+          <span class="muted" style="font-variant-numeric:tabular-nums;">${s.time}</span>
+          <span style="flex:1"></span>
+          <span class="badge ${s.ok ? 'paid' : 'over'}">${s.ok ? '確定' : '未確定'}</span>
+        </div>
+        <div class="lbl">担当従業員（${s.emps.length}名 ／ 定員 ${s.emps.length * 3}名）</div>
+        <div class="row">${s.emps.map(e => `<span class="tag emp">${e}</span>`).join('') || '<span class="muted">未定</span>'}</div>
+        <div class="lbl" style="margin-top:10px;">受講生徒（${s.studs.length}名）</div>
+        ${isPast(m, d)
+          ? s.studs.map(x => {
+              const at = attendance[`${x}|${m}-${d}|${s.no}`];
+              const rec = records[`${x}|${m}-${d}|${s.no}`];
+              const cls = at === '出席' ? 'paid' : at === '欠席' ? 'unpaid' : 'draft';
+              return `<button class="stu-row" onclick="openStuByName('${x}','${mode}')">
+                <span style="flex:1;color:var(--ink);">${x}</span>
+                ${at ? `<span class="badge ${cls}">${at}</span>` : ''}
+                <span class="muted">${rec ? '📝 記録あり' : '記録なし'}</span>
+                <span style="color:var(--border-strong);">›</span>
+              </button>`;
+            }).join('')
+          : `<div class="row">${s.studs.map(x =>
+              `<button class="tag" style="cursor:pointer;"
+                 onclick="openStuByName('${x}','${mode}')">${x} ›</button>`).join('')}</div>`}
+      </div>`).join('');
+
+  // 確定した日 → 「編集」／未確定を含む日 → 確定作業へ誘導
+  const allOk = !off && slots.length > 0 && slots.every(s => s.ok);
+  const foot = document.getElementById('dayFoot');
+  foot.innerHTML = `<button class="btn btn-secondary" style="flex:1" onclick="closeDay()">閉じる</button>`
+    + (mode === 'admin' && !off
+        ? allOk
+          ? `<button class="btn btn-primary" style="flex:1" onclick="startEdit(${m},${d})">編集</button>`
+          : `<button class="btn btn-primary" style="flex:1"
+               onclick="closeDay();setScreen('schedule')">スケジュール確定へ</button>`
+        : '');
+  document.getElementById('dayOverlay').classList.add('show');
+  document.getElementById('daySheet').classList.add('show');
+}
+function closeDay(){
+  editDay = null;
+  document.getElementById('dayOverlay').classList.remove('show');
+  document.getElementById('daySheet').classList.remove('show');
+}
+
+/* =========================================================================
+   日の編集と通知
+   変更内容から「通知すべきユーザー」を自動で決める:
+     ・担当に追加／担当から外れた従業員      → 本人へ
+     ・受講が追加／取り消された生徒          → その保護者へ
+     ・名簿が変わったコマを担当し続ける従業員 → 本人へ（生徒が変わるため）
+   ========================================================================= */
+const EMPLOYEES = [{ n: '中村', biz: [PROG, ILLU] }, { n: '小林', biz: [ILLU] }];
+const empCandidates  = b => EMPLOYEES.filter(e => e.biz.includes(b)).map(e => e.n);
+const studCandidates = b => students.filter(s => s.b === b).map(s => s.n);
+const parentOf       = n => (students.find(s => s.n === n) || {}).parent || n;
+
+let editMonth = null, editDay = null, editSlots = null, editBase = null;
+
+function startEdit(m, d){
+  editMonth = m; editDay = d;
+  editBase  = slotsOf(m, d).map(s => ({ emps: [...s.emps], studs: [...s.studs] }));
+  editSlots = slotsOf(m, d).map(s => ({ ...s, emps: [...s.emps], studs: [...s.studs] }));
+  renderEdit();
+}
+function togEdit(i, key, name){
+  const arr = editSlots[i][key], at = arr.indexOf(name);
+  if (at >= 0) arr.splice(at, 1); else arr.push(name);
+  renderEdit();
+}
+function renderEdit(){
+  document.getElementById('daySub').innerHTML =
+    '<span class="badge draft">編集中</span> クリックで担当・受講を切り替えます';
+  document.getElementById('dayBody').innerHTML = editSlots.map((s, i) => {
+    const cap = s.emps.length * 3, over = s.studs.length > cap;
+    const chips = (cands, picked, key, kind) => cands.map(x => {
+      const on = picked.includes(x);
+      return `<button class="wish ${on ? 'on ' + kind : ''}"
+        onclick="togEdit(${i},'${key}','${x}')">${on ? '✓ ' : ''}${x}</button>`;
+    }).join('');
+    return `<div class="card" style="padding:14px;margin-bottom:11px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <span class="dot ${s.b.key}"></span>
+        <span style="color:var(--ink);font-weight:500;">${s.b.short} 第${s.no}コマ</span>
+        <span class="muted" style="font-variant-numeric:tabular-nums;">${s.time}</span>
+        <span style="flex:1"></span>
+        <span class="${over ? 'badge over' : 'muted'}">${s.studs.length} / ${cap} 名${over ? ' 超過' : ''}</span>
+      </div>
+      <div class="lbl">担当従業員</div>
+      <div class="row">${chips(empCandidates(s.b), s.emps, 'emps', 'emp')}</div>
+      <div class="lbl" style="margin-top:10px;">受講生徒</div>
+      <div class="row">${chips(studCandidates(s.b), s.studs, 'studs', s.b.key)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('dayFoot').innerHTML = `
+    <button class="btn btn-secondary" style="flex:1"
+            onclick="openDay(${editMonth},${editDay},'admin','')">キャンセル</button>
+    <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">保存して通知</button>`;
+}
+
+/* 変更差分から通知先を組み立てる */
+function buildNotices(){
+  const out = [];
+  editSlots.forEach((s, i) => {
+    const b = editBase[i], label = `${s.b.short} 第${s.no}コマ`;
+    const eAdd = s.emps.filter(x => !b.emps.includes(x));
+    const eDel = b.emps.filter(x => !s.emps.includes(x));
+    const sAdd = s.studs.filter(x => !b.studs.includes(x));
+    const sDel = b.studs.filter(x => !s.studs.includes(x));
+    if (!eAdd.length && !eDel.length && !sAdd.length && !sDel.length) return;
+
+    eAdd.forEach(x => out.push({ who: x, role: '従業員', msg: `${label} の担当に追加されました` }));
+    eDel.forEach(x => out.push({ who: x, role: '従業員', msg: `${label} の担当から外れました` }));
+    sAdd.forEach(x => out.push({ who: parentOf(x), role: '保護者',
+      msg: `${x}さんが ${label} に追加されました` }));
+    sDel.forEach(x => out.push({ who: parentOf(x), role: '保護者',
+      msg: `${x}さんの ${label} の受講が取り消されました` }));
+    if (sAdd.length || sDel.length)
+      s.emps.filter(x => b.emps.includes(x)).forEach(x => out.push({
+        who: x, role: '従業員', msg: `${label} の受講生徒が変更されました` }));
+  });
+  // 同じ人に同じ内容を二重に送らない
+  return out.filter((x, i) => out.findIndex(y => y.who === x.who && y.msg === x.msg) === i);
+}
+
+function saveEdit(){
+  const notices = buildNotices();
+  const m = editMonth, d = editDay;
+  dayOverride[`${m}-${d}`] = editSlots.map(s => ({ emps: [...s.emps], studs: [...s.studs] }));
+  buildCal('adminCal', 'admin', '', adminMonth);
+  buildCal('empCal', 'employee', '中村', empMonth);
+  renderSched();
+
+  document.getElementById('daySub').innerHTML = '<span class="badge paid">保存しました</span>';
+  document.getElementById('dayBody').innerHTML = notices.length
+    ? `<div class="lbl">この変更に関わる ${new Set(notices.map(n => n.who)).size} 名に通知しました</div>
+       <div class="panel" style="padding:0 18px;">
+         ${notices.map(n => `
+           <div class="listitem">
+             <span>🔔</span>
+             <div style="flex:1">
+               <div class="t">${n.who} <span class="muted">（${n.role}）</span></div>
+               <div class="m">${n.msg}</div>
+             </div>
+           </div>`).join('')}
+       </div>
+       <div class="cream-note" style="margin-top:16px;">
+         <span>📨</span>
+         <div>アプリ内通知に加え、<strong>メールと iOS のプッシュ通知</strong>にも同じ内容が送られます。
+         通知は必ず <code>notifications</code> に1件作られ、送信はその副作用として行われます。</div>
+       </div>`
+    : `<div class="cream-note" style="margin:0;"><span>ℹ️</span>
+       <div>変更がなかったため、通知は送信していません。</div></div>`;
+  document.getElementById('dayFoot').innerHTML =
+    `<button class="btn btn-secondary" style="flex:1"
+             onclick="openDay(${m},${d},'admin','')">内容を確認</button>
+     <button class="btn btn-primary" style="flex:1" onclick="closeDay()">閉じる</button>`;
+  toast(notices.length ? `保存し、${new Set(notices.map(n => n.who)).size}名に通知しました` : '変更はありませんでした');
+}
+
+/* ========== 生徒ごとの出席・月謝データ（生徒詳細で使う） ========== */
+/* ========== 授業記録 ==========
+   従業員が授業後に生徒ごとに記録する。閲覧できるのは
+   「管理者」「その生徒の保護者」「その生徒を担当する従業員」の3者。
+   キー: 生徒名|月-日|コマ番号（1コマ1生徒につき1件） */
+const RECORD_TEXTS = {
+  prog: [
+    '条件分岐の課題に取り組みました。if文の入れ子でつまずきましたが、自分で図を書いて整理して解けました。',
+    '変数の使い方を復習。自分で例を作って、隣の子に説明できていました。',
+    '繰り返し処理を学習。for文で図形を描く課題を完成させました。',
+    'キャラクターを動かすプログラムの続き。方向キーの割り当てまで完成しました。',
+    '制作中のゲームにスコア表示を追加。最後まで集中して取り組めていました。',
+    '関数の考え方を導入。同じ処理をひとまとめにする意味が伝わったようです。',
+    'エラーが出たときに、自分でメッセージを読んで原因を探せるようになってきました。',
+    '配列を使ってデータをまとめる練習。順番に取り出す仕組みを理解できました。',
+    '前回の作品を改良し、効果音を足して発表まで行いました。',
+    '今日は少し疲れている様子でしたが、最後の課題はやり切りました。',
+  ],
+  illust: [
+    '人物の顔のアタリの取り方を練習。バランスが安定してきました。次回から表情に入ります。',
+    '表情の描き分けに挑戦。喜怒哀楽のうち「驚き」が特に良く描けていました。',
+    '線の強弱を意識する練習。ペンの入り抜きが上達しています。',
+    '背景のパースを学習。一点透視で部屋を描きました。',
+    '色塗りの基礎。影の入れ方を説明し、実際に塗ってみました。',
+    '手のデッサン。難しい課題でしたが、根気よく取り組んでいました。',
+    'オリジナルキャラクターのラフを作成。アイデアがよく出ていました。',
+    '前回の作品に彩色。色の組み合わせを自分で考えて選べました。',
+    '模写の課題。細かいところまでよく観察できています。',
+    '作品展に出す絵の構図を相談しました。次回から本番用の紙に描きます。',
+  ],
+};
+
+/* 実施済みの開催日（今日より前）。出席と記録はここから生成する */
+const pastDays = (() => {
+  const out = [];
+  for (const m of [7, 8]) {
+    for (let d = 1; d <= MONTHS[m].days; d++) {
+      if (!isPast(m, d)) break;
+      const st = stateOf(m, d);
+      if (st && st !== 'off') out.push([m, d]);
+    }
+  }
+  return out;
+})();
+
+/* 出席状況と授業記録を、実施済みの回から決定的に生成する。
+   集計値（出席率など）はこの実データから数えるので、必ず一致する。 */
+const attendance = {};   // '生徒名|月-日|コマ' -> '出席' | '遅刻' | '欠席'
+const records    = {};
+(function seed(){
+  let i = 0;
+  for (const [m, d] of pastDays) {
+    for (const s of slotsOf(m, d)) {
+      for (const n of s.studs) {
+        i++;
+        const key = `${n}|${m}-${d}|${s.no}`;
+        const status = i % 11 === 4 ? '欠席' : i % 7 === 2 ? '遅刻' : '出席';
+        attendance[key] = status;
+        /* 授業記録は出欠とセットで1件。欠席の回は本文が付かないだけで、記録自体は残す。
+           出欠と所見を別々に見せると、保護者が2か所を突き合わせることになる。 */
+        const pool = RECORD_TEXTS[s.b.key];
+        records[key] = {
+          m, d, no: s.no, status,
+          by: s.emps[0], d_label: dayLabel(m, d),
+          slot: `${s.b.short} 第${s.no}コマ`,
+          body: status === '欠席' ? null : pool[i % pool.length],
+        };
+      }
+    }
+  }
+})();
+
+/* 直近の受講日（生徒ページで使う） */
+function lastAttendance(n){
+  const es = Object.keys(attendance).filter(k => k.split('|')[0] === n);
+  if (!es.length) return null;
+  const k = es[es.length - 1];                       // 生成順＝古い順なので末尾が直近
+  const [, md, slot] = k.split('|');
+  const [m, d] = md.split('-').map(Number);
+  return { label: dayLabel(m, d), slot: `第${slot}コマ`, status: attendance[k] };
+}
+
+const recordsOf = n => Object.entries(records)
+  .filter(([k]) => k.split('|')[0] === n).map(([, v]) => v).reverse();
+
+const attBadge = st => `<span class="badge ${
+  st === '出席' ? 'paid' : st === '欠席' ? 'unpaid' : 'draft'}">${st}</span>`;
+
+/* 授業記録1件。出欠バッジ + 所見。欠席の回は所見が無い。 */
+function recordItem(r){
+  return `<div class="listitem" style="align-items:flex-start;">
+    <span>${r.body ? '📝' : '🤒'}</span>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="m">${r.d_label} ・ ${r.slot}</span>
+        <span style="flex:1"></span>${attBadge(r.status)}
+      </div>
+      ${r.body
+        ? `<div style="color:var(--body);font-size:13.5px;margin:5px 0 4px;line-height:1.6;">${r.body}</div>
+           <div class="m">記録: ${r.by}</div>`
+        : '<div class="m" style="margin-top:5px;">欠席のため授業記録はありません。</div>'}
+    </div>
+  </div>`;
+}
+
+/* limit を超える分は件数だけ示す（1人あたり10件前後になるため） */
+function recordList(n, empty, limit = 4){
+  const rs = recordsOf(n);
+  if (!rs.length) return `<p class="muted">${empty}</p>`;
+  const shown = rs.slice(0, limit), rest = rs.length - shown.length;
+  return `<div class="panel" style="padding:0 18px;">${shown.map(recordItem).join('')}
+    ${rest > 0 ? `<div class="listitem"><span></span>
+      <div class="muted">ほか ${rest} 件の記録があります</div></div>` : ''}
+  </div>`;
+}
+
+/* 生徒ごとの [受講, 出席, 遅刻, 欠席]。実際の出席データから数えるので必ず整合する */
+const attData = students.map(s => {
+  const v = Object.entries(attendance)
+    .filter(([k]) => k.split('|')[0] === s.n).map(([, x]) => x);
+  return [v.length, v.filter(x => x === '出席').length,
+          v.filter(x => x === '遅刻').length, v.filter(x => x === '欠席').length];
+});
+const feeMonths = ['2026-04','2026-05','2026-06','2026-07','2026-08'];
+/* 8月分の支払状況。未払いは 高橋 芽依・伊藤 陸・松本 楓 の3名 */
+const feeState  = [1,1,1,0,1,1,1,0,1,1,1,1,0,1,1];
+/* 月謝ログ: 8月分だけ未払いの生徒がいる。4号（高橋）は7月にコース変更で差額調整あり */
+function feeLog(i){
+  const s = students[i];
+  return feeMonths.map((m, j) => {
+    const last = j === feeMonths.length - 1;
+    const paid = last ? feeState[i] : 1;
+    const adj  = (i === 3 && m === '2026-07');
+    return {
+      m,
+      amount: adj ? s.fee - 2000 : s.fee,
+      paid,
+      date: paid ? m.replace('-', '/') + '/10' : null,
+      note: adj ? '月途中のコース変更により差額調整' : ''
+    };
+  });
+}
+
+/* ========== 管理者: お知らせ ========== */
+/* at = 送信予定日時（null なら送信済み） */
+const announces = [
+  {t:'9月の受講希望は8月20日締切です', d:'8月1日',  to:'全員',   b:null, at:null},
+  {t:'9月の勤務希望は8月25日締切です', d:'8月1日',  to:'従業員', b:null, at:null},
+  {t:'イラスト教室 作品展のお知らせ',   d:'7月28日', to:'保護者', b:ILLU, at:null},
+  {t:'8月16日は休講です（お盆）',       d:'7月20日', to:'全員',   b:null, at:null},
+  {t:'9月分の受講希望 締切まであと3日です', d:null, to:'保護者', b:null, at:'2026-08-17 09:00'},
+  {t:'作品展の搬入について（保護者向け）',   d:null, to:'保護者', b:ILLU, at:'2026-08-22 18:00'},
+];
+
+function renderAnnounces(){
+  const fmt = s => s.replace('-', '年').replace('-', '月').replace(' ', '日 ');
+  const sorted = [...announces].sort((a, b) => (a.at ? 0 : 1) - (b.at ? 0 : 1));
+  document.getElementById('announceList').innerHTML = sorted.map((a, i) => `
+    <div class="listitem">
+      <span>${a.at ? '🕒' : '📢'}</span>
+      <div style="flex:1">
+        <div class="t">${a.t}</div>
+        <div class="m">
+          ${a.at ? `<span class="badge draft">予約中</span> ${fmt(a.at)} に自動送信`
+                 : `${a.d} 送信済み`}
+          ・ ${a.to}${a.b ? ' ・ ' + a.b.short : ' ・ 全事業'}
+        </div>
+      </div>
+      ${a.at
+        ? `<button class="btn btn-secondary btn-sm"
+             onclick="cancelAnnounce('${a.t.replace(/'/g, '')}')">予約取消</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="toast('お知らせを編集します')">編集</button>`}
+    </div>`).join('');
+  const n = announces.filter(a => a.at).length;
+  document.getElementById('anPending').textContent = n ? `予約中 ${n}件` : '';
+}
+
+function pickSeg(el){
+  [...el.parentNode.children].forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function pickWhen(el, mode){
+  pickSeg(el);
+  document.getElementById('anAtField').style.display = mode === 'later' ? '' : 'none';
+  document.getElementById('anSubmit').textContent = mode === 'later' ? '予約する' : '投稿する';
+}
+const segVal = id => document.querySelector('#' + id + ' .sel').textContent;
+
+function postAnnounce(){
+  const t = document.getElementById('anTitle').value.trim();
+  if (!t) { toast('タイトルが入力されていません'); return; }
+  const later = segVal('anWhen') === '日時を指定';
+  const bizName = segVal('anBiz');
+  const biz = bizName === 'プログラミング' ? PROG : bizName === 'イラスト' ? ILLU : null;
+  const at = later ? document.getElementById('anAt').value.replace('T', ' ') : null;
+  announces.unshift({ t, d: later ? null : '8月7日', to: segVal('anRole'), b: biz, at });
+  document.getElementById('anTitle').value = '';
+  document.getElementById('anBody').value = '';
+  renderAnnounces();
+  toast(later ? `${at.replace('T', ' ')} に自動送信するよう予約しました`
+              : 'お知らせを投稿し、対象者に通知しました');
+}
+function cancelAnnounce(t){
+  const i = announces.findIndex(a => a.at && a.t.replace(/'/g, '') === t);
+  if (i >= 0) { announces.splice(i, 1); renderAnnounces(); toast('予約を取り消しました'); }
+}
+renderAnnounces();
+
+/* ========== 管理者: 締め切り設定 ========== */
+/* 締め切りは「毎月◯日」の繰り返しルール。対象月の前月の指定日が締め切りで、
+   受付は対象月の前月1日に開く（その時点で締め切り行が作られる、という想定）。
+   月ごとに個別の上書きと停止ができ、上書きした月はルールを変えても動かない。 */
+const dlRule = {
+  parent:   {label:'保護者（受講希望）', day:20, time:'23:59'},
+  employee: {label:'講師（勤務希望）',   day:25, time:'23:59'},
+};
+const daysIn = (y, m) => new Date(y, m, 0).getDate();
+/* 対象月(y,m) の締め切り日。前月の指定日で、月末を超えたら末日に丸める。 */
+function dlDateOf(y, m, type){
+  const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
+  return {y:py, m:pm, d:Math.min(dlRule[type].day, daysIn(py, pm))};
+}
+function setDlRule(type, v){
+  dlRule[type].day = Math.min(31, Math.max(1, +v || 1));
+  renderDeadlines();
+  toast(`${dlRule[type].label} の締め切りを毎月${dlRule[type].day}日にしました`);
+}
+function renderDeadlines(){
+  /* 例として「来月分」の締め切りが何日になるかを添える。
+     ルールだけ見ても実際の日付が想像しにくいため。 */
+  const ny = TODAY_M === 12 ? 2027 : 2026, nm = TODAY_M === 12 ? 1 : TODAY_M + 1;
+  document.getElementById('dlRules').innerHTML = Object.entries(dlRule).map(([type, r]) => {
+    const x = dlDateOf(ny, nm, type);
+    return `<div class="rule">
+      <span class="who">${r.label}</span>
+      <span class="muted">対象月の前月</span>
+      <input class="num-in" type="number" min="1" max="31" id="dlDay-${type}" value="${r.day}"
+             onchange="setDlRule('${type}', this.value)">
+      <span>日</span>
+      <span style="font-variant-numeric:tabular-nums;">${r.time}</span>
+      <span class="spacer" style="flex:1"></span>
+      <span class="muted" id="dlNext-${type}" style="font-variant-numeric:tabular-nums;">${
+        ny}年${nm}月分 → ${x.m}月${x.d}日 ${r.time}</span>
+      <span class="badge confirmed">毎月くり返し</span>
+    </div>`;
+  }).join('');
+}
+
+/* ========== 管理者: ユーザー・招待 ========== */
+const users = [
+  {n:'森川',        e:'morikawa@example.com',   r:'管理者', x:'—',                        ok:1},
+  {n:'中村',        e:'nakamura@example.com', r:'従業員', x:'プログラミング・イラスト', ok:1},
+  {n:'小林',        e:'kobayashi@example.com',r:'従業員', x:'イラスト',                 ok:1},
+  {n:'田中 さくら', e:'tanaka@example.com', r:'保護者', x:'田中 陽翔・田中 咲希',     ok:1},
+  {n:'佐藤 みどり', e:'sato@example.com',   r:'保護者', x:'佐藤 結衣',                ok:1},
+  {n:'鈴木 健一',   e:'suzuki@example.com', r:'保護者', x:'鈴木 蓮',                  ok:1},
+  {n:'伊藤 涼子',   e:'ito@example.com',    r:'保護者', x:'伊藤 陸',                  ok:0},
+];
+document.getElementById('userRows').innerHTML = users.map(u => `
+  <tr>
+    <td class="name">${u.n}</td>
+    <td class="muted">${u.e}</td>
+    <td><span class="badge ${u.r==='管理者'?'confirmed':u.r==='従業員'?'prog':'draft'}">${u.r}</span></td>
+    <td class="muted">${u.x}</td>
+    <td><span class="badge ${u.ok?'paid':'unpaid'}">${u.ok?'有効':'招待中'}</span></td>
+    <td><button class="btn btn-secondary btn-sm"
+        onclick="toast('${u.ok?u.n+' を編集します':'招待メールを再送しました'}')">${u.ok?'編集':'再送'}</button></td>
+  </tr>`).join('');
+
+/* ========== 保護者 ========== */
+/* ログイン中の保護者。子は保護者名から引く（配列の添字で固定すると
+   生徒を増やしたときに別人になるため） */
+const PARENT = '田中 さくら';
+const kids = students.filter(s => s.parent === PARENT);
+let kid = 0;
+
+function renderKids(){
+  const html = kids.map((k,i) => `
+    <button class="${i===kid?'on':''}" onclick="setKid(${i})">
+      <div class="n"><span class="dot ${k.b.key}"></span>${k.n}</div>
+      <div class="g">${gradeName(k.grade)} ・ ${k.b.short} 月${k.sess}回</div>
+    </button>`).join('');
+  kidSwitch.innerHTML = html; kidSwitch2.innerHTML = html;
+
+  const k = kids[kid];
+  nextCard.innerHTML = `
+    <div class="next ${k.b.key}">
+      <div class="k">次回の受講</div>
+      <div class="v">${k.b.key==='prog'?'9月6日（日）第1コマ':'9月5日（土）第1コマ'}</div>
+      <div class="s">13:00 〜 14:30 ・ ${k.b.name}</div>
+    </div>`;
+
+  renderAttendSummary();
+
+  pickMax.textContent = k.sess;
+  pickHint.textContent = `2026年9月 の候補日（${k.b.short}／${k.b.key==='prog'?'日曜のみ':'土日'}）`;
+  renderPicks();
+
+  parentSched.innerHTML = (k.b.key==='prog'
+    ? [['9月6日（日）','第1コマ 13:00〜14:30'],['9月20日（日）','第1コマ 13:00〜14:30']]
+    : [['9月5日（土）','第1コマ 13:00〜14:30'],['9月13日（日）','第2コマ 15:00〜16:30'],['9月26日（土）','第1コマ 13:00〜14:30']]
+  ).map(([d,t]) => `
+    <div class="card" style="padding:14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;">
+      <span class="dot ${k.b.key}"></span>
+      <div style="flex:1"><div style="color:var(--ink);font-size:14px;">${d}</div>
+      <div class="muted" style="margin-top:2px;">${t}</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="openAbs('${d}','${t}')">欠席連絡</button>
+    </div>`).join('');
+}
+function setKid(i){ kid = i; renderKids(); }
+
+/* 受講状況（保護者ホーム）。実際の割り当て・出欠・授業記録から作る。
+   済んだ回は、そのまま下に授業記録を出す。別セクションに分けると、
+   「どの回の記録か」を保護者が突き合わせることになるため。 */
+let kidMonth = TODAY_M;
+function shiftKidMonth(dir){
+  if (!MONTHS[kidMonth + dir]) return;
+  kidMonth += dir; renderAttendSummary();
+}
+function kidSessions(m){
+  const k = kids[kid], out = [];
+  for (let d = 1; d <= MONTHS[m].days; d++) {
+    const st = stateOf(m, d);
+    if (!st || st === 'off') continue;
+    for (const sl of slotsOf(m, d)) {
+      if (sl.b !== k.b || !sl.studs.includes(k.n)) continue;
+      const key = `${k.n}|${m}-${d}|${sl.no}`;
+      out.push({m, d, sl, done:isPast(m, d), rec:records[key], status:attendance[key]});
+    }
+  }
+  return out;
+}
+function renderAttendSummary(){
+  const k = kids[kid], list = kidSessions(kidMonth);
+  document.getElementById('kidMonthLabel').textContent = MONTHS[kidMonth].label.replace(/\s/g, '');
+  document.getElementById('kidPrev').disabled = !MONTHS[kidMonth - 1];
+  document.getElementById('kidNext').disabled = !MONTHS[kidMonth + 1];
+
+  document.getElementById('attendSummary').innerHTML = list.length ? list.map(x => {
+    const st = x.status || (x.done ? '記録待ち' : '予定');
+    const label = `${dayLabel(x.m, x.d)} 第${x.sl.no}コマ`;
+    return `<div class="listitem" style="align-items:flex-start;">
+      <span class="dot ${k.b.key}" style="margin-top:7px"></span>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="t">${label}</span><span style="flex:1"></span>${attBadge(st)}
+        </div>
+        <div class="m">${x.sl.time} ・ 担当 ${x.sl.emps.join('・') || '未定'}</div>
+        ${x.rec
+          ? (x.rec.body
+              ? `<div style="color:var(--body);font-size:13.5px;margin:7px 0 3px;line-height:1.6;
+                   border-left:2px solid var(--hairline);padding-left:10px;">📝 ${x.rec.body}</div>
+                 <div class="m">記録: ${x.rec.by}</div>`
+              : '<div class="m" style="margin-top:6px;">欠席のため授業記録はありません。</div>')
+          : x.done ? '<div class="m" style="margin-top:6px;">授業記録はまだ記入されていません。</div>' : ''}
+      </div>
+    </div>`;
+  }).join('')
+  : `<p class="muted">${MONTHS[kidMonth].label}に${k.n}さんの受講予定はありません。</p>`;
+}
+
+/* 左右スワイプ。50px 以上動いたら1ヶ月ぶん送る。 */
+function bindSwipe(el, onSwipe){
+  let x0 = null;
+  el.addEventListener('touchstart', e => { x0 = e.changedTouches[0].clientX; });
+  el.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 50) onSwipe(dx < 0 ? 1 : -1);   // 左へ払う = 次の月
+  });
+}
+bindSwipe(document.getElementById('attendPanel'), shiftKidMonth);
+
+/* ========== ユーザー招待シート ========== */
+let kidRows = 0;
+function addKidRow(){
+  kidRows++;
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.style.cssText = 'padding:12px;margin-bottom:9px;';
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+      <span class="muted" style="font-weight:500;">お子さま ${kidRows}人目</span>
+      <span style="flex:1"></span>
+      <button class="btn btn-secondary btn-sm" onclick="this.closest('.card').remove();countKids()">削除</button>
+    </div>
+    <div class="field" style="margin-bottom:9px;">
+      <input class="input" placeholder="氏名（例）田中 陽翔">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+      <div class="field" style="margin:0;">
+        <label>教室</label>
+        <select class="input"><option>プログラミング教室</option><option>イラスト教室</option></select>
+      </div>
+      <div class="field" style="margin:0;">
+        <label>小1になった年度</label>
+        <select class="input">${
+          [2026,2025,2024,2023,2022,2021,2020,2019,2018].map(y =>
+            `<option>${y}年度（${gradeName(2026 - y + 1)}）</option>`).join('')
+        }</select>
+      </div>
+    </div>
+    <div class="field" style="margin:9px 0 0;">
+      <label>コース</label>
+      <select class="input">
+        <option>標準（学年から自動選択）</option>
+        <option>月2回</option><option>月3回</option>
+      </select>
+    </div>`;
+  document.getElementById('invKidRows').appendChild(el);
+  countKids();
+}
+function countKids(){
+  const n = document.querySelectorAll('#invKidRows .card').length;
+  document.getElementById('invKidCount').textContent = n ? `${n}人` : '未入力';
+}
+function setInvRole(r, el){
+  [...document.querySelectorAll('#invRole button')].forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('invKids').style.display  = r === 'parent'   ? '' : 'none';
+  document.getElementById('invBiz').style.display   = r === 'employee' ? '' : 'none';
+  document.getElementById('invAdmin').style.display = r === 'admin'    ? '' : 'none';
+}
+function openInv(){
+  document.getElementById('invKidRows').innerHTML = '';
+  kidRows = 0; addKidRow();          // 既定で1人分。ほとんどの家庭は1人なので入力が増えない
+  document.getElementById('invOverlay').classList.add('show');
+  document.getElementById('invSheet').classList.add('show');
+}
+function closeInv(){
+  document.getElementById('invOverlay').classList.remove('show');
+  document.getElementById('invSheet').classList.remove('show');
+}
+
+/* 欠席連絡シート。送信すると管理者の受信ボックスに1件届く。 */
+let absCtx = null;
+function openAbs(when, time){
+  const k = kids[kid];
+  absCtx = {n:k.n, b:k.b,
+    m:+when.match(/(\d+)月/)[1], d:+when.match(/月(\d+)日/)[1],
+    no:+time.match(/第(\d+)コマ/)[1]};
+  document.getElementById('absDot').className = 'dot ' + k.b.key;
+  document.getElementById('absWhen').textContent = when + ' ' + time;
+  document.getElementById('absWho').textContent = k.n + ' ・ ' + k.b.name;
+  document.getElementById('absReason').value = '';
+  document.getElementById('absOverlay').classList.add('show');
+  document.getElementById('absSheet').classList.add('show');
+}
+function submitAbs(){
+  const c = absCtx;
+  const slot = slotsOf(c.m, c.d).find(s => s.b === c.b && s.no === c.no)
+            || {b:c.b, no:c.no, emps:['未定']};
+  absences.unshift({id:'ab' + (absSeq++), n:c.n, m:c.m, d:c.d, slot, at:0.02, done:false,
+    reason:document.getElementById('absReason').value.trim() || '（理由の記載なし）'});
+  renderInbox(); renderTodos();
+  closeAbs();
+  toast('欠席連絡を送信しました。管理者と担当講師に通知されます');
+}
+function closeAbs(){
+  document.getElementById('absOverlay').classList.remove('show');
+  document.getElementById('absSheet').classList.remove('show');
+}
+
+/* 希望提出の候補と上限チェック */
+let picks = {};
+function candidates(){
+  const k = kids[kid];
+  const days = k.b.key==='prog'
+    ? ['9月6日（日）','9月13日（日）','9月20日（日）','9月27日（日）']
+    : ['9月5日（土）','9月6日（日）','9月12日（土）','9月13日（日）'];
+  const out = [];
+  days.forEach(d => { out.push([d,1,'13:00〜14:30']); out.push([d,2,'15:00〜16:30']); });
+  return out;
+}
+function renderPicks(){
+  const k = kids[kid], cands = candidates();
+  if(!picks[kid]) picks[kid] = [0, 2];           // 既定で2つ選択済み（別々の日）
+  const sel = picks[kid], full = sel.length >= k.sess;
+  const takenDays = sel.map(j => cands[j][0]);   // 既に選んだ日
+  pickCount.textContent = sel.length;
+  pickList.innerHTML = cands.map(([d,no,t],i) => {
+    const on = sel.includes(i);
+    const sameDay = !on && takenDays.includes(d);   // 同じ日は1コマまで
+    const off = !on && (full || sameDay);
+    return `<button class="pick ${on?'on':''} ${k.b.key==='illust'?'illust':''} ${off?'off':''}"
+              onclick="togglePick(${i})" ${off?'disabled':''}>
+      <span class="box">${on?'✓':''}</span>
+      <span style="flex:1"><span class="d">${d} 第${no}コマ</span>
+      <div class="tm">${sameDay ? 'この日は選択済み（1日1コマまで）' : t}</div></span>
+    </button>`;
+  }).join('') + (full ? `<p class="muted" style="margin-top:8px;">
+      上限（月${k.sess}コマ）に達しました。変更するには選択を外してください。</p>` : '');
+}
+function togglePick(i){
+  const k = kids[kid], sel = picks[kid], cands = candidates();
+  const at = sel.indexOf(i);
+  if(at >= 0){ sel.splice(at,1); renderPicks(); return; }
+  if(sel.some(j => cands[j][0] === cands[i][0])){
+    toast('同じ日に2コマは受講できません（1日1コマまで）'); return;
+  }
+  if(sel.length >= k.sess){ toast('コースの上限は月'+k.sess+'コマです'); return; }
+  sel.push(i); renderPicks();
+}
+
+/* ========== 従業員 ========== */
+/* 8/9（日）に中村が担当するコマのうち、受講生徒がいるもの
+   （添字で固定すると、割り当て次第で空のコマを指してしまう） */
+const TODAY_KEY = '8-9';
+const todaySlot = slotsOf(8, 9).find(s => s.emps.includes('中村') && s.studs.length)
+               || slotsOf(8, 9)[0];
+const TODAY_SLOT  = todaySlot.no;
+const TODAY_LABEL = `8月9日（日） ${todaySlot.b.short} 第${todaySlot.no}コマ`;
+const todayStuds  = todaySlot.studs;
+const attState = {};
+
+/* 直近の担当コマと、同じ日の他の担当 */
+empNext.innerHTML = `
+  <div class="next ${todaySlot.b.key}">
+    <div class="k">2026年8月9日（日）</div>
+    <div class="v">${todaySlot.b.name} 第${todaySlot.no}コマ</div>
+    <div class="s">${todaySlot.time} ・ 生徒${todayStuds.length}名</div>
+  </div>`;
+empOther.innerHTML = slotsOf(8, 9)
+  .filter(s => s.emps.includes('中村') && s !== todaySlot)
+  .map(s => `
+    <div class="listitem">
+      <span class="dot ${s.b.key}" style="margin-top:6px"></span>
+      <div><div class="t">${s.b.short} 第${s.no}コマ</div>
+      <div class="m">${s.time} ・ 生徒${s.studs.length}名${
+        s.emps.length > 1 ? ' ・ ' + s.emps.filter(e => e !== '中村').join('・') + 'と2名体制' : ''}</div></div>
+    </div>`).join('') || '<p class="muted">この日の担当はこのコマだけです。</p>';
+
+function renderAtt(){
+  attList.innerHTML = todayStuds.map((n, i) => {
+    const has = !!records[`${n}|${TODAY_KEY}|${TODAY_SLOT}`];
+    return `<div class="att">
+      <button class="nm stu-link" onclick="openStuByName('${n}','employee')">${n} ›</button>
+      <span class="seg3">
+        ${['出席','遅刻','欠席'].map(s =>
+          `<button class="${attState[i] === s ? 'on' : ''}" onclick="mark(${i},'${s}')">${s}</button>`).join('')}
+      </span>
+      <button class="btn btn-secondary btn-sm" style="white-space:nowrap;"
+        onclick="openRec('${n}')">${has ? '📝 記録済' : '📝 記録'}</button>
+    </div>`;
+  }).join('');
+}
+renderAtt();
+
+/* 出欠は授業記録と同じ1件に入る。マークし直すと記録側の出欠も変わる。 */
+function mark(i, s){
+  attState[i] = s;
+  const r = records[`${todayStuds[i]}|${TODAY_KEY}|${TODAY_SLOT}`];
+  if (r) { r.status = s; if (s === '欠席') r.body = null; }
+  renderAtt(); renderKids();
+  toast(todayStuds[i] + ' を「' + s + '」で記録しました');
+}
+
+/* 授業記録の入力 */
+let recName = null;
+function openRec(n){
+  recName = n;
+  const cur = records[`${n}|${TODAY_KEY}|${TODAY_SLOT}`];
+  document.getElementById('recWho').textContent = `${n} ・ ${TODAY_LABEL}`;
+  document.getElementById('recBody').value = cur ? cur.body : '';
+  document.getElementById('recPast').innerHTML =
+    recordList(n, 'この生徒の記録はまだありません。');
+  document.getElementById('recOverlay').classList.add('show');
+  document.getElementById('recSheet').classList.add('show');
+}
+function closeRec(){
+  document.getElementById('recOverlay').classList.remove('show');
+  document.getElementById('recSheet').classList.remove('show');
+}
+function saveRec(){
+  const body = document.getElementById('recBody').value.trim();
+  if (!body) { toast('記録が入力されていません'); return; }
+  const i = todayStuds.indexOf(recName);
+  records[`${recName}|${TODAY_KEY}|${TODAY_SLOT}`] = {
+    m: TODAY_M, d: 9, no: TODAY_SLOT, status: attState[i] || '出席',
+    by: '中村', d_label: '8月9日（日）',
+    slot: `${todaySlot.b.short} 第${todaySlot.no}コマ`, body };
+  const p = parentOf(recName);
+  closeRec(); renderAtt(); renderKids();
+  toast(`${recName}さんの記録を保存しました（${p}さんが閲覧できます）`);
+}
+
+const eCands = [
+  ['9月5日（土）', ILLU, 1, true], ['9月5日（土）', ILLU, 2, false],
+  ['9月6日（日）', PROG, 1, true], ['9月6日（日）', PROG, 2, true],
+  ['9月6日（日）', ILLU, 1, false], ['9月6日（日）', ILLU, 2, true],
+  ['9月12日（土）', ILLU, 1, false], ['9月13日（日）', PROG, 1, true],
+];
+ePickList.innerHTML = eCands.map(([d,b,no,on],i) => `
+  <button class="pick ${on?'on':''} ${b.key==='illust'?'illust':''}" onclick="eToggle(${i},this)">
+    <span class="box">${on?'✓':''}</span>
+    <span style="flex:1"><span class="d"><span class="dot ${b.key}" style="margin-right:6px"></span>${d} 第${no}コマ</span>
+    <div class="tm">${b.short}</div></span>
+  </button>`).join('');
+function eToggle(i,el){
+  el.classList.toggle('on');
+  el.querySelector('.box').textContent = el.classList.contains('on') ? '✓' : '';
+  ePickCount.textContent = document.querySelectorAll('#ePickList .pick.on').length;
+}
+
+/* 従業員の予定カレンダー: 中村としてログイン中。自分の担当コマかつ確定分のみ */
+buildCal('empCal', 'employee', '中村', empMonth);
+
+empSched.innerHTML = [
+  ['9月6日（日）', PROG, '第1コマ 13:00〜14:30', '生徒3名'],
+  ['9月6日（日）', PROG, '第2コマ 15:00〜16:30', '生徒2名'],
+  ['9月6日（日）', ILLU, '第2コマ 15:00〜16:30', '生徒2名 ・ 小林と2名体制'],
+].map(([d,b,t,s]) => `
+  <div class="card" style="padding:14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;">
+    <span class="dot ${b.key}"></span>
+    <div style="flex:1"><div style="color:var(--ink);font-size:14px;">${d} ${t}</div>
+    <div class="muted" style="margin-top:2px;">${b.name} ・ ${s}</div></div>
+  </div>`).join('');
+
+/* ========== 画面遷移 ========== */
+const titles = {home:'ホーム', schedule:'スケジュール確定', students:'生徒',
+  overtime:'時間外勤務 申請', revenue:'収入・収益', payroll:'給与計算・締め処理',
+  inbox:'受信ボックス', announce:'お知らせ', deadlines:'締め切り設定', promotion:'進級処理',
+  courses:'コース・料金', slots:'開催枠', staff:'講師', users:'ユーザー・招待'};
+
+/* ヘッダーのボタンは画面ごとに変える（必要な画面にだけ出す） */
+const topActions = {
+  schedule: [['希望を再取得','secondary','希望データを再取得しました'],
+             ['この月を確定','primary','9月分のスケジュールを確定しました']],
+  payroll:  [['CSV出力','secondary','CSVを書き出しました'],
+             ['この期間を確定する','primary','8月度の給与を確定しました。以降シフトはロックされます']],
+  overtime: [['まとめて承認','secondary','承認待ちをまとめて承認しました']],
+  revenue:  [['CSV出力','secondary','収支をCSVで書き出しました']],
+};
+function setScreen(s){
+  document.querySelectorAll('.nav button').forEach(x => x.classList.toggle('on', x.dataset.s === s));
+  document.querySelectorAll('#view-admin .screen').forEach(x => x.classList.remove('active'));
+  document.getElementById('s-' + s).classList.add('active');
+  document.getElementById('pageTitle').textContent = titles[s];
+  document.getElementById('topActions').innerHTML = (topActions[s] || [])
+    .map(([label, kind, msg]) =>
+      `<button class="btn btn-${kind} btn-sm" onclick="toast('${msg}')">${label}</button>`).join('');
+  document.getElementById('sidebar').classList.remove('open');
+}
+document.querySelectorAll('.nav button').forEach(b => b.onclick = () => setScreen(b.dataset.s));
+
+function bindTabs(tabsId, titleEl, map){
+  document.querySelectorAll('#' + tabsId + ' button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#' + tabsId + ' button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    const s = b.dataset.s;
+    b.closest('.mobile').querySelectorAll('.screen').forEach(x => x.classList.remove('active'));
+    document.getElementById(s).classList.add('active');
+    document.getElementById(titleEl).textContent = map[s];
+    window.scrollTo(0,0);
+  });
+}
+bindTabs('parentTabs','pTitle',{'p-home':'マイページ','p-submit':'受講希望の提出','p-schedule':'確定スケジュール','p-news':'お知らせ'});
+bindTabs('empTabs','eTitle',{'e-today':'担当コマ','e-submit':'勤務希望の提出',
+  'e-schedule':'確定スケジュール','e-pay':'給与','e-news':'お知らせ'});
+
+function setRole(r, el){
+  document.querySelectorAll('.devbar .seg button').forEach(x => x.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + r).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ========== 管理者ホーム ==========
+   カレンダー定義・生徒データがすべて揃ってから描画する（順序に依存するため末尾） */
+buildCal('adminCal', 'admin', '', adminMonth);
+
+/* 次回・前回の教室。同じ日に複数コマがあれば全部並べる */
+(function(){
+  const find = dir => {
+    for (let d = TODAY_D + dir; d >= 1 && d <= MONTHS[TODAY_M].days; d += dir) {
+      const st = stateOf(TODAY_M, d);
+      if (st && st !== 'off') return d;
+    }
+    return null;
+  };
+  const card = (d, kind) => {
+    const slots = slotsOf(TODAY_M, d);
+    const diff = Math.abs(d - TODAY_D);
+    const past = kind === 'prev';
+    const marked = past
+      ? slots.flatMap(s => s.studs.map(x => attendance[`${x}|${TODAY_M}-${d}|${s.no}`]))
+      : [];
+    const absent = marked.filter(x => x === '欠席').length;
+    const noted = past
+      ? slots.flatMap(s => s.studs.filter(x => records[`${x}|${TODAY_M}-${d}|${s.no}`])).length
+      : 0;
+    return `
+      <div class="card" style="padding:16px;margin-bottom:11px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+        <div>
+          <div class="muted">${past ? diff + '日前' : diff + '日後'}</div>
+          <div style="font-size:19px;color:var(--ink);font-weight:500;">${dayLabel(TODAY_M, d)}</div>
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <div class="muted">${past ? '実施' : '開催'}</div>
+          <div style="color:var(--ink);">${slots.length}コマ ・
+            生徒 ${new Set(slots.flatMap(s => s.studs)).size}名 ・
+            担当 ${[...new Set(slots.flatMap(s => s.emps))].join('・')}</div>
+          ${past ? `<div class="muted" style="margin-top:3px;">
+            出席 ${marked.filter(x => x === '出席').length}名 ／ 遅刻 ${marked.filter(x => x === '遅刻').length}名
+            ／ 欠席 ${absent}名 ・ 記録 ${noted}件</div>` : ''}
+        </div>
+        <button class="btn btn-secondary btn-sm"
+          onclick="openDay(${TODAY_M},${d},'admin','')">詳細を見る</button>
+      </div>
+      ${slots.map(s => `
+        <div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <span class="dot ${s.b.key}"></span>
+          <span style="color:var(--ink);">${s.b.short} 第${s.no}コマ</span>
+          <span class="muted" style="font-variant-numeric:tabular-nums;">${s.time}</span>
+          <span style="flex:1"></span>
+          <span class="muted">${s.emps.join('・')} ／ 生徒${s.studs.length}名</span>
+        </div>`).join('')}`;
+  };
+  const next = find(1), prev = find(-1);
+  document.getElementById('nextClass').innerHTML = next
+    ? card(next, 'next') : '<p class="muted">今月はもう開催がありません。</p>';
+  document.getElementById('prevClass').innerHTML = prev
+    ? card(prev, 'prev') : '<p class="muted">今月はまだ開催がありません。</p>';
+})();
+
+/* =========================================================================
+   給与と収支
+   給与は「担当コマ × その事業の時給」で、スケジュール確定の結果からその場で計算する。
+   金額を保存すると、コマを編集したときに古い金額が残って食い違うため。
+   講師の給与ページ・講師詳細・収入収益・給与計算は、すべてこの staffPay() を見る。
+   ========================================================================= */
+const EMP_ME = '中村';
+const SLOT_HOURS = 1.5;                                   // 1コマ90分
+const bizOfJob = j => j.includes('プログラ') ? 'prog' : 'illust';
+const rateOf = (s, bizKey) => (s.wages.find(w => w.cur && bizOfJob(w.j) === bizKey) || {r:0}).r;
+
+const MONTH_KEYS = [7, 8, 9];
+/* 過去月 = 支給済み / 今月 = 締め前 / 来月 = 見込み（スケジュール未確定） */
+const monthState = m => m < TODAY_M ? 'settled' : m === TODAY_M ? 'open' : 'planned';
+const STATE_LABEL = {settled:'支給済み', open:'締め前', planned:'見込み'};
+const STATE_CLS   = {settled:'paid',    open:'over',   planned:'draft'};
+
+function staffPay(name, m){
+  const s = staff.find(x => x.n === name) || {wages:[], commute:0};
+  const slots = {prog:0, illust:0}, days = new Set();
+  for (let d = 1; d <= MONTHS[m].days; d++) {
+    const st = stateOf(m, d);
+    if (!st || st === 'off') continue;
+    for (const sl of slotsOf(m, d)) {
+      if (!sl.emps.includes(name)) continue;
+      slots[sl.b.key]++; days.add(d);
+    }
+  }
+  const base = {prog:   slots.prog   * SLOT_HOURS * rateOf(s, 'prog'),
+                illust: slots.illust * SLOT_HOURS * rateOf(s, 'illust')};
+  const ot = {prog:0, illust:0};
+  overtime.filter(o => o.n === name && o.st === 'approved' && +o.d.slice(5, 7) === m)
+    .forEach(o => ot[o.b.key] += Math.round(o.h * o.rate));
+  const commute = days.size * (s.commute || 0);
+  const n = slots.prog + slots.illust, both = o => o.prog + o.illust;
+  return {slots, n, hours:n * SLOT_HOURS, days:days.size, base, ot, commute,
+          baseSum:both(base), otSum:both(ot), total:both(base) + both(ot) + commute,
+          state:monthState(m)};
+}
+
+/* 収入 = 固定月額の合計（欠席・休講に関係なく変わらない）
+   支出 = 人件費（コマから計算）+ 交通費 + 承認済みの時間外 */
+function revenueOf(m){
+  const income = {prog:0, illust:0}, heads = {prog:0, illust:0};
+  students.forEach(s => { income[s.b.key] += s.fee; heads[s.b.key]++; });
+  const labor = {prog:0, illust:0};
+  let commute = 0, baseSum = 0, otSum = 0;
+  staff.filter(s => s.active).forEach(s => {
+    const p = staffPay(s.n, m);
+    labor.prog   += p.base.prog   + p.ot.prog;
+    labor.illust += p.base.illust + p.ot.illust;
+    commute += p.commute; baseSum += p.baseSum; otSum += p.otSum;
+  });
+  const inc = income.prog + income.illust;
+  const cost = labor.prog + labor.illust + commute;
+  return {income, heads, labor, commute, baseSum, otSum, inc, cost,
+          profit:inc - cost, rate:inc ? (inc - cost) / inc : 0, state:monthState(m)};
+}
+
+/* ---------- 管理者: 収入・収益 ---------- */
+let revMonth = TODAY_M;
+function shiftRev(dir){
+  const next = revMonth + dir;
+  if (!MONTHS[next]) return;
+  revMonth = next; renderRevenue();
+}
+function renderRevenue(){
+  const r = revenueOf(revMonth);
+  document.getElementById('revMonthLabel').textContent = MONTHS[revMonth].label;
+  document.getElementById('revState').innerHTML = r.state === 'planned'
+    ? '<span class="badge draft">スケジュール未確定 ・ 支出は見込み</span>'
+    : r.state === 'open' ? '<span class="badge over">締め前</span>'
+                         : '<span class="badge paid">確定</span>';
+
+  document.getElementById('revSumm').innerHTML = [
+    ['収入（月謝）', yen(r.inc)],
+    ['支出（人件費）', yen(r.cost)],
+    ['収益', `<span style="color:${r.profit >= 0 ? 'var(--success)' : 'var(--coral)'}">${yen(r.profit)}</span>`],
+    ['利益率', Math.round(r.rate * 100) + '<small>%</small>'],
+  ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  document.getElementById('revBizRows').innerHTML = [PROG, ILLU].map(b => {
+    const diff = r.income[b.key] - r.labor[b.key];
+    return `<tr>
+      <td class="name"><span class="dot ${b.key}"></span> ${b.name}</td>
+      <td class="num">${r.heads[b.key]}名</td>
+      <td class="num">${yen(r.income[b.key])}</td>
+      <td class="num">${yen(Math.round(r.labor[b.key]))}</td>
+      <td class="num" style="color:${diff >= 0 ? 'var(--success)' : 'var(--coral)'}">${yen(Math.round(diff))}</td>
+    </tr>`;
+  }).join('') + `<tr style="border-top:1px solid var(--border-strong);">
+      <td class="name">合計<div class="sub">交通費（共通費）を除く</div></td>
+      <td class="num">${students.length}名</td>
+      <td class="num">${yen(r.inc)}</td>
+      <td class="num">${yen(Math.round(r.labor.prog + r.labor.illust))}</td>
+      <td class="num">${yen(Math.round(r.inc - r.labor.prog - r.labor.illust))}</td>
+    </tr>`;
+
+  const row = (k, v, sub) => `<div class="kvrow"><span class="muted">${k}${
+    sub ? `<div class="sub">${sub}</div>` : ''}</span><span class="v">${v}</span></div>`;
+  const hours = staff.filter(s => s.active).reduce((a, s) => a + staffPay(s.n, revMonth).hours, 0);
+  const days  = staff.filter(s => s.active).reduce((a, s) => a + staffPay(s.n, revMonth).days, 0);
+  document.getElementById('revCost').innerHTML =
+    row('基本給', yen(Math.round(r.baseSum)), `勤務 ${hours.toFixed(1)}h ・ コマ × 事業別の時給`) +
+    row('交通費', yen(r.commute), `のべ出勤 ${days}日 × 日額`) +
+    row('時間外（承認済み）', yen(r.otSum), '却下・承認待ちは含みません') +
+    `<div class="kvrow total"><span class="muted">支出 合計</span><span class="v">${yen(Math.round(r.cost))}</span></div>`;
+
+  renderRevFees();
+}
+
+/* 選択中の月の月謝。feeMonths に無い先の月は「請求前」。 */
+function feeOf(i, m){
+  const key = `2026-${String(m).padStart(2, '0')}`;
+  return feeLog(i).find(f => f.m === key)
+      || {m:key, amount:students[i].fee, paid:0, date:null, note:'', unbilled:true};
+}
+const revF = {biz:'all', pay:'all', q:''};
+function setRevF(k, v, el){
+  revF[k] = v;
+  [...el.parentNode.children].forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderRevFees();
+}
+function renderRevFees(){
+  const all = students.map((s, i) => ({...s, i, fee:feeOf(i, revMonth)}));
+  let list = all;
+  if (revF.q) list = list.filter(s => s.n.includes(revF.q) || s.parent.includes(revF.q));
+  if (revF.biz !== 'all') list = list.filter(s => s.b.key === revF.biz);
+  if (revF.pay !== 'all') list = list.filter(s => revF.pay === 'paid' ? s.fee.paid : !s.fee.paid);
+
+  const paidN = all.filter(s => s.fee.paid).length;
+  const billed = all.reduce((a, s) => a + s.fee.amount, 0);
+  const got    = all.reduce((a, s) => a + (s.fee.paid ? s.fee.amount : 0), 0);
+  document.getElementById('revFeeSub').innerHTML = all[0].fee.unbilled
+    ? 'この月はまだ請求していません（請求額は在籍コースの月額です）'
+    : `入金 ${paidN} / ${all.length}名 ・ ${yen(got)} <span class="muted">/ ${yen(billed)}</span> ・ 回収率 ${Math.round(got / billed * 100)}%`;
+
+  document.getElementById('revFeeRows').innerHTML = list.length ? list.map(s => {
+    const f = s.fee;
+    const badge = f.unbilled ? '<span class="badge draft">請求前</span>'
+                : f.paid     ? '<span class="badge paid">支払済</span>'
+                             : '<span class="badge unpaid">未払い</span>';
+    return `<tr style="cursor:pointer;" onclick="openStu(${s.i},'admin')">
+      <td class="name">${s.n}<div class="sub">${s.parent}</div></td>
+      <td>${bBadge(s.b)}</td>
+      <td>${s.label}<div class="sub">月${s.sess}回</div></td>
+      <td class="num">${yen(f.amount)}</td>
+      <td>${badge}</td>
+      <td class="muted" style="font-variant-numeric:tabular-nums;">${f.date || '—'}</td>
+      <td class="muted">${f.note || ''}</td>
+      <td style="color:var(--border-strong);">›</td>
+    </tr>`;
+  }).join('')
+  : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px;">該当する生徒がいません</td></tr>';
+
+  const sub = list.reduce((a, s) => a + s.fee.amount, 0);
+  const subGot = list.reduce((a, s) => a + (s.fee.paid ? s.fee.amount : 0), 0);
+  document.getElementById('revFeeFoot').innerHTML = `<tr>
+    <td class="name">表示中 ${list.length}名</td><td></td><td></td>
+    <td class="num">${yen(sub)}</td>
+    <td colspan="4" class="muted">入金 ${yen(subGot)} ・ 未入金
+      <span style="color:${sub - subGot ? 'var(--coral)' : 'var(--success)'}">${yen(sub - subGot)}</span></td>
+  </tr>`;
+}
+
+/* ---------- 講師（従業員ビュー）: 給与 ---------- */
+let payMonth = TODAY_M;
+function shiftPayMonth(dir){
+  if (!MONTHS[payMonth + dir]) return;
+  payMonth += dir; renderEmpPay();
+}
+const STATE_NOTE = {
+  settled:'この月は<strong>支給済み</strong>です。金額は確定しています。',
+  open:'<strong>まだ締め前です。</strong>コマの変更や時間外の承認があると金額は動きます。確定後に給与明細が届きます。',
+  planned:'<strong>スケジュールが未確定の見込み額です。</strong>確定すると変わります。',
+};
+function renderEmpPay(){
+  const s = staff.find(x => x.n === EMP_ME);
+  const p = staffPay(EMP_ME, payMonth);
+  document.getElementById('payHero').className = 'next ' + (p.state === 'settled' ? 'prog' : 'illust');
+  document.getElementById('payHero').innerHTML = `
+    <div class="k">${MONTHS[payMonth].label} ・ ${STATE_LABEL[p.state]}</div>
+    <div class="v">${yen(Math.round(p.total))}</div>
+    <div class="s">出勤 ${p.days}日 ・ ${p.n}コマ ・ ${p.hours.toFixed(1)}h</div>`;
+  document.getElementById('payPrev').disabled = !MONTHS[payMonth - 1];
+  document.getElementById('payNext').disabled = !MONTHS[payMonth + 1];
+  document.getElementById('payBreakLbl').textContent = MONTHS[payMonth].label.replace(/\s/g, '') + ' の内訳';
+
+  const row = (k, v, sub) => `<div class="kvrow"><span class="muted">${k}${
+    sub ? `<div class="sub">${sub}</div>` : ''}</span><span class="v">${v}</span></div>`;
+  const wageLines = [PROG, ILLU]
+    .filter(b => p.slots[b.key])
+    .map(b => `${b.short} ${p.slots[b.key]}コマ × ${yen(rateOf(s, b.key))}`).join('<br>');
+  const pending = overtime.filter(o => o.n === EMP_ME && o.st === 'pending'
+                                    && +o.d.slice(5, 7) === payMonth).length;
+  document.getElementById('payBreak').innerHTML =
+    row('基本給', yen(Math.round(p.baseSum)), wageLines || 'この月は担当コマがありません') +
+    row('交通費', yen(p.commute), `${p.days}日 × ${yen(s.commute)}`) +
+    row('時間外（承認済み）', yen(p.otSum),
+        pending ? `<span style="color:var(--coral)">承認待ちが ${pending}件あります（未反映）</span>` : '') +
+    `<div class="kvrow total"><span class="muted">${p.state === 'settled' ? '支給額' : '支給見込み'}</span>
+       <span class="v">${yen(Math.round(p.total))}</span></div>
+     <p class="muted" style="margin-top:12px;">${STATE_NOTE[p.state]}</p>`;
+
+  document.getElementById('payWages').innerHTML =
+    s.wages.filter(w => w.cur).map(w => `
+      <div class="wage-item">
+        <div><div class="job">${jobDot(w.j)} ${w.j}</div><div class="from">適用 ${w.from} 〜</div></div>
+        <div class="rate">${yen(w.r)}<span class="muted" style="font-size:11px;"> /時</span></div>
+      </div>`).join('') +
+    `<div class="wage-item">
+       <div><div class="job">🚃 交通費</div><div class="from">適用 ${s.commuteFrom} 〜</div></div>
+       <div class="rate">${yen(s.commute)}<span class="muted" style="font-size:11px;"> /日</span></div>
+     </div>
+     <p class="muted" style="margin-top:12px;">時給は<strong>業務ごと</strong>に決まっています。
+       変更は管理者が行い、<strong>適用開始日より前の給与はさかのぼって変わりません</strong>。</p>`;
+}
+bindSwipe(document.getElementById('paySwipe'), shiftPayMonth);
+
+/* =========================================================================
+   受信ボックス（管理者に届く通知）
+   「お知らせ」が管理者 → 全員の配信、こちらが 講師・保護者 → 管理者 の受信。
+   通知はどれも既存データから組み立てる。ここだけで持つ状態は
+   「既読か」「対応済みか」だけにして、二重管理を避ける。
+   ========================================================================= */
+
+/* 欠席連絡。受講予定のあるコマからしか出せないので、実際の割り当てから拾う。 */
+const ABS_REASONS = ['発熱のため欠席します', '家族の用事のため欠席します',
+                     '学校行事と重なったため欠席します', '体調不良のため欠席します'];
+let absSeq = 0;
+const absences = (function(){
+  const out = [];
+  const push = o => out.push(Object.assign({id:'ab' + (absSeq++)}, o));
+  /* これから来る開催日（未受講）に対する欠席連絡 */
+  for (let d = TODAY_D; d <= MONTHS[TODAY_M].days && out.length < 2; d++) {
+    const st = stateOf(TODAY_M, d);
+    if (!st || st === 'off') continue;
+    for (const s of slotsOf(TODAY_M, d)) {
+      if (!s.studs.length || out.length >= 2) continue;
+      const n = s.studs[out.length % s.studs.length];
+      if (out.some(a => a.n === n)) continue;
+      push({n, m:TODAY_M, d, slot:s, reason:ABS_REASONS[out.length],
+            at:out.length ? 7.7 : 1.2, done:false});
+    }
+  }
+  /* 直近の「欠席」実績に対応する、対応済みの連絡 */
+  for (let d = TODAY_D - 1; d >= 1; d--) {
+    const st = stateOf(TODAY_M, d);
+    if (!st || st === 'off') continue;
+    for (const s of slotsOf(TODAY_M, d)) {
+      for (const n of s.studs) {
+        if (attendance[`${n}|${TODAY_M}-${d}|${s.no}`] !== '欠席') continue;
+        if (out.some(a => a.n === n)) continue;
+        push({n, m:TODAY_M, d, slot:s, reason:ABS_REASONS[3],
+              at:(TODAY_D - d) * 24 + 6, done:true});
+        return out;
+      }
+    }
+  }
+  return out;
+})();
+
+const parentOfStu = n => (students.find(s => s.n === n) || {}).parent || '保護者';
+
+/* 何時間前か。数値は「いま」からの経過時間（h）。 */
+function agoLabel(h){
+  if (h < 1)  return Math.max(1, Math.round(h * 60)) + '分前';
+  if (h < 24) return Math.round(h) + '時間前';
+  const days = Math.round(h / 24);
+  return days === 1 ? '昨日' : days + '日前';
+}
+
+/* 既読・対応済みはここだけで持つ（申請そのものの状態は元データ側にある） */
+const readState = {};
+const KINDS = {
+  overtime:   {ic:'🏠', label:'時間外勤務'},
+  absence:    {ic:'🤒', label:'欠席連絡'},
+  preference: {ic:'📅', label:'希望提出'},
+  record:     {ic:'📝', label:'授業記録'},
+  system:     {ic:'⏳', label:'システム'},
+};
+
+/* 通知を組み立てる。overtime の承認状態が変われば、ここも自動で変わる。 */
+function inboxItems(){
+  const out = [];
+
+  overtime.forEach((o, i) => out.push({
+    id:'ot' + i, kind:'overtime',
+    from:`${o.n}（講師）`,
+    title:`${o.n} から時間外勤務の申請 ${o.h.toFixed(1)}h`,
+    body:`${o.d} ${o.w} ・ 加算見込み ${yen(Math.round(o.h * o.rate))}`,
+    at:[2.5, 5, 26 * 24, 30 * 24][i] ?? 48,
+    need:o.st === 'pending',
+    done:o.st !== 'pending' ? (o.st === 'approved' ? '承認済み' : '却下') : null,
+    act:o.st === 'pending'
+      ? [['承認', 'primary', `decideOt(${i},1)`], ['却下', 'danger', `decideOt(${i},0)`]]
+      : [['申請を開く', 'secondary', "setScreen('overtime')"]],
+  }));
+
+  absences.forEach(a => out.push({
+    id:a.id, kind:'absence',
+    from:`${parentOfStu(a.n)}（保護者）`,
+    title:`${a.n}さんの欠席連絡（${dayLabel(a.m, a.d)} ${a.slot.b.short} 第${a.slot.no}コマ）`,
+    body:`${a.reason} ・ 担当 ${a.slot.emps.join('・')}`,
+    stu:a.n, at:a.at,
+    need:!a.done, done:a.done ? '確認済み' : null,
+    act:a.done ? [] : [['確認しました', 'primary', `ackAbsence('${a.id}')`]],
+  }));
+
+  out.push({
+    id:'pf1', kind:'preference',
+    from:'保護者 12名 / 15名',
+    title:'9月分の受講希望が 12名 提出済み（未提出 3名）',
+    body:'締め切りは 8月20日 23:59。未提出は 高橋 芽依・伊藤 陸・松本 楓 です。',
+    at:9, need:false, act:[['スケジュール確定を開く', 'secondary', "setScreen('schedule')"]],
+  });
+  out.push({
+    id:'pf2', kind:'preference',
+    from:'中村（講師）',
+    title:'中村 が9月分の勤務希望を提出しました',
+    body:'プログラミング 4日 / イラスト 2日 ・ 計 8コマ',
+    at:20, need:false, act:[['スケジュール確定を開く', 'secondary', "setScreen('schedule')"]],
+  });
+  out.push({
+    id:'sy1', kind:'system',
+    from:'システム',
+    title:'10月分の締め切りが未設定です',
+    body:'締め切りを設定するまで、保護者・講師はその月の希望を提出できません。',
+    at:12, need:true, act:[['締め切りを設定', 'primary', "setScreen('deadlines')"]],
+  });
+
+  /* 直近に書かれた授業記録。生徒が重ならないように2件だけ拾う（所見のある回のみ）。 */
+  const recent = [];
+  Object.keys(records)
+    .filter(k => records[k].body)
+    .map(k => ({ k, n:k.split('|')[0], md:k.split('|')[1].split('-').map(Number) }))
+    .sort((a, b) => (b.md[0] - a.md[0]) || (b.md[1] - a.md[1]))
+    .forEach(x => { if (recent.length < 2 && !recent.some(y => y.n === x.n)) recent.push(x); });
+  recent.forEach((x, i) => {
+    const r = records[x.k];
+    out.push({
+      id:'rc' + i, kind:'record',
+      from:`${r.by}（講師）`,
+      title:`${r.by} が ${x.n}さんの授業記録を書きました`,
+      body:`${r.d_label} ${r.slot} ・ ${r.status} ・ ${r.body}`,
+      stu:x.n, at:(TODAY_D - x.md[1]) * 24 + 3 + i, need:false, act:[],
+    });
+  });
+
+  /* 要対応が先頭。同じ区分なら新しい順。 */
+  return out.sort((a, b) => (b.need - a.need) || (a.at - b.at));
+}
+
+let inboxFilter = 'all';
+const inboxNeed = () => inboxItems().filter(x => x.need).length;
+
+function renderInbox(){
+  const all = inboxItems();
+  const items = all.filter(x => inboxFilter === 'all' ? true
+    : inboxFilter === 'need' ? x.need : x.kind === inboxFilter);
+  const unread = all.filter(x => !readState[x.id]).length;
+
+  document.getElementById('inboxChips').innerHTML = [
+    ['all', 'すべて ' + all.length],
+    ['need', '未対応 ' + all.filter(x => x.need).length],
+    ...Object.entries(KINDS).map(([k, v]) =>
+      [k, `${v.ic} ${v.label} ${all.filter(x => x.kind === k).length}`]),
+  ].map(([k, label]) =>
+    `<span class="chip${inboxFilter === k ? ' active' : ''}" onclick="setInboxFilter('${k}')">${label}</span>`).join('');
+
+  document.getElementById('inboxCount').textContent = `未読 ${unread}件 / 全 ${all.length}件`;
+
+  document.getElementById('inboxList').innerHTML = items.length ? items.map(x => {
+    const isUnread = !readState[x.id];
+    const name = x.stu
+      ? `<span class="nlink" onclick="event.stopPropagation();openStuByName('${x.stu}')">${x.stu}さんの詳細</span>`
+      : '';
+    return `<div class="nrow${isUnread ? ' unread' : ''}${x.need ? ' need' : ''}" onclick="readNotice('${x.id}')">
+      <span class="udot${isUnread ? '' : ' off'}"></span>
+      <span class="ni">${KINDS[x.kind].ic}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="nt">${x.title}</div>
+        <div class="nb">${x.body}</div>
+        <div class="nm">
+          <span>${x.from}</span><span>・</span><span>${agoLabel(x.at)}</span>
+          ${x.need ? '<span class="badge over">要対応</span>' : ''}
+          ${x.done ? `<span class="badge paid">${x.done}</span>` : ''}
+          ${name}
+        </div>
+      </div>
+      <div class="nact" onclick="event.stopPropagation()">
+        ${(x.act || []).map(([l, kind, fn]) =>
+          `<button class="btn btn-${kind} btn-sm" onclick="readNotice('${x.id}');${fn}">${l}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('') : '<div class="nrow"><div class="muted" style="padding:8px 0;">該当する通知はありません。</div></div>';
+
+  /* サイドバーのバッジは「要対応」の件数 */
+  const need = all.filter(x => x.need).length;
+  const badge = document.getElementById('navInbox');
+  badge.textContent = need; badge.style.display = need ? '' : 'none';
+  const ot = overtime.filter(o => o.st === 'pending').length;
+  const otb = document.getElementById('navOt');
+  otb.textContent = ot; otb.style.display = ot ? '' : 'none';
+}
+function setInboxFilter(k){ inboxFilter = k; renderInbox(); }
+function readNotice(id){ readState[id] = true; renderInbox(); }
+function markAllRead(){ inboxItems().forEach(x => readState[x.id] = true); renderInbox(); toast('すべて既読にしました'); }
+function ackAbsence(id){
+  const a = absences.find(x => x.id === id);
+  a.done = true;
+  renderInbox(); renderTodos();
+  toast(a.n + 'さんの欠席連絡を確認済みにしました。保護者と担当講師に通知されます');
+}
+/* 要対応 */
+function todoList(){ return [
+  {ic:'🏠', t:`時間外勤務の承認待ち ${overtime.filter(o => o.st === 'pending').length}件`,
+   m:overtime.filter(o => o.st === 'pending').map(o => o.n).join('・') || 'なし',
+   go:'inbox', warn:overtime.some(o => o.st === 'pending')},
+  {ic:'🤒', t:`未確認の欠席連絡 ${absences.filter(a => !a.done).length}件`,
+   m:absences.filter(a => !a.done).map(a => a.n).join('・') || 'なし',
+   go:'inbox', warn:absences.some(a => !a.done)},
+  {ic:'📅', t:'9月のスケジュールが未確定（8日ぶん）',  m:'確定しないと保護者・従業員に表示されません', go:'schedule', warn:true},
+  {ic:'⏳', t:'10月分の締め切りが未設定',              m:'設定するまで受付が開きません',       go:'deadlines', warn:true},
+  {ic:'💴', t:'月謝の未払い 3件',                      m:'高橋 芽依・伊藤 陸・松本 楓',       go:'students',  warn:false},
+  {ic:'🎓', t:'進級によるコース変更 4件',              m:'来年度分・承認が必要です',           go:'promotion', warn:false},
+]; }
+function renderTodos(){
+  document.getElementById('todoList').innerHTML = todoList().map(x => `
+  <div class="listitem" style="padding:13px 18px;margin:0;cursor:pointer;" onclick="setScreen('${x.go}')">
+    <span>${x.ic}</span>
+    <div style="flex:1">
+      <div class="t" ${x.warn ? 'style="color:var(--coral)"' : ''}>${x.t}</div>
+      <div class="m">${x.m}</div>
+    </div>
+    <span style="color:var(--border-strong);">›</span>
+  </div>`).join('');
+}
+
+/* 今月のサマリ */
+(function(){
+  const held = Array.from({ length: MONTHS[TODAY_M].days }, (_, i) => stateOf(TODAY_M, i + 1))
+    .filter(s => s && s !== 'off').length;
+  const totalFee = students.reduce((a, s) => a + s.fee, 0);
+  const paidFee  = students.reduce((a, s, i) => a + (feeState[i] ? s.fee : 0), 0);
+  const att      = attData.reduce((a, [n, p, l, x]) => ({ n: a.n + n, abs: a.abs + x }), { n: 0, abs: 0 });
+  const rows = [
+    ['在籍生徒',     students.length + '名'],
+    ['今月の開催日', held + '日'],
+    ['のべ受講',     att.n + '回 <span class="muted">（うち欠席 ' + att.abs + '）</span>'],
+    ['月謝の入金',   yen(paidFee) + ' <span class="muted">/ ' + yen(totalFee) + '</span>'],
+  ];
+  document.getElementById('homeSummary').innerHTML = rows.map(([k, v], i) => `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;
+                ${i < rows.length - 1 ? 'border-bottom:1px solid var(--hairline);' : ''}">
+      <span class="muted">${k}</span>
+      <span style="color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;">${v}</span>
+    </div>`).join('');
+})();
+
+renderStudents();
+renderStaff();
+renderKids();
+renderTodos();
+renderInbox();
+renderRevenue();
+renderDeadlines();
+renderPayroll();
+renderEmpPay();
+setScreen('home');   // 初期表示（ヘッダーのボタンもここで出る）
+</script>
+</body>
+</html>

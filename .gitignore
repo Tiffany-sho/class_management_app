@@ -1,0 +1,30 @@
+# 依存
+node_modules/
+
+# ビルド成果物
+dist/
+build/
+.vite/
+
+# 環境変数（Supabase の URL / anon key / service role key）
+.env
+.env.*
+!.env.example
+
+# Supabase CLI
+supabase/.branches/
+supabase/.temp/
+supabase/config.toml
+
+# 自動生成した型定義（各リポジトリで supabase gen types する）
+src/types/database.ts
+
+# エディタ・OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ログ
+*.log
+npm-debug.log*
