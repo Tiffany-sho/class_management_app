@@ -111,7 +111,7 @@ src/
   lib/
     supabase.ts          ← クライアントとエラーの日本語化
     queries/             ← DB アクセスはすべてここ。画面は snake_case を知らない
-      master / students / schedule / staff / requests
+      master / students / schedule / staff / requests / announcements
     date.ts              ← 日付・年度・カレンダー
     format.ts            ← 金額・バッジの色
   types/domain.ts        ← 画面が受け取る形（DB の行の型ではない）
@@ -119,8 +119,13 @@ src/
   components/layout/     ← 管理者サイドバー / モバイルボトムタブ
   components/calendar/   ← 月カレンダー
   features/<機能>/       ← 画面と、その画面だけで使う部品
-  hooks/useAsync.ts      ← 読み込み中 / エラー / データ の3状態
+    mobile/              ← 保護者・講師の画面（ロールで中身を分ける）
+  hooks/                 ← useAsync（3状態）/ useSwipeMonth（月送り）
 ```
+
+**保護者と講師の画面は `features/mobile/` にまとめ、ロールで中身を分ける。** 希望提出・予定・お知らせは
+見るものが違うだけで構造が同じなので、画面を2つに割ると同じ修正を2か所にすることになる。
+**iOS に移すときもこの分割単位のまま持っていく。**
 
 **RLS が絞る条件をクエリ側で書かない。** 「自分の子だけ」「担当コマだけ」は DB が保証している。二重に書くと片方だけ直したときに食い違う。
 

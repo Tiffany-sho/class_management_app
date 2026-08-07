@@ -150,6 +150,62 @@ export async function fetchEmployeePayHistory(employeeId: string): Promise<Month
   return ((data ?? []) as MonthlyPayRow[]).map(toMonthlyPay);
 }
 
+/** 事業ごとのコマ人件費。交通費と時間外は事業に割り振らないので、ここには含めない */
+export async function fetchWorkSlotSummary(
+  yearMonth: string,
+): Promise<Map<string, { slots: number; hours: number; amount: number }>> {
+  const { data, error } = await supabase
+    .from('employee_work_slots')
+    .select('business_id, hours, amount')
+    .eq('year_month', yearMonth);
+  if (error) throw error;
+  const out = new Map<string, { slots: number; hours: number; amount: number }>();
+  for (const r of (data ?? []) as { business_id: string; hours: number; amount: number }[]) {
+    const cur = out.get(r.business_id) ?? { slots: 0, hours: 0, amount: 0 };
+    cur.slots += 1;
+    cur.hours += Number(r.hours);
+    cur.amount += r.amount;
+    out.set(r.business_id, cur);
+  }
+  return out;
+}
+
+/**
+ * 月を締める。計算値を payrolls にコピーして confirmed にする。
+ *
+ * **締めた後は時給を変えても金額が動かない**（ビューが payrolls の値を返すようになる）。
+ * 確定済みの行は DB のトリガーが更新・削除を拒むので、ここで上書きはできない。
+ */
+export async function confirmPayroll(yearMonth: string): Promise<number> {
+  const { data: session } = await supabase.auth.getSession();
+  const adminId = session.session?.user.id ?? null;
+
+  const pays = await fetchMonthlyPay(yearMonth);
+  const draft = pays.filter((p) => p.status === 'draft');
+  if (draft.length === 0) return 0;
+
+  /* 既に draft の行があれば上書きする。確定済みの行は DB のトリガーが
+     更新を拒むので、締め直しはここではなく例外として現れる。 */
+  const { error } = await supabase.from('payrolls').upsert(
+    draft.map((p) => ({
+      employee_id: p.employeeId,
+      year_month: p.yearMonth,
+      work_days: p.workDays,
+      work_hours: p.workHours,
+      base_amount: p.baseAmount,
+      commute: p.commute,
+      overtime: p.overtime,
+      total: p.total,
+      status: 'confirmed' as const,
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: adminId,
+    })),
+    { onConflict: 'employee_id,year_month' },
+  );
+  if (error) throw error;
+  return draft.length;
+}
+
 function toMonthlyPay(p: MonthlyPayRow): MonthlyPay {
   return {
     employeeId: p.employee_id,

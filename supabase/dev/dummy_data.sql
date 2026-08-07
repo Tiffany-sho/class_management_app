@@ -132,9 +132,12 @@ begin
       v_n := v_n + 1;
       v_sched := ('dddddddd-0000-0000-0000-' || lpad((500000 + v_n)::text, 12, '0'))::uuid;
 
+      /* status は enum。case の分岐は text に解決されてしまい、text から enum への
+         暗黙のキャストは無いので、分岐ごとに明示的にキャストする。 */
       insert into public.schedules (id, business_id, session_date, slot_no, status)
       values (v_sched, r.business_id, v_day, r.slot_no,
-              case when v_day < current_date then 'confirmed' else 'draft' end)
+              case when v_day < current_date then 'confirmed'::public.schedule_status
+                   else 'draft'::public.schedule_status end)
       on conflict (business_id, session_date, slot_no) do nothing;
 
       -- 実際に入った id を取り直す（既にあった場合は上の insert が効かない）
@@ -180,9 +183,16 @@ begin
        set attendance_status = case when r.rn % 3 = 0 then 'absent'::public.attendance_status
                                     when r.rn % 7 = 0 then 'late'::public.attendance_status
                                     else 'present'::public.attendance_status end,
-           marked_by = v_admin,
-           note = case when r.rn % 3 = 0 then null else v_note end,
-           noted_by = case when r.rn % 3 = 0 then null else v_emp_nakamura end
+           note = case when r.rn % 3 = 0 then null else v_note end
+     where schedule_id = r.schedule_id and student_id = r.student_id;
+
+    /* marked_by / noted_by は上の update と同時に入れられない。
+       stamp_attendance・stamp_lesson_note が auth.uid() で上書きするためで、
+       SQL Editor には auth.uid() が無いので null になってしまう。
+       出欠と所見を変えない2回目の update なら、トリガーは *_by に触らない。 */
+    update public.schedule_students
+       set marked_by = v_admin,
+           noted_by  = case when note is null then null else v_emp_nakamura end
      where schedule_id = r.schedule_id and student_id = r.student_id;
   end loop;
 

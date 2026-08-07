@@ -11,6 +11,7 @@
  *   schedule.ts コマ・希望・出席・授業記録
  *   staff.ts    講師・時給・交通費・給与
  *   requests.ts 時間外勤務・欠席連絡・進級
+ *   announcements.ts お知らせ
  */
 
 export * from './master';
@@ -18,3 +19,4 @@ export * from './students';
 export * from './schedule';
 export * from './staff';
 export * from './requests';
+export * from './announcements';

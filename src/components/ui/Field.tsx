@@ -31,10 +31,18 @@ export function Select({ className = '', children, ...rest }: SelectHTMLAttribut
   );
 }
 
-/** ラジオ相当のセグメント。選択肢が3つ以下のときに使う */
+/**
+ * ラジオ相当のセグメント。選択肢が3つ以下のときに使う。
+ * value に '' を渡すと「未選択」になる（出欠の未マークなど）。
+ */
 export function Segmented<T extends string>({
-  value, options, onChange,
-}: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  value, options, onChange, disabled = false,
+}: {
+  value: T | '';
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  disabled?: boolean;
+}) {
   const name = useId();
   return (
     <div role="radiogroup" aria-label={name} className="flex gap-[3px] rounded-md bg-surface-strong p-[3px]">
@@ -44,8 +52,10 @@ export function Segmented<T extends string>({
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          disabled={disabled}
           onClick={() => onChange(o.value)}
           className={`flex-1 rounded-sm px-sm py-[7px] text-[13px] transition-colors
+            disabled:opacity-45
             ${value === o.value ? 'bg-canvas font-medium text-ink shadow-card' : 'text-muted hover:text-ink'}`}
         >
           {o.label}

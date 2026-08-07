@@ -15,7 +15,19 @@ import { StaffPage } from './features/staff/StaffPage';
 import { OvertimePage } from './features/requests/OvertimePage';
 import { PromotionPage } from './features/requests/PromotionPage';
 import { InboxPage } from './features/inbox/InboxPage';
-import { Placeholder } from './pages/Placeholder';
+import { RevenuePage } from './features/revenue/RevenuePage';
+import { PayrollPage } from './features/payroll/PayrollPage';
+import { AnnouncementsPage } from './features/announcements/AnnouncementsPage';
+import { MasterCoursesPage } from './features/master/MasterCoursesPage';
+import { MasterSlotsPage } from './features/master/MasterSlotsPage';
+import { MasterDeadlinesPage } from './features/master/MasterDeadlinesPage';
+import { MasterUsersPage } from './features/master/MasterUsersPage';
+import { ParentHomePage } from './features/mobile/ParentHomePage';
+import { EmployeeHomePage } from './features/mobile/EmployeeHomePage';
+import { SubmitPage } from './features/mobile/SubmitPage';
+import { PlanPage } from './features/mobile/PlanPage';
+import { EmployeePayPage } from './features/mobile/EmployeePayPage';
+import { NewsPage } from './features/mobile/NewsPage';
 
 /**
  * ロールで見せる画面をまるごと切り替える。
@@ -66,14 +78,14 @@ export function App() {
           <Route path="staff" element={<StaffPage />} />
           <Route path="overtime" element={<OvertimePage />} />
           <Route path="promotion" element={<PromotionPage />} />
-          <Route path="revenue" element={<Placeholder title="収入・収益" />} />
-          <Route path="payroll" element={<Placeholder title="給与計算・締め処理" />} />
+          <Route path="revenue" element={<RevenuePage />} />
+          <Route path="payroll" element={<PayrollPage />} />
           <Route path="inbox" element={<InboxPage />} />
-          <Route path="announcements" element={<Placeholder title="お知らせ" />} />
-          <Route path="master/courses" element={<Placeholder title="コース・料金" />} />
-          <Route path="master/slots" element={<Placeholder title="開催枠" />} />
-          <Route path="master/deadlines" element={<Placeholder title="締め切り設定" />} />
-          <Route path="master/users" element={<Placeholder title="ユーザー・招待" />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
+          <Route path="master/courses" element={<MasterCoursesPage />} />
+          <Route path="master/slots" element={<MasterSlotsPage />} />
+          <Route path="master/deadlines" element={<MasterDeadlinesPage />} />
+          <Route path="master/users" element={<MasterUsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -84,11 +96,11 @@ export function App() {
   return (
     <Routes>
       <Route element={<MobileLayout title={title} />}>
-        <Route index element={<Placeholder title={title} />} />
-        <Route path="submit" element={<Placeholder title="希望提出" />} />
-        <Route path="plan" element={<Placeholder title="予定" />} />
-        {role === 'employee' ? <Route path="pay" element={<Placeholder title="給与" />} /> : null}
-        <Route path="news" element={<Placeholder title="お知らせ" />} />
+        <Route index element={role === 'employee' ? <EmployeeHomePage /> : <ParentHomePage />} />
+        <Route path="submit" element={<SubmitPage />} />
+        <Route path="plan" element={<PlanPage />} />
+        {role === 'employee' ? <Route path="pay" element={<EmployeePayPage />} /> : null}
+        <Route path="news" element={<NewsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -55,7 +55,7 @@
 | `wage_rates` | id, employee_id, business_id, job_label, hourly_rate, effective_from | 時給は「講師 × 事業」ごとに、**適用開始日つき**で持つ。昇給しても過去分がさかのぼって変わらないようにするため、古い行は消さず残す。一意制約は `(employee_id, business_id, effective_from)` で、**`job_label` は表示用の名前**（キーではない） |
 | `commute_allowances` | id, employee_id, daily_amount, effective_from | 交通費は日額固定。**出勤日数 × 日額**で、事業には割り振らない |
 | `overtime_requests` | id, employee_id, business_id, work_date, description, hours, status (pending/approved/rejected), decided_by, decided_at | シフト外の作業。**承認した分だけ**給与に乗る。割増は付かない（法定残業とは別物） |
-| `payrolls` | id, employee_id, year_month, days, hours, base, commute, overtime, total, status (draft/confirmed), confirmed_at, confirmed_by | **締め処理で確定額を書き込む**。確定後はロックし、以後の再計算で上書きしない（[domain.md](domain.md) ルール11） |
+| `payrolls` | id, employee_id, year_month, work_days, work_hours, base_amount, commute, overtime, total, status (draft/confirmed), confirmed_at, confirmed_by | **締め処理で確定額を書き込む**。確定後はロックし、以後の再計算で上書きしない（[domain.md](domain.md) ルール11） |
 
 ---
 

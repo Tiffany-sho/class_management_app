@@ -192,6 +192,44 @@ export async function confirmMonth(yearMonth: string): Promise<number> {
   return (data ?? []).length;
 }
 
+/* ------------------------------------------------- 希望の提出（保護者・講師） */
+
+/**
+ * 受講希望を出す・取り消す。
+ *
+ * 締め切りを過ぎているか、その月の締め切り行が無ければ **RLS が弾く**。
+ * ここで日付を判定しない（画面と DB で判定が二重になり、必ずどちらかがずれる）。
+ * 受講回数の上限と「1日1コマ」も DB のトリガーと一意制約が見ている。
+ */
+export async function addPreference(
+  studentId: string, yearMonth: string, sessionDate: string, slotNo: number,
+): Promise<void> {
+  const { error } = await supabase
+    .from('preferences')
+    .insert({ student_id: studentId, year_month: yearMonth, session_date: sessionDate, slot_no: slotNo });
+  if (error) throw error;
+}
+
+export async function removePreference(id: string): Promise<void> {
+  const { error } = await supabase.from('preferences').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function addWorkPreference(
+  employeeId: string, businessId: string, yearMonth: string, sessionDate: string, slotNo: number,
+): Promise<void> {
+  const { error } = await supabase.from('work_preferences').insert({
+    employee_id: employeeId, business_id: businessId,
+    year_month: yearMonth, session_date: sessionDate, slot_no: slotNo,
+  });
+  if (error) throw error;
+}
+
+export async function removeWorkPreference(id: string): Promise<void> {
+  const { error } = await supabase.from('work_preferences').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /** 出席の記録。授業記録（note）と同じ行なので、片方だけ直すことにならない */
 export async function setAttendance(
   scheduleId: string, studentId: string, status: 'present' | 'absent' | 'late' | null,

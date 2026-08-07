@@ -224,6 +224,24 @@ export interface PromotionCandidate {
   feeDiff: number | null;
 }
 
+/**
+ * お知らせ。`sentAt` が null かつ `scheduledAt` が未来 = 予約中。
+ * 予約中のものは RLS が対象者に見せない。
+ */
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  authorName: string;
+  /** null = 全ロール */
+  targetRole: 'parent' | 'employee' | null;
+  /** null = 全事業 */
+  businessId: string | null;
+  scheduledAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+}
+
 /** 締め前は確定コマからの計算値、確定後は payrolls の値（ドメインルール11） */
 export interface MonthlyPay {
   employeeId: string;

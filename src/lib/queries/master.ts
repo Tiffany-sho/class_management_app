@@ -59,7 +59,92 @@ export async function fetchCourses(): Promise<Course[]> {
   }));
 }
 
+/** 無効なものも含む。マスタ画面は「消えた」と「無効にした」を区別して見せる */
+export async function fetchAllBusinessSlots(): Promise<BusinessSlot[]> {
+  const { data, error } = await supabase
+    .from('business_slots')
+    .select('id, business_id, weekday, slot_no, start_time, end_time, active')
+    .order('business_id')
+    .order('weekday')
+    .order('slot_no');
+  if (error) throw error;
+  return (data ?? []).map((s) => ({
+    id: s.id,
+    businessId: s.business_id,
+    weekday: s.weekday,
+    slotNo: s.slot_no,
+    startTime: s.start_time,
+    endTime: s.end_time,
+    active: s.active,
+  }));
+}
+
+/**
+ * コースの料金・有効フラグを変える。
+ * 発行済みの fees は動かない（請求額は発行時にコピーしているため）。
+ * 変わるのは次に生成される月から。
+ */
+export async function updateCourse(
+  id: string, patch: { monthlyFee?: number; active?: boolean },
+): Promise<void> {
+  const { error } = await supabase
+    .from('courses')
+    .update({
+      ...(patch.monthlyFee === undefined ? {} : { monthly_fee: patch.monthlyFee }),
+      ...(patch.active === undefined ? {} : { active: patch.active }),
+    })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/* ---------------------------------------------------------------- ユーザー */
+
+export interface ManagedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'parent' | 'employee';
+  active: boolean;
+}
+
+export async function fetchAllUsers(): Promise<ManagedUser[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, email, role, active')
+    .order('role')
+    .order('name');
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** 退職・退会は論理削除。行を消すと過去の実績や請求まで消える */
+export async function setUserActive(id: string, active: boolean): Promise<void> {
+  const { error } = await supabase.from('users').update({ active }).eq('id', id);
+  if (error) throw error;
+}
+
 /* ---------------------------------------------------------------- 締め切り */
+
+/** 指定月・種別の締め切り。行が無ければ受付が開いていない（null を返す） */
+export async function fetchDeadline(
+  yearMonth: string, type: 'parent' | 'employee',
+): Promise<Deadline | null> {
+  const { data, error } = await supabase
+    .from('deadlines')
+    .select('id, year_month, type, deadline_at, active')
+    .eq('year_month', yearMonth)
+    .eq('type', type)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    yearMonth: data.year_month,
+    type: data.type,
+    deadlineAt: data.deadline_at,
+    active: data.active,
+  };
+}
 
 export async function fetchDeadlines(): Promise<Deadline[]> {
   const { data, error } = await supabase

@@ -134,6 +134,19 @@ export async function fetchAbsenceReports(): Promise<AbsenceReport[]> {
   });
 }
 
+/** 保護者から欠席を連絡する。同じコマに二重に出すと一意制約で弾かれる */
+export async function reportAbsence(
+  studentId: string, scheduleId: string, reason: string,
+): Promise<void> {
+  const { error } = await supabase.from('absence_reports').insert({
+    student_id: studentId,
+    schedule_id: scheduleId,
+    reason: reason.trim() || null,
+    created_by: await currentUserId(),
+  });
+  if (error) throw error;
+}
+
 /** 確認済みにする。ここを押すまで「未確認」として要対応に残り続ける */
 export async function markAbsenceHandled(id: string): Promise<void> {
   const { error } = await supabase
