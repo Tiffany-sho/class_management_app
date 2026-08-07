@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/AdminLayout';
 import {
-  Badge, Chip, DataTable, Icon, Loading, ErrorNote, Note, TextInput, type Column,
+  Badge, Button, Chip, DataTable, Icon, Loading, ErrorNote, Note, TextInput, type Column,
 } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
-import { fetchBusinesses, fetchStudents, fetchFees, type StudentFee } from '@/lib/queries';
+import {
+  fetchAllUsers, fetchBusinesses, fetchCourses, fetchStudents, fetchFees, type StudentFee,
+} from '@/lib/queries';
 import { currentMonthKey, gradeLabel } from '@/lib/date';
 import { FEE_LABEL } from '@/lib/format';
 import type { Student } from '@/types/domain';
 import { StudentSheet } from './StudentSheet';
+import { StudentForm } from './StudentForm';
 
 type SortKey = 'name' | 'business' | 'grade' | 'sessions' | 'fee';
 
@@ -32,12 +35,14 @@ export function StudentsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [asc, setAsc] = useState(true);
   const [selected, setSelected] = useState<Row | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Student | null>(null);
 
   const state = useAsync(async () => {
-    const [businesses, students, fees] = await Promise.all([
-      fetchBusinesses(), fetchStudents(), fetchFees(month),
+    const [businesses, students, fees, courses, users] = await Promise.all([
+      fetchBusinesses(), fetchStudents(), fetchFees(month), fetchCourses(), fetchAllUsers(),
     ]);
-    return { businesses, students, fees };
+    return { businesses, students, fees, courses, users };
   }, [month]);
 
   const rows = useMemo<Row[]>(() => {
@@ -131,6 +136,11 @@ export function StudentsPage() {
             ? `${d.students.length}名`
             : `${rows.length} / ${d.students.length}名`
         }
+        actions={
+          <Button variant="primary" size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Icon name="plus" size={16} /> 生徒を登録
+          </Button>
+        }
       />
 
       <div className="mb-md flex flex-wrap items-center gap-sm">
@@ -185,7 +195,22 @@ export function StudentsPage() {
         （毎年4月の一括更新が不要になり、更新漏れによる料金誤りが起きません）。
       </p>
 
-      <StudentSheet student={selected} month={month} onClose={() => setSelected(null)} />
+      <StudentSheet
+        student={selected}
+        month={month}
+        onClose={() => setSelected(null)}
+        onEdit={(s) => { setSelected(null); setEditing(s); setFormOpen(true); }}
+      />
+
+      <StudentForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSaved={state.reload}
+        businesses={d.businesses}
+        courses={d.courses}
+        parents={d.users.filter((u) => u.role === 'parent' && u.active)}
+        student={editing}
+      />
     </div>
   );
 }

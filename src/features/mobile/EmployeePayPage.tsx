@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Badge, Card, Empty, Loading, ErrorNote, Note, SectionLabel } from '@/components/ui';
+import {
+  Badge, Button, Card, Empty, Loading, ErrorNote, Note, SectionLabel,
+} from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
-import { fetchBusinesses, fetchMonthlyPay, fetchStaff } from '@/lib/queries';
+import {
+  fetchBusinesses, fetchMonthlyPay, fetchOvertimeRequests, fetchStaff,
+} from '@/lib/queries';
 import { currentMonthKey } from '@/lib/date';
 import { yen } from '@/lib/format';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { MonthHeader } from './MonthHeader';
+import { OvertimeRequestSheet } from './OvertimeRequestSheet';
+import { formatDayJa } from '@/lib/date';
 
 /**
  * 講師の給与。
@@ -17,12 +23,13 @@ import { MonthHeader } from './MonthHeader';
 export function EmployeePayPage() {
   const { user } = useAuth();
   const [month, setMonth] = useState(currentMonthKey());
+  const [otOpen, setOtOpen] = useState(false);
 
   const state = useAsync(async () => {
-    const [businesses, pays, staff] = await Promise.all([
-      fetchBusinesses(), fetchMonthlyPay(month), fetchStaff(month),
+    const [businesses, pays, staff, overtime] = await Promise.all([
+      fetchBusinesses(), fetchMonthlyPay(month), fetchStaff(month), fetchOvertimeRequests(),
     ]);
-    return { businesses, pays, staff };
+    return { businesses, pays, staff, overtime };
   }, [month]);
 
   const mine = useMemo(() => {
@@ -109,6 +116,44 @@ export function EmployeePayPage() {
           </dl>
         )}
       </Card>
+
+      <SectionLabel>時間外勤務</SectionLabel>
+      <Card className="mb-md">
+        {d.overtime.length === 0 ? (
+          <Empty title="申請はありません。" hint="シフト外に行った作業を申請できます。" />
+        ) : (
+          <ul>
+            {d.overtime.slice(0, 8).map((o, i) => (
+              <li
+                key={o.id}
+                className={`flex items-start gap-sm px-md py-sm ${i < Math.min(d.overtime.length, 8) - 1 ? 'border-b border-hairline' : ''}`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] text-ink">{o.description}</span>
+                  <span className="block text-[12px] text-muted tnum">
+                    {formatDayJa(o.workDate)}・{o.hours.toFixed(1)}時間・{yen(o.amount)}
+                  </span>
+                </span>
+                <Badge tone={o.status === 'approved' ? 'success' : o.status === 'rejected' ? 'neutral' : 'warn'}>
+                  {o.status === 'approved' ? '承認済み' : o.status === 'rejected' ? '却下' : '承認待ち'}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="border-t border-hairline p-md">
+          <Button variant="primary" block onClick={() => setOtOpen(true)}>
+            時間外勤務を申請する
+          </Button>
+        </div>
+      </Card>
+
+      <OvertimeRequestSheet
+        open={otOpen}
+        businesses={d.businesses.filter((b) => me?.businessIds.includes(b.id))}
+        onClose={() => setOtOpen(false)}
+        onSent={state.reload}
+      />
 
       <Note>
         {mine?.status === 'confirmed' ? (

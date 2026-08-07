@@ -87,6 +87,28 @@ function rateAt(rates: RateRow[], employeeId: string, businessId: string, on: st
 }
 
 /**
+ * 講師が時間外勤務を申請する。
+ * status は pending 固定（RLS も pending 以外の insert を弾く）。
+ * 自分で承認できてはいけないので、ここで status を受け取らない。
+ */
+export async function createOvertimeRequest(
+  businessId: string, workDate: string, description: string, hours: number,
+): Promise<void> {
+  const employeeId = await currentUserId();
+  if (!employeeId) throw new Error('ログイン情報が取得できませんでした。');
+
+  const { error } = await supabase.from('overtime_requests').insert({
+    employee_id: employeeId,
+    business_id: businessId,
+    work_date: workDate,
+    description,
+    hours,
+    status: 'pending',
+  });
+  if (error) throw error;
+}
+
+/**
  * 承認・却下。
  * 承認した分だけが給与に乗る（employee_monthly_pay が status='approved' だけを見る）。
  * 割増は付かない。法定残業とは別物。

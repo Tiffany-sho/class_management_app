@@ -1,9 +1,11 @@
-import { Badge, DataTable, ErrorNote, Loading, Sheet, type Column } from '@/components/ui';
+import { useState } from 'react';
+import { Badge, Button, DataTable, ErrorNote, Loading, Sheet, type Column } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
 import { fetchEmployeePayHistory } from '@/lib/queries';
 import { formatMonthJa } from '@/lib/date';
 import { yen } from '@/lib/format';
-import type { MonthlyPay, StaffMember } from '@/types/domain';
+import type { Business, MonthlyPay, StaffMember } from '@/types/domain';
+import { StaffEditForm } from './StaffEditForm';
 
 /**
  * 講師の詳細。月ごとの出勤数と給与を一覧で出す。
@@ -12,7 +14,13 @@ import type { MonthlyPay, StaffMember } from '@/types/domain';
  * 毎回計算した値、締めた後は payrolls に書き込まれた値が出る。
  * **同じ月でも「確定」と表示が変わったら、以後その数字は動かない。**
  */
-export function StaffSheet({ staff, onClose }: { staff: StaffMember | null; onClose: () => void }) {
+export function StaffSheet({ staff, businesses, onClose, onSaved }: {
+  staff: StaffMember | null;
+  businesses: Business[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
   const state = useAsync(
     async () => (staff ? fetchEmployeePayHistory(staff.id) : []),
     [staff?.id],
@@ -57,8 +65,24 @@ export function StaffSheet({ staff, onClose }: { staff: StaffMember | null; onCl
       onClose={onClose}
       title={staff?.name ?? ''}
       subtitle={staff?.email}
+      footer={
+        <div className="flex gap-sm">
+          <Button block onClick={onClose}>閉じる</Button>
+          <Button block variant={editing ? 'secondary' : 'primary'} onClick={() => setEditing(!editing)}>
+            {editing ? '設定をとじる' : '時給・担当を設定'}
+          </Button>
+        </div>
+      }
     >
-      {staff ? (
+      {staff && editing ? (
+        <StaffEditForm
+          staff={staff}
+          businesses={businesses}
+          onSaved={() => { setEditing(false); onSaved(); }}
+        />
+      ) : null}
+
+      {staff && !editing ? (
         <div className="space-y-lg">
           <section>
             <h4 className="mb-sm text-[13px] font-medium text-ink">現在の条件</h4>

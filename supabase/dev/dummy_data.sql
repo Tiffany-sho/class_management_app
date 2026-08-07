@@ -24,8 +24,14 @@ declare
   v_prog        uuid;
   v_illu        uuid;
   v_admin       uuid;
-  v_emp_nakamura uuid := 'dddddddd-0000-0000-0000-000000000101';
-  v_emp_kobayashi uuid := 'dddddddd-0000-0000-0000-000000000102';
+  -- 講師は事業を兼任しない。プログラミング2名 / イラスト5名
+  v_emp_nakamura  uuid := 'dddddddd-0000-0000-0000-000000000101';  -- プログラミング
+  v_emp_takahashi uuid := 'dddddddd-0000-0000-0000-000000000103';  -- プログラミング
+  v_emp_kobayashi uuid := 'dddddddd-0000-0000-0000-000000000102';  -- イラスト
+  v_emp_watanabe  uuid := 'dddddddd-0000-0000-0000-000000000104';  -- イラスト
+  v_emp_ito       uuid := 'dddddddd-0000-0000-0000-000000000105';  -- イラスト
+  v_emp_yamamoto  uuid := 'dddddddd-0000-0000-0000-000000000106';  -- イラスト
+  v_emp_kato      uuid := 'dddddddd-0000-0000-0000-000000000107';  -- イラスト
   v_par_tanaka  uuid := 'dddddddd-0000-0000-0000-000000000201';
   v_par_sato    uuid := 'dddddddd-0000-0000-0000-000000000202';
   v_par_suzuki  uuid := 'dddddddd-0000-0000-0000-000000000203';
@@ -62,31 +68,48 @@ begin
     now(), now(), '', '', '', ''
   from (values
     (v_emp_nakamura,  'nakamura@example.com',  '中村 さとし',   'employee'),
+    (v_emp_takahashi, 'takahashi@example.com', '高橋 けんた',   'employee'),
     (v_emp_kobayashi, 'kobayashi@example.com', '小林 あやか',   'employee'),
+    (v_emp_watanabe,  'watanabe@example.com',  '渡辺 みほ',     'employee'),
+    (v_emp_ito,       'ito@example.com',       '伊藤 ゆうき',   'employee'),
+    (v_emp_yamamoto,  'yamamoto@example.com',  '山本 えみ',     'employee'),
+    (v_emp_kato,      'kato@example.com',      '加藤 りょう',   'employee'),
     (v_par_tanaka,    'tanaka@example.com',    '田中 さくら',   'parent'),
     (v_par_sato,      'sato@example.com',      '佐藤 ひろみ',   'parent'),
     (v_par_suzuki,    'suzuki@example.com',    '鈴木 なおき',   'parent')
   ) as v(id, email, name, role)
   on conflict (id) do nothing;
 
-  -- 担当できる事業。中村は両方、小林はイラストのみ
+  -- 担当できる事業。兼任は作らない（1人1事業）
   insert into public.employee_businesses (employee_id, business_id)
-  values (v_emp_nakamura, v_prog), (v_emp_nakamura, v_illu), (v_emp_kobayashi, v_illu)
+  values
+    (v_emp_nakamura,  v_prog), (v_emp_takahashi, v_prog),
+    (v_emp_kobayashi, v_illu), (v_emp_watanabe,  v_illu), (v_emp_ito, v_illu),
+    (v_emp_yamamoto,  v_illu), (v_emp_kato,      v_illu)
   on conflict do nothing;
 
-  -- 時給。中村のプログラミングだけ昇給履歴を持たせる（古い行が出ないことの確認用）
+  -- 時給。中村だけ昇給履歴を持たせる（古い行が出ないことの確認用）
   insert into public.wage_rates (id, employee_id, business_id, job_label, hourly_rate, effective_from)
   values
     ('dddddddd-0000-0000-0000-000000000301', v_emp_nakamura,  v_prog, 'プログラミング講師', 1600, (date_trunc('year', current_date) - interval '1 year')::date),
     ('dddddddd-0000-0000-0000-000000000302', v_emp_nakamura,  v_prog, 'プログラミング講師', 1800, date_trunc('year', current_date)::date),
-    ('dddddddd-0000-0000-0000-000000000303', v_emp_nakamura,  v_illu, 'イラスト講師',       1700, date_trunc('year', current_date)::date),
-    ('dddddddd-0000-0000-0000-000000000304', v_emp_kobayashi, v_illu, 'イラスト講師',       1500, date_trunc('year', current_date)::date)
+    ('dddddddd-0000-0000-0000-000000000303', v_emp_takahashi, v_prog, 'プログラミング講師', 1700, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000304', v_emp_kobayashi, v_illu, 'イラスト講師',       1500, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000305', v_emp_watanabe,  v_illu, 'イラスト講師',       1550, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000306', v_emp_ito,       v_illu, 'イラスト講師',       1450, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000307', v_emp_yamamoto,  v_illu, 'イラスト講師',       1500, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000308', v_emp_kato,      v_illu, 'イラスト講師',       1400, date_trunc('year', current_date)::date)
   on conflict (id) do nothing;
 
   insert into public.commute_allowances (id, employee_id, daily_amount, effective_from)
   values
     ('dddddddd-0000-0000-0000-000000000311', v_emp_nakamura,  600, date_trunc('year', current_date)::date),
-    ('dddddddd-0000-0000-0000-000000000312', v_emp_kobayashi, 400, date_trunc('year', current_date)::date)
+    ('dddddddd-0000-0000-0000-000000000312', v_emp_takahashi, 500, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000313', v_emp_kobayashi, 400, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000314', v_emp_watanabe,  450, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000315', v_emp_ito,       350, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000316', v_emp_yamamoto,  500, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000317', v_emp_kato,      300, date_trunc('year', current_date)::date)
   on conflict (id) do nothing;
 
   -- ---------------------------------------------------------------- 生徒
@@ -144,11 +167,20 @@ begin
       select id into v_sched from public.schedules
        where business_id = r.business_id and session_date = v_day and slot_no = r.slot_no;
 
-      -- 担当講師。イラストは小林、プログラミングは中村
+      /* 担当講師。その事業の講師から輪番で2名ずつ入れる。
+         全員を毎コマ入れると、給与も定員も全講師で同じ値になって確認にならない。
+         プログラミングは2名なので結果的に毎コマ全員、イラストは5名から2名ずつ。 */
       insert into public.schedule_employees (schedule_id, employee_id, business_id)
-      values (v_sched,
-              case when r.business_id = v_prog then v_emp_nakamura else v_emp_kobayashi end,
-              r.business_id)
+      select v_sched, e.employee_id, r.business_id
+        from (
+          select eb.employee_id,
+                 row_number() over (order by eb.employee_id) as pos,
+                 count(*)     over ()                        as total
+            from public.employee_businesses eb
+           where eb.business_id = r.business_id
+             and eb.employee_id::text like 'dddddddd-%'
+        ) e
+       where (e.pos + v_n) % e.total < 2
       on conflict do nothing;
 
       -- 受講生徒。id の末尾で第1コマ／第2コマに振り分ける（1日1コマにするため）
@@ -166,6 +198,11 @@ begin
   -- 済んだコマに出欠と授業記録を入れる。欠席の回に記録は付けない（トリガーが落とす）
   for r in
     select ss.schedule_id, ss.student_id, sc.session_date,
+           /* 記録者はそのコマの担当講師。事業を兼任する講師はいないので、
+              担当から取らないと他事業の講師が記録者になってしまう。 */
+           (select se.employee_id from public.schedule_employees se
+             where se.schedule_id = ss.schedule_id
+             order by se.employee_id limit 1) as employee_id,
            row_number() over (order by sc.session_date, ss.student_id) as rn
       from public.schedule_students ss
       join public.schedules sc on sc.id = ss.schedule_id
@@ -192,7 +229,7 @@ begin
        出欠と所見を変えない2回目の update なら、トリガーは *_by に触らない。 */
     update public.schedule_students
        set marked_by = v_admin,
-           noted_by  = case when note is null then null else v_emp_nakamura end
+           noted_by  = case when note is null then null else r.employee_id end
      where schedule_id = r.schedule_id and student_id = r.student_id;
   end loop;
 
@@ -229,16 +266,24 @@ begin
     v_n := v_n + 1;
   end loop;
 
-  -- 講師の勤務希望（来月）
+  /* 講師の勤務希望（来月）。担当事業の開催日に出す。
+     全員が全部の日に出すと確定画面で選ぶ意味が無くなるので、講師ごとに一部の日を落とす。
+     希望は日単位で出す想定なので、落とすときはその日の両コマとも落とす。 */
   insert into public.work_preferences (id, employee_id, business_id, year_month, session_date, slot_no)
   select ('dddddddd-0000-0000-0000-' || lpad((700000 + row_number() over ())::text, 12, '0'))::uuid,
-         case when bs.business_id = v_prog then v_emp_nakamura else v_emp_kobayashi end,
-         bs.business_id, v_next_month, d::date, bs.slot_no
+         e.employee_id, bs.business_id, v_next_month, d::date, bs.slot_no
     from generate_series(
       date_trunc('month', current_date + interval '1 month'),
       date_trunc('month', current_date + interval '2 month') - interval '1 day',
       interval '1 day') d
     join public.business_slots bs on bs.weekday = extract(dow from d)::smallint and bs.active
+    join (
+      select eb.employee_id, eb.business_id,
+             row_number() over (partition by eb.business_id order by eb.employee_id) as pos
+        from public.employee_businesses eb
+       where eb.employee_id::text like 'dddddddd-%'
+    ) e on e.business_id = bs.business_id
+   where (e.pos + extract(day from d)::int) % 4 <> 0   -- 4日に1日は希望を出さない
   on conflict do nothing;
 
   -- ---------------------------------------------------------------- 月謝（今月）
@@ -284,7 +329,9 @@ begin
   values
     ('dddddddd-0000-0000-0000-000000000951', v_emp_nakamura,  v_prog, current_date - 3, '教材の準備と動作確認',   1.5, 'pending',  null, null),
     ('dddddddd-0000-0000-0000-000000000952', v_emp_kobayashi, v_illu, current_date - 2, '作品講評コメントの作成', 2.0, 'pending',  null, null),
-    ('dddddddd-0000-0000-0000-000000000953', v_emp_nakamura,  v_prog, current_date - 9, '保護者面談の資料作成',   1.0, 'approved', v_admin, now() - interval '8 days')
+    ('dddddddd-0000-0000-0000-000000000953', v_emp_nakamura,  v_prog, current_date - 9, '保護者面談の資料作成',   1.0, 'approved', v_admin, now() - interval '8 days'),
+    ('dddddddd-0000-0000-0000-000000000954', v_emp_watanabe,  v_illu, current_date - 5, '展示用の作品スキャン',   2.5, 'approved', v_admin, now() - interval '4 days'),
+    ('dddddddd-0000-0000-0000-000000000955', v_emp_takahashi, v_prog, current_date - 1, '体験会の準備',           1.0, 'rejected', v_admin, now() - interval '12 hours')
   on conflict (id) do nothing;
 
   -- ---------------------------------------------------------------- お知らせ
@@ -307,6 +354,19 @@ end $$;
 
 -- 結果の確認
 select '講師'   as 対象, count(*) from public.users where role = 'employee'
+-- 講師の内訳はダミーぶんだけ数える（本物が混ざると 2 / 5 にならない）
+union all select '  プログラミング教室（2名）', count(*)
+         from public.employee_businesses eb
+         join public.businesses b on b.id = eb.business_id
+        where b.name = 'プログラミング教室' and eb.employee_id::text like 'dddddddd-%'
+union all select '  イラスト教室（5名）', count(*)
+         from public.employee_businesses eb
+         join public.businesses b on b.id = eb.business_id
+        where b.name = 'イラスト教室' and eb.employee_id::text like 'dddddddd-%'
+union all select '  兼任（0であること）', count(*) from (
+         select employee_id from public.employee_businesses
+          where employee_id::text like 'dddddddd-%'
+          group by employee_id having count(*) > 1) x
 union all select '保護者', count(*) from public.users where role = 'parent'
 union all select '生徒',   count(*) from public.students
 union all select 'コマ（今月）', count(*) from public.schedules

@@ -167,7 +167,12 @@ export function StaffPage() {
         退職は論理削除で、担当したコマの記録は残ります。
       </Note>
 
-      <StaffSheet staff={selected} onClose={() => setSelected(null)} />
+      <StaffSheet
+        staff={selected}
+        businesses={d.businesses}
+        onClose={() => setSelected(null)}
+        onSaved={() => { setSelected(null); state.reload(); }}
+      />
     </div>
   );
 }

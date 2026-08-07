@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/AdminLayout';
 import {
-  Badge, Chip, DataTable, Icon, Loading, ErrorNote, MonthNav, Note, Panel,
-  SectionLabel, TextInput, type Column,
+  Badge, Button, Chip, DataTable, Icon, Loading, ErrorNote, MonthNav, Note, Panel,
+  SectionLabel, TextInput, useToast, type Column,
 } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
+import { toMessage } from '@/lib/supabase';
 import {
   fetchBusinesses, fetchFees, fetchMonthlyPay, fetchStudents, fetchWorkSlotSummary,
-  type StudentFee,
+  generateFees, type StudentFee,
 } from '@/lib/queries';
-import { currentMonthKey } from '@/lib/date';
+import { currentMonthKey, formatMonthJa } from '@/lib/date';
 import { FEE_LABEL, yen } from '@/lib/format';
 import type { Student } from '@/types/domain';
 import { StatCards } from './StatCards';
@@ -29,7 +30,9 @@ interface Row extends Student {
  * 日曜の掛け持ちでも1日ぶん。按分の根拠が無いものを勝手に配分しない）。
  */
 export function RevenuePage() {
+  const { toast } = useToast();
   const [month, setMonth] = useState(currentMonthKey());
+  const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [biz, setBiz] = useState('all');
   const [unpaidOnly, setUnpaidOnly] = useState(false);
@@ -68,6 +71,21 @@ export function RevenuePage() {
   const d = state.data;
   if (!d) return null;
 
+  const issue = async () => {
+    setBusy(true);
+    try {
+      const n = await generateFees(month);
+      toast(n === 0
+        ? 'すでに全員ぶん発行済みです。'
+        : `${formatMonthJa(month)}の月謝を ${n}件 発行しました`);
+      state.reload();
+    } catch (e) {
+      toast(toMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const income = [...d.fees.values()].reduce((a, f) => a + f.amount, 0);
   const collected = [...d.fees.values()].reduce((a, f) => a + (f.status === 'paid' ? f.amount : 0), 0);
   const labor = d.pays.reduce((a, p) => a + p.total, 0);
@@ -75,6 +93,7 @@ export function RevenuePage() {
   const overtime = d.pays.reduce((a, p) => a + p.overtime, 0);
   const profit = income - labor;
   const anyConfirmed = d.pays.some((p) => p.status === 'confirmed');
+  const unbilled = d.students.filter((s) => !d.fees.has(s.id)).length;
 
   const columns: Column<Row>[] = [
     { key: 'name', header: '生徒', render: (s) => (
@@ -107,7 +126,19 @@ export function RevenuePage() {
     <div>
       <PageHeader
         title="収入・収益"
-        actions={<MonthNav value={month} onChange={setMonth} />}
+        actions={
+          <div className="flex items-center gap-sm">
+            <MonthNav value={month} onChange={setMonth} />
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={busy || unbilled === 0}
+              onClick={() => void issue()}
+            >
+              {unbilled === 0 ? '全員ぶん発行済み' : `月謝を発行（${unbilled}名）`}
+            </Button>
+          </div>
+        }
       />
 
       <StatCards stats={[

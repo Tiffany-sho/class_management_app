@@ -12,6 +12,7 @@
  *   staff.ts    講師・時給・交通費・給与
  *   requests.ts 時間外勤務・欠席連絡・進級
  *   announcements.ts お知らせ
+ *   notifications.ts 通知（読むだけ。作るのは DB のトリガー）
  */
 
 export * from './master';
@@ -20,3 +21,4 @@ export * from './schedule';
 export * from './staff';
 export * from './requests';
 export * from './announcements';
+export * from './notifications';

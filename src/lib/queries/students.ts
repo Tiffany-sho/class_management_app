@@ -57,6 +57,53 @@ export async function fetchStudents(): Promise<Student[]> {
   }));
 }
 
+export interface StudentInput {
+  name: string;
+  parentId: string;
+  businessId: string;
+  courseId: string;
+  /** 小1になった年度。学年はここから毎回計算する（学年は保存しない） */
+  enrollmentYear: number;
+}
+
+/**
+ * 生徒を登録する。
+ * 保護者が先に存在している必要がある（アカウントは招待でしか作れないため）。
+ * コースは事業のものでないと DB の複合外部キーが弾く。
+ */
+export async function createStudent(input: StudentInput): Promise<string> {
+  const { data, error } = await supabase
+    .from('students')
+    .insert({
+      name: input.name,
+      parent_id: input.parentId,
+      business_id: input.businessId,
+      course_id: input.courseId,
+      enrollment_year: input.enrollmentYear,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function updateStudent(
+  id: string, patch: Partial<StudentInput> & { active?: boolean },
+): Promise<void> {
+  const { error } = await supabase
+    .from('students')
+    .update({
+      ...(patch.name === undefined ? {} : { name: patch.name }),
+      ...(patch.parentId === undefined ? {} : { parent_id: patch.parentId }),
+      ...(patch.businessId === undefined ? {} : { business_id: patch.businessId }),
+      ...(patch.courseId === undefined ? {} : { course_id: patch.courseId }),
+      ...(patch.enrollmentYear === undefined ? {} : { enrollment_year: patch.enrollmentYear }),
+      ...(patch.active === undefined ? {} : { active: patch.active }),
+    })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 /** 保護者名など。RLS で見えない id は単に返ってこない（エラーにはしない） */
 export async function fetchUserNames(ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
@@ -94,6 +141,22 @@ export async function fetchFees(yearMonth: string): Promise<Map<string, StudentF
       },
     ]),
   );
+}
+
+/**
+ * 指定月の月謝を発行する。
+ * **既にある行は書き換えない**ので、金額を手で直したあとに実行しても消えない。
+ * 発行した額はコピーなので、あとで料金を改定してもこの月は変わらない。
+ */
+export async function generateFees(yearMonth: string): Promise<number> {
+  /* 生成した型定義に generate_fees が載るのは、マイグレーションを流して
+     npm run gen:types を実行したあと。それまで名前を型に載せられないので
+     ここだけ型を外している。**流したら再生成してこのキャストを消すこと。** */
+  const { data, error } = await supabase.rpc(
+    'generate_fees' as never, { p_year_month: yearMonth } as never,
+  );
+  if (error) throw error;
+  return (data as number | null) ?? 0;
 }
 
 export async function setFeeStatus(

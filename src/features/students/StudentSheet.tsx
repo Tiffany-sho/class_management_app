@@ -10,6 +10,7 @@ interface Props {
   student: (Student & { businessName: string; fee?: StudentFee }) | null;
   month: string;
   onClose: () => void;
+  onEdit?: (student: Student) => void;
 }
 
 interface HistoryRow {
@@ -25,7 +26,7 @@ interface HistoryRow {
  * 出席率は出さず、回数だけ出す。
  * 授業記録は出欠と同じ行に出す（別リストにすると突き合わせることになる）。
  */
-export function StudentSheet({ student, month, onClose }: Props) {
+export function StudentSheet({ student, month, onClose, onEdit }: Props) {
   const state = useAsync(async () => {
     if (!student) return null;
 
@@ -95,7 +96,14 @@ export function StudentSheet({ student, month, onClose }: Props) {
       footer={
         <>
           <Button className="flex-1" onClick={onClose}>閉じる</Button>
-          <Button className="flex-1" variant="primary" disabled>編集</Button>
+          <Button
+            className="flex-1"
+            variant="primary"
+            disabled={!onEdit || !student}
+            onClick={() => student && onEdit?.(student)}
+          >
+            編集
+          </Button>
         </>
       }
     >

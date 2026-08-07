@@ -150,6 +150,63 @@ export async function fetchEmployeePayHistory(employeeId: string): Promise<Month
   return ((data ?? []) as MonthlyPayRow[]).map(toMonthlyPay);
 }
 
+/**
+ * 時給を設定する。
+ *
+ * **既存の行は書き換えず、適用開始日つきで新しい行を足す。**
+ * 上書きすると、その時給で計算済みの過去の給与までさかのぼって変わってしまう。
+ * 同じ日付で出し直したときだけ上書きになる（打ち間違いの訂正）。
+ */
+export async function setWageRate(
+  employeeId: string, businessId: string, jobLabel: string,
+  hourlyRate: number, effectiveFrom: string,
+): Promise<void> {
+  const { error } = await supabase.from('wage_rates').upsert(
+    {
+      employee_id: employeeId, business_id: businessId, job_label: jobLabel,
+      hourly_rate: hourlyRate, effective_from: effectiveFrom,
+    },
+    { onConflict: 'employee_id,business_id,effective_from' },
+  );
+  if (error) throw error;
+}
+
+/** 交通費も同じ考え方。日額 × 出勤日数で、事業には割り振らない */
+export async function setCommuteAllowance(
+  employeeId: string, dailyAmount: number, effectiveFrom: string,
+): Promise<void> {
+  const { error } = await supabase.from('commute_allowances').upsert(
+    { employee_id: employeeId, daily_amount: dailyAmount, effective_from: effectiveFrom },
+    { onConflict: 'employee_id,effective_from' },
+  );
+  if (error) throw error;
+}
+
+/**
+ * 担当できる事業を設定する。
+ * 外した事業に既に割り当てられたコマがあると、DB の複合外部キーが削除を止める
+ * （過去の勤務実績が消えると給与の根拠が無くなるため）。
+ */
+export async function setEmployeeBusinesses(
+  employeeId: string, businessIds: string[],
+): Promise<void> {
+  const { error: delErr } = await supabase
+    .from('employee_businesses')
+    .delete()
+    .eq('employee_id', employeeId)
+    .not('business_id', 'in', `(${businessIds.length ? businessIds.join(',') : '00000000-0000-0000-0000-000000000000'})`);
+  if (delErr) throw delErr;
+
+  if (businessIds.length === 0) return;
+  const { error } = await supabase
+    .from('employee_businesses')
+    .upsert(
+      businessIds.map((business_id) => ({ employee_id: employeeId, business_id })),
+      { onConflict: 'employee_id,business_id', ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
 /** 事業ごとのコマ人件費。交通費と時間外は事業に割り振らないので、ここには含めない */
 export async function fetchWorkSlotSummary(
   yearMonth: string,
