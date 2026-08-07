@@ -1,0 +1,312 @@
+-- =============================================================================
+-- 動作確認用のダミーデータ
+--
+-- ★ マイグレーションではない。migrations/ に置くと db push で本番に流れてしまう。
+--   使うときは Supabase の SQL Editor にこのファイルを貼って実行する。
+--
+-- 消すときは同じフォルダの dummy_data_cleanup.sql を実行する。
+-- ここで作る行の id はすべて 'dddddddd-' で始めてあり、cleanup はそれだけを消す。
+-- **本物のデータを1件でも入れた後でも、cleanup は本物に触らない。**
+--
+-- ダミーの講師・保護者は auth.users から作る（handle_new_user トリガーを通して
+-- public.users を生成させる）。招待の経路と同じにしておかないと、
+-- 本番で招待したときだけ壊れる、という事故になる。
+--
+-- ★ パスワードは設定しない（encrypted_password = null）。
+--   このリポジトリは公開されているため、ログインできるアカウントを置くと
+--   誰でもそのロールで入れてしまう。メールも example.com（受信できない予約ドメイン）。
+--
+-- 何度実行しても増えない（id 固定 + on conflict do nothing）。
+-- =============================================================================
+
+do $$
+declare
+  v_prog        uuid;
+  v_illu        uuid;
+  v_admin       uuid;
+  v_emp_nakamura uuid := 'dddddddd-0000-0000-0000-000000000101';
+  v_emp_kobayashi uuid := 'dddddddd-0000-0000-0000-000000000102';
+  v_par_tanaka  uuid := 'dddddddd-0000-0000-0000-000000000201';
+  v_par_sato    uuid := 'dddddddd-0000-0000-0000-000000000202';
+  v_par_suzuki  uuid := 'dddddddd-0000-0000-0000-000000000203';
+  v_this_month  text := to_char(current_date, 'YYYY-MM');
+  v_next_month  text := to_char(current_date + interval '1 month', 'YYYY-MM');
+  v_day         date;
+  v_sched       uuid;
+  v_n           integer := 0;
+  r             record;
+  v_note        text;
+begin
+  select id into v_prog from public.businesses where name = 'プログラミング教室';
+  select id into v_illu from public.businesses where name = 'イラスト教室';
+  select id into v_admin from public.users where role = 'admin' order by created_at limit 1;
+
+  if v_prog is null or v_illu is null then
+    raise exception 'マスタデータが入っていません。先に 20260806100300_seed_master_data.sql を流してください。';
+  end if;
+
+  -- ---------------------------------------------------------------- 講師・保護者
+  -- raw_user_meta_data の name / role を handle_new_user が読んで public.users を作る
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change
+  )
+  select
+    '00000000-0000-0000-0000-000000000000', v.id, 'authenticated', 'authenticated',
+    v.email,
+    null,                       -- パスワード無し = ログインできない
+    now(),                      -- 確認済みにしておく（未確認だと一覧で紛らわしい）
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object('name', v.name, 'role', v.role),
+    now(), now(), '', '', '', ''
+  from (values
+    (v_emp_nakamura,  'nakamura@example.com',  '中村 さとし',   'employee'),
+    (v_emp_kobayashi, 'kobayashi@example.com', '小林 あやか',   'employee'),
+    (v_par_tanaka,    'tanaka@example.com',    '田中 さくら',   'parent'),
+    (v_par_sato,      'sato@example.com',      '佐藤 ひろみ',   'parent'),
+    (v_par_suzuki,    'suzuki@example.com',    '鈴木 なおき',   'parent')
+  ) as v(id, email, name, role)
+  on conflict (id) do nothing;
+
+  -- 担当できる事業。中村は両方、小林はイラストのみ
+  insert into public.employee_businesses (employee_id, business_id)
+  values (v_emp_nakamura, v_prog), (v_emp_nakamura, v_illu), (v_emp_kobayashi, v_illu)
+  on conflict do nothing;
+
+  -- 時給。中村のプログラミングだけ昇給履歴を持たせる（古い行が出ないことの確認用）
+  insert into public.wage_rates (id, employee_id, business_id, job_label, hourly_rate, effective_from)
+  values
+    ('dddddddd-0000-0000-0000-000000000301', v_emp_nakamura,  v_prog, 'プログラミング講師', 1600, (date_trunc('year', current_date) - interval '1 year')::date),
+    ('dddddddd-0000-0000-0000-000000000302', v_emp_nakamura,  v_prog, 'プログラミング講師', 1800, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000303', v_emp_nakamura,  v_illu, 'イラスト講師',       1700, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000304', v_emp_kobayashi, v_illu, 'イラスト講師',       1500, date_trunc('year', current_date)::date)
+  on conflict (id) do nothing;
+
+  insert into public.commute_allowances (id, employee_id, daily_amount, effective_from)
+  values
+    ('dddddddd-0000-0000-0000-000000000311', v_emp_nakamura,  600, date_trunc('year', current_date)::date),
+    ('dddddddd-0000-0000-0000-000000000312', v_emp_kobayashi, 400, date_trunc('year', current_date)::date)
+  on conflict (id) do nothing;
+
+  -- ---------------------------------------------------------------- 生徒
+  --   enrollment_year は「小1になった年度」。学年 = 今年度 − enrollment_year + 1。
+  --   結衣と大和はわざとコースの学年区分から外し、進級処理に出るようにしてある。
+  insert into public.students (id, name, parent_id, business_id, course_id, enrollment_year)
+  select v.id, v.name, v.parent_id, v.business_id, c.id, v.enrollment_year
+  from (values
+    ('dddddddd-0000-0000-0000-000000000401'::uuid, '田中 陽翔', v_par_tanaka, v_prog, '1・2学年',         2, (public.academic_year(current_date) - 1)::smallint),
+    ('dddddddd-0000-0000-0000-000000000402'::uuid, '佐藤 結衣', v_par_sato,   v_prog, '3・4学年',         2, (public.academic_year(current_date) - 4)::smallint),
+    ('dddddddd-0000-0000-0000-000000000403'::uuid, '田中 咲希', v_par_tanaka, v_illu, '3・4学年',         2, (public.academic_year(current_date) - 3)::smallint),
+    ('dddddddd-0000-0000-0000-000000000404'::uuid, '鈴木 大和', v_par_suzuki, v_prog, '5・6学年・中学生', 3, (public.academic_year(current_date) - 9)::smallint),
+    ('dddddddd-0000-0000-0000-000000000405'::uuid, '鈴木 ひなた', v_par_suzuki, v_illu, '1・2学年',       2, public.academic_year(current_date)::smallint)
+  ) as v(id, name, parent_id, business_id, grade_label, sessions, enrollment_year)
+  join public.courses c
+    on c.business_id = v.business_id
+   and c.grade_label = v.grade_label
+   and c.sessions_per_month = v.sessions
+  on conflict (id) do nothing;
+
+  /* コースの学年区分と回数が合わないと join が空振りして、生徒が黙って作られない。
+     気づきにくいのでここで止める。 */
+  if (select count(*) from public.students where id::text like 'dddddddd-%') <> 5 then
+    raise exception '生徒が5名そろいませんでした（%名）。courses のマスタが想定と違う可能性があります。',
+      (select count(*) from public.students where id::text like 'dddddddd-%');
+  end if;
+
+  -- ---------------------------------------------------------------- コマ（今月）
+  --   今日より前 = 確定（勤務実績になる）／今日以降 = 未確定
+  --   プログラミングは日曜のみ、イラストは土曜・日曜。
+  for v_day in
+    select d::date from generate_series(
+      date_trunc('month', current_date),
+      date_trunc('month', current_date) + interval '1 month - 1 day',
+      interval '1 day') d
+  loop
+    for r in
+      select bs.business_id, bs.slot_no
+        from public.business_slots bs
+       where bs.weekday = extract(dow from v_day)::smallint and bs.active
+       order by bs.business_id, bs.slot_no
+    loop
+      v_n := v_n + 1;
+      v_sched := ('dddddddd-0000-0000-0000-' || lpad((500000 + v_n)::text, 12, '0'))::uuid;
+
+      insert into public.schedules (id, business_id, session_date, slot_no, status)
+      values (v_sched, r.business_id, v_day, r.slot_no,
+              case when v_day < current_date then 'confirmed' else 'draft' end)
+      on conflict (business_id, session_date, slot_no) do nothing;
+
+      -- 実際に入った id を取り直す（既にあった場合は上の insert が効かない）
+      select id into v_sched from public.schedules
+       where business_id = r.business_id and session_date = v_day and slot_no = r.slot_no;
+
+      -- 担当講師。イラストは小林、プログラミングは中村
+      insert into public.schedule_employees (schedule_id, employee_id, business_id)
+      values (v_sched,
+              case when r.business_id = v_prog then v_emp_nakamura else v_emp_kobayashi end,
+              r.business_id)
+      on conflict do nothing;
+
+      -- 受講生徒。id の末尾で第1コマ／第2コマに振り分ける（1日1コマにするため）
+      insert into public.schedule_students (schedule_id, student_id, business_id)
+      select v_sched, s.id, r.business_id
+        from public.students s
+       where s.business_id = r.business_id
+         and s.active
+         and s.id::text like 'dddddddd-%'
+         and (right(s.id::text, 1)::int % 2) + 1 = r.slot_no
+      on conflict do nothing;
+    end loop;
+  end loop;
+
+  -- 済んだコマに出欠と授業記録を入れる。欠席の回に記録は付けない（トリガーが落とす）
+  for r in
+    select ss.schedule_id, ss.student_id, sc.session_date,
+           row_number() over (order by sc.session_date, ss.student_id) as rn
+      from public.schedule_students ss
+      join public.schedules sc on sc.id = ss.schedule_id
+     where sc.status = 'confirmed'
+       and sc.id::text like 'dddddddd-%'
+  loop
+    v_note := case (r.rn % 4)
+      when 0 then null
+      when 1 then '前回の続きから進めました。集中して取り組めています。'
+      when 2 then '新しい課題に入りました。基本の操作は問題なくできています。'
+      else        '作品の仕上げに入りました。次回は発表の練習をします。'
+    end;
+
+    update public.schedule_students
+       set attendance_status = case when r.rn % 3 = 0 then 'absent'::public.attendance_status
+                                    when r.rn % 7 = 0 then 'late'::public.attendance_status
+                                    else 'present'::public.attendance_status end,
+           marked_by = v_admin,
+           note = case when r.rn % 3 = 0 then null else v_note end,
+           noted_by = case when r.rn % 3 = 0 then null else v_emp_nakamura end
+     where schedule_id = r.schedule_id and student_id = r.student_id;
+  end loop;
+
+  -- ---------------------------------------------------------------- 希望（来月）
+  --   受講回数の上限はトリガーが見ているので、コースの回数を超えないようにする
+  v_n := 0;
+  for r in
+    select s.id as student_id, s.business_id, c.sessions_per_month
+      from public.students s
+      join public.courses c on c.id = s.course_id
+     where s.active and s.id::text like 'dddddddd-%'
+  loop
+    /* 開催日は business_slots から引く。来月のコマはまだ作られていないので、
+       schedules を見に行くと1件も取れない。 */
+    insert into public.preferences (id, student_id, year_month, session_date, slot_no)
+    select ('dddddddd-0000-0000-0000-' || lpad((600000 + v_n * 10 + pd.rn)::text, 12, '0'))::uuid,
+           r.student_id, v_next_month, pd.session_date, pd.slot_no
+      from (
+        select d::date as session_date, min(bs.slot_no) as slot_no,
+               row_number() over (order by d) as rn
+          from generate_series(
+            date_trunc('month', current_date + interval '1 month'),
+            date_trunc('month', current_date + interval '2 month') - interval '1 day',
+            interval '1 day') d
+          join public.business_slots bs
+            on bs.business_id = r.business_id
+           and bs.weekday = extract(dow from d)::smallint
+           and bs.active
+         group by d
+         order by d
+         limit r.sessions_per_month
+      ) pd
+    on conflict do nothing;
+    v_n := v_n + 1;
+  end loop;
+
+  -- 講師の勤務希望（来月）
+  insert into public.work_preferences (id, employee_id, business_id, year_month, session_date, slot_no)
+  select ('dddddddd-0000-0000-0000-' || lpad((700000 + row_number() over ())::text, 12, '0'))::uuid,
+         case when bs.business_id = v_prog then v_emp_nakamura else v_emp_kobayashi end,
+         bs.business_id, v_next_month, d::date, bs.slot_no
+    from generate_series(
+      date_trunc('month', current_date + interval '1 month'),
+      date_trunc('month', current_date + interval '2 month') - interval '1 day',
+      interval '1 day') d
+    join public.business_slots bs on bs.weekday = extract(dow from d)::smallint and bs.active
+  on conflict do nothing;
+
+  -- ---------------------------------------------------------------- 月謝（今月）
+  --   ひなたは行を作らない = 「請求前」の表示を確かめるため
+  insert into public.fees (id, student_id, year_month, amount, status, paid_date)
+  select ('dddddddd-0000-0000-0000-' || lpad((800000 + row_number() over (order by s.name))::text, 12, '0'))::uuid,
+         s.id, v_this_month, c.monthly_fee,
+         case when s.name in ('田中 陽翔', '鈴木 大和') then 'paid'::public.fee_status
+              else 'unpaid'::public.fee_status end,
+         case when s.name in ('田中 陽翔', '鈴木 大和')
+              then date_trunc('month', current_date)::date + 9 else null end
+    from public.students s
+    join public.courses c on c.id = s.course_id
+   where s.id::text like 'dddddddd-%' and s.name <> '鈴木 ひなた'
+  on conflict (student_id, year_month) do nothing;
+
+  -- ---------------------------------------------------------------- 欠席連絡
+  /* 1件目を未確認、2件目を確認済みにする。
+     LIMIT だけで絞ると row_number の並びと一致しないので、番号を付けてから絞る。 */
+  insert into public.absence_reports (id, student_id, schedule_id, reason, created_by, handled_at, handled_by)
+  select
+    ('dddddddd-0000-0000-0000-' || lpad((900000 + a.rn)::text, 12, '0'))::uuid,
+    a.student_id, a.schedule_id,
+    case when a.rn = 1 then '発熱のためお休みします' else '家族の用事のためお休みします' end,
+    a.parent_id,
+    case when a.rn = 1 then null else now() end,
+    case when a.rn = 1 then null else v_admin end
+  from (
+    select ss.student_id, sc.id as schedule_id, s.parent_id,
+           row_number() over (order by sc.session_date desc, ss.student_id) as rn
+      from public.schedule_students ss
+      join public.schedules sc on sc.id = ss.schedule_id
+      join public.students s   on s.id  = ss.student_id
+     where ss.attendance_status = 'absent'
+       and sc.id::text like 'dddddddd-%'
+  ) a
+  where a.rn <= 2
+  on conflict do nothing;
+
+  -- ---------------------------------------------------------------- 時間外勤務
+  insert into public.overtime_requests
+    (id, employee_id, business_id, work_date, description, hours, status, decided_by, decided_at)
+  values
+    ('dddddddd-0000-0000-0000-000000000951', v_emp_nakamura,  v_prog, current_date - 3, '教材の準備と動作確認',   1.5, 'pending',  null, null),
+    ('dddddddd-0000-0000-0000-000000000952', v_emp_kobayashi, v_illu, current_date - 2, '作品講評コメントの作成', 2.0, 'pending',  null, null),
+    ('dddddddd-0000-0000-0000-000000000953', v_emp_nakamura,  v_prog, current_date - 9, '保護者面談の資料作成',   1.0, 'approved', v_admin, now() - interval '8 days')
+  on conflict (id) do nothing;
+
+  -- ---------------------------------------------------------------- お知らせ
+  if v_admin is not null then
+    insert into public.announcements (id, title, body, author_id, target_role, business_id, scheduled_at, sent_at)
+    values
+      ('dddddddd-0000-0000-0000-000000000961',
+       '来月の受講希望の受付を開始しました',
+       'マイページの「希望提出」から、来月の受講希望を提出してください。締め切りは前月20日です。',
+       v_admin, 'parent', null, null, now() - interval '2 days'),
+      ('dddddddd-0000-0000-0000-000000000962',
+       '発表会のお知らせ',
+       '今学期の作品発表会を予定しています。詳細は追ってご連絡します。',
+       v_admin, null, null, now() + interval '3 days', null)
+    on conflict (id) do nothing;
+  end if;
+
+  raise notice 'ダミーデータを投入しました。消すときは dummy_data_cleanup.sql を実行してください。';
+end $$;
+
+-- 結果の確認
+select '講師'   as 対象, count(*) from public.users where role = 'employee'
+union all select '保護者', count(*) from public.users where role = 'parent'
+union all select '生徒',   count(*) from public.students
+union all select 'コマ（今月）', count(*) from public.schedules
+         where to_char(session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM')
+union all select '  うち確定', count(*) from public.schedules
+         where to_char(session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM') and status = 'confirmed'
+union all select '受講希望（来月）', count(*) from public.preferences
+         where year_month = to_char(current_date + interval '1 month', 'YYYY-MM')
+union all select '月謝（今月）', count(*) from public.fees
+         where year_month = to_char(current_date, 'YYYY-MM')
+union all select '欠席連絡', count(*) from public.absence_reports
+union all select '時間外勤務', count(*) from public.overtime_requests
+union all select '進級対象', count(*) from public.students_needing_course_change;
