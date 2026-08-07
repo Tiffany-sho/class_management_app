@@ -1,4 +1,4 @@
-import { Badge, Button, Sheet, Loading, ErrorNote } from '@/components/ui';
+import { Badge, Button, Icon, Sheet, Loading, ErrorNote } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
 import { supabase } from '@/lib/supabase';
 import { formatDayJa, gradeLabel } from '@/lib/date';
@@ -165,7 +165,15 @@ export function StudentSheet({ student, month, onClose }: Props) {
                       {r.attendanceStatus === 'absent'
                         ? '欠席のため授業記録はありません。'
                         : r.note
-                          ? <>📝 {r.note}{r.notedByName ? `（記録: ${r.notedByName}）` : ''}</>
+                          ? (
+                            <span className="flex items-start gap-[5px]">
+                              <Icon name="note" size={14} className="mt-[2px]" />
+                              <span>
+                                {r.note}
+                                {r.notedByName ? `（記録: ${r.notedByName}）` : ''}
+                              </span>
+                            </span>
+                          )
                           : r.attendanceStatus
                             ? '授業記録はまだ記入されていません。'
                             : ''}

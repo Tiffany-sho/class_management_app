@@ -1,4 +1,4 @@
-import { Badge, Button, Sheet } from '@/components/ui';
+import { Badge, Button, Icon, Sheet } from '@/components/ui';
 import { formatDayJa, formatTimeRange, isPast } from '@/lib/date';
 import { ATTENDANCE_LABEL, attendanceTone } from '@/lib/format';
 import type { Business, ScheduleSlot } from '@/types/domain';
@@ -98,7 +98,15 @@ export function DayDetailSheet({ date, slots, businesses, onClose }: Props) {
                           {st.attendanceStatus === 'absent'
                             ? '欠席のため授業記録はありません。'
                             : st.note
-                              ? <>📝 {st.note}{st.notedByName ? `（記録: ${st.notedByName}）` : ''}</>
+                              ? (
+                                <span className="flex items-start gap-[5px]">
+                                  <Icon name="note" size={14} className="mt-[2px]" />
+                                  <span>
+                                    {st.note}
+                                    {st.notedByName ? `（記録: ${st.notedByName}）` : ''}
+                                  </span>
+                                </span>
+                              )
                               : '授業記録はまだ記入されていません。'}
                         </div>
                       ) : null}

@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { tabsFor } from './navItems';
+import { Icon } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import type { UserRole } from '@/types/domain';
 
@@ -51,9 +52,7 @@ export function MobileLayout({ title }: { title: string }) {
           >
             {({ isActive }) => (
               <>
-                <span aria-hidden className={`text-[17px] ${isActive ? '' : 'opacity-70'}`}>
-                  {t.icon}
-                </span>
+                <Icon name={t.icon} size={20} className={isActive ? '' : 'opacity-70'} />
                 <span className={isActive ? 'font-medium' : ''}>{t.label}</span>
               </>
             )}

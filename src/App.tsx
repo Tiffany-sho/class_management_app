@@ -11,6 +11,10 @@ import { Loading, ErrorNote } from './components/ui';
 import { AdminHomePage } from './features/home/AdminHomePage';
 import { SchedulePage } from './features/schedule/SchedulePage';
 import { StudentsPage } from './features/students/StudentsPage';
+import { StaffPage } from './features/staff/StaffPage';
+import { OvertimePage } from './features/requests/OvertimePage';
+import { PromotionPage } from './features/requests/PromotionPage';
+import { InboxPage } from './features/inbox/InboxPage';
 import { Placeholder } from './pages/Placeholder';
 
 /**
@@ -59,12 +63,12 @@ export function App() {
           <Route index element={<AdminHomePage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="students" element={<StudentsPage />} />
-          <Route path="staff" element={<Placeholder title="講師" />} />
-          <Route path="overtime" element={<Placeholder title="時間外勤務 申請" />} />
-          <Route path="promotion" element={<Placeholder title="進級処理" />} />
+          <Route path="staff" element={<StaffPage />} />
+          <Route path="overtime" element={<OvertimePage />} />
+          <Route path="promotion" element={<PromotionPage />} />
           <Route path="revenue" element={<Placeholder title="収入・収益" />} />
           <Route path="payroll" element={<Placeholder title="給与計算・締め処理" />} />
-          <Route path="inbox" element={<Placeholder title="受信ボックス" />} />
+          <Route path="inbox" element={<InboxPage />} />
           <Route path="announcements" element={<Placeholder title="お知らせ" />} />
           <Route path="master/courses" element={<Placeholder title="コース・料金" />} />
           <Route path="master/slots" element={<Placeholder title="開催枠" />} />

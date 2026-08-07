@@ -189,7 +189,7 @@ export function SchedulePage() {
         </div>
       </div>
 
-      <Note icon="👆">
+      <Note>
         <strong className="text-ink">提出された希望をクリックすると仮確定できます。</strong>
         点線＝希望のみ、塗りつぶし＝仮確定です。<br />
         <strong className="text-ink">定員 = 仮確定した講師の人数 × 事業ごとの係数</strong>。

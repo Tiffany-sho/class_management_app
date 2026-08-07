@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Icon, type IconName } from './Icon';
 
 /** 読み込み中。高さを持たせて、出たり消えたりで表がガタつかないようにする */
 export function Loading({ label = '読み込んでいます…' }: { label?: string }) {
@@ -30,7 +31,7 @@ export function Empty({ title, hint, action }: { title: string; hint?: ReactNode
 export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="flex items-start gap-sm rounded-md border border-[#e8d9bb] bg-cream px-md py-sm text-[13px]">
-      <span aria-hidden>⚠</span>
+      <Icon name="warning" className="mt-[1px] text-coral" />
       <div className="flex-1">
         <p className="text-ink">{message}</p>
         {onRetry ? (
@@ -44,10 +45,10 @@ export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () 
 }
 
 /** 補足の帯。クリーム色は「読んでほしいが警告ではない」もの */
-export function Note({ icon = '💡', children }: { icon?: string; children: ReactNode }) {
+export function Note({ icon = 'info', children }: { icon?: IconName; children: ReactNode }) {
   return (
     <div className="mb-md flex items-start gap-sm rounded-md border border-[#e8d9bb] bg-cream px-md py-sm text-[13px] leading-relaxed">
-      <span aria-hidden>{icon}</span>
+      <Icon name={icon} className="mt-[1px] text-muted" />
       <div className="flex-1">{children}</div>
     </div>
   );

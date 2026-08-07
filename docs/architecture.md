@@ -110,11 +110,12 @@ src/
   main.tsx / App.tsx     ← エントリとロール別ルーティング
   lib/
     supabase.ts          ← クライアントとエラーの日本語化
-    queries.ts           ← DB アクセスはすべてここ。画面は snake_case を知らない
+    queries/             ← DB アクセスはすべてここ。画面は snake_case を知らない
+      master / students / schedule / staff / requests
     date.ts              ← 日付・年度・カレンダー
     format.ts            ← 金額・バッジの色
   types/domain.ts        ← 画面が受け取る形（DB の行の型ではない）
-  components/ui/         ← 共通UI（1ファイル1コンポーネント）
+  components/ui/         ← 共通UI（1ファイル1コンポーネント）。アイコンは Icon.tsx
   components/layout/     ← 管理者サイドバー / モバイルボトムタブ
   components/calendar/   ← 月カレンダー
   features/<機能>/       ← 画面と、その画面だけで使う部品
@@ -124,6 +125,10 @@ src/
 **RLS が絞る条件をクエリ側で書かない。** 「自分の子だけ」「担当コマだけ」は DB が保証している。二重に書くと片方だけ直したときに食い違う。
 
 **日付は文字列のまま扱う。** `'2026-08-09'` を `new Date()` に渡すと UTC として解釈され、日本時間では前日にずれる。`lib/date.ts` の関数は必ず文字列を分解して扱う。
+
+**アイコンは `components/ui/Icon.tsx` の線画のみ。絵文字を使わない。** OS ごとに形も色も変わって shift_manage_app と揃わず、DESIGN.md の配色の外に出てしまうため。アイコンは常に装飾（`aria-hidden`）で、意味は必ず隣のテキストが持つ。
+
+**画面のシェルは外枠を画面高さに固定し（`h-dvh` + `overflow-hidden`）、サイドバーと本文がそれぞれスクロールする。** 外枠にスクロールを許すとページ全体が1本のスクロールになり、サイドバーを送ったつもりで本文まで動く。
 
 **型定義**: `npm run gen:types` で `src/types/database.ts` を生成し、`createClient<Database>` に渡している。**手書きしない。スキーマを変えたら必ず流し直す。**
 生成物だが **git に含める。** 含めないとクローンしただけで型チェックが通らず、生成には Supabase の認証情報が要るため。

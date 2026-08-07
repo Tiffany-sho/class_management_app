@@ -66,7 +66,7 @@ export function SetPasswordPage({ onDone }: { onDone: () => void }) {
         </Button>
 
         <div className="mt-md">
-          <Note icon="🔑">
+          <Note icon="lock">
             次回からは、このメールアドレスとパスワードでログインします。
           </Note>
         </div>

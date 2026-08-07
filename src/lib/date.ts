@@ -92,12 +92,21 @@ export function formatTimeRange(start: string, end: string): string {
   return `${formatTime(start)}〜${formatTime(end)}`;
 }
 
+/**
+ * 今日の 'YYYY-MM-DD'。
+ * toISOString().slice(0,10) は UTC に直してしまい、日本時間の朝9時より前だと前日になる。
+ * ローカルの年月日をそのまま組み立てること。
+ */
+export function todayIso(today = new Date()): string {
+  return toISODate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+}
+
 export function isPast(iso: string, today = new Date()): boolean {
-  return iso < toISODate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  return iso < todayIso(today);
 }
 
 export function isToday(iso: string, today = new Date()): boolean {
-  return iso === toISODate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  return iso === todayIso(today);
 }
 
 /** 締め切りの残り。締め切り間近を目立たせるために使う */
@@ -108,6 +117,24 @@ export function untilLabel(at: string, now = new Date()): string {
   if (hours < 1) return `あと${Math.max(1, Math.floor(diff / 60_000))}分`;
   if (hours < 24) return `あと${hours}時間`;
   return `あと${Math.floor(hours / 24)}日`;
+}
+
+/**
+ * 届いてからの経過。受信ボックスで「いつ来たか」を出すのに使う。
+ * 1週間を超えたら相対表記をやめて日付にする（「28日前」は読み取りにくい）。
+ */
+export function sinceLabel(at: string, now = new Date()): string {
+  const diff = now.getTime() - new Date(at).getTime();
+  if (diff < 0) return 'たった今';
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'たった今';
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  if (days <= 7) return `${days}日前`;
+  const d = new Date(at);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 /**

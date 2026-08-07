@@ -1,3 +1,4 @@
+export { Icon, type IconName } from './Icon';
 export { Button } from './Button';
 export { Badge, type Tone } from './Badge';
 export { Chip } from './Chip';

@@ -1,12 +1,18 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ADMIN_NAV } from './navItems';
+import { Icon } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 
 /**
  * 管理者のシェル。
  * 900px 未満でサイドバーがドロワーになる（shift_manage_app と同じ挙動）。
  * 画面ごとのヘッダーボタンは各ページが PageHeader で差し込む。
+ *
+ * スクロールについて: 外枠を画面の高さに固定し（h-dvh + overflow-hidden）、
+ * サイドバーの nav と本文がそれぞれ自分で縦スクロールする。
+ * 外枠にスクロールを許すとページ全体が1本のスクロールになり、
+ * サイドバーを送ったつもりで本文まで動いてしまう。
  */
 export function AdminLayout() {
   const [open, setOpen] = useState(false);
@@ -17,7 +23,7 @@ export function AdminLayout() {
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
   return (
-    <div className="flex min-h-full bg-surface-soft">
+    <div className="flex h-dvh overflow-hidden bg-surface-soft">
       {open ? (
         <div
           className="fixed inset-0 z-40 bg-[rgba(24,29,38,.34)] app:hidden"
@@ -59,7 +65,7 @@ export function AdminLayout() {
                        : 'text-body hover:bg-surface-soft hover:text-ink'}`
                   }
                 >
-                  <span aria-hidden className="w-[18px] text-center">{item.icon}</span>
+                  <Icon name={item.icon} size={17} />
                   <span className="flex-1">{item.label}</span>
                 </NavLink>
               ))}
@@ -85,18 +91,18 @@ export function AdminLayout() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="sticky top-0 z-30 flex items-center gap-sm border-b border-hairline bg-canvas
+          className="flex shrink-0 items-center gap-sm border-b border-hairline bg-canvas
             px-md py-sm text-[14px] text-ink app:hidden"
           aria-label="メニューを開く"
         >
-          <span aria-hidden>☰</span> メニュー
+          <Icon name="menu" /> メニュー
         </button>
 
-        <main className="min-w-0 flex-1 px-md py-lg app:px-xl">
+        <main className="min-w-0 flex-1 overflow-y-auto px-md py-lg app:px-xl">
           <Outlet />
         </main>
       </div>

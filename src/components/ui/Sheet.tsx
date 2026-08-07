@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { Icon } from './Icon';
 
 interface Props {
   open: boolean;
@@ -55,7 +56,7 @@ export function Sheet({ open, title, subtitle, onClose, footer, children }: Prop
             className="grid h-8 w-8 shrink-0 place-items-center rounded-pill border border-hairline
               bg-canvas text-ink hover:border-border-strong"
           >
-            ✕
+            <Icon name="close" size={16} />
           </button>
         </div>
 

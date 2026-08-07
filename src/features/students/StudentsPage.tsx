@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/AdminLayout';
 import {
-  Badge, Chip, DataTable, Loading, ErrorNote, Note, TextInput, type Column,
+  Badge, Chip, DataTable, Icon, Loading, ErrorNote, Note, TextInput, type Column,
 } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
 import { fetchBusinesses, fetchStudents, fetchFees, type StudentFee } from '@/lib/queries';
@@ -112,7 +112,7 @@ export function StudentsPage() {
         </div>
       );
     } },
-    { key: 'go', header: '', render: () => <span aria-hidden className="text-border-strong">›</span> },
+    { key: 'go', header: '', render: () => <Icon name="chevron-right" size={16} className="text-border-strong" /> },
   ];
 
   if (state.loading && !state.data) return <Loading />;
@@ -134,12 +134,19 @@ export function StudentsPage() {
       />
 
       <div className="mb-md flex flex-wrap items-center gap-sm">
-        <TextInput
-          className="max-w-[220px]"
-          placeholder="🔍 生徒・保護者を検索"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="relative max-w-[240px] flex-1">
+          <Icon
+            name="search"
+            size={16}
+            className="pointer-events-none absolute left-[10px] top-1/2 -translate-y-1/2 text-muted"
+          />
+          <TextInput
+            className="pl-[32px]"
+            placeholder="生徒・保護者を検索"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
         <div className="flex gap-xs">
           <Chip active={biz === 'all'} onClick={() => setBiz('all')}>すべて</Chip>
           {d.businesses.map((b) => (

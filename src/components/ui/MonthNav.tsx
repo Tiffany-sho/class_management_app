@@ -1,4 +1,5 @@
 import { formatMonthJa } from '@/lib/date';
+import { Icon } from './Icon';
 
 interface Props {
   value: string;
@@ -29,7 +30,7 @@ export function MonthNav({ value, onChange, min, max, className = '' }: Props) {
         className="grid h-8 w-8 place-items-center rounded-pill border border-hairline bg-canvas
           text-ink hover:border-border-strong disabled:opacity-40 disabled:hover:border-hairline"
       >
-        ‹
+        <Icon name="chevron-left" size={16} />
       </button>
       <div className="min-w-[120px] text-center text-[15px] font-medium text-ink tnum">
         {formatMonthJa(value)}
@@ -42,7 +43,7 @@ export function MonthNav({ value, onChange, min, max, className = '' }: Props) {
         className="grid h-8 w-8 place-items-center rounded-pill border border-hairline bg-canvas
           text-ink hover:border-border-strong disabled:opacity-40 disabled:hover:border-hairline"
       >
-        ›
+        <Icon name="chevron-right" size={16} />
       </button>
     </div>
   );

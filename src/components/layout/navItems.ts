@@ -1,9 +1,10 @@
+import type { IconName } from '@/components/ui';
 import type { UserRole } from '@/types/domain';
 
 export interface NavItem {
   to: string;
   label: string;
-  icon: string;
+  icon: IconName;
 }
 
 export interface NavGroup {
@@ -15,45 +16,47 @@ export interface NavGroup {
  * 管理者のサイドバー。
  * 「申請・承認」は承認して初めて効くものを集めたグループ。
  * 扱う対象は違うが、管理者の動作（見て、承認する）が同じなので同じ場所に置く。
+ *
+ * アイコンは同じものを2か所で使わない。並んだときに区別が付かなくなるため。
  */
 export const ADMIN_NAV: NavGroup[] = [
-  { group: 'ホーム', items: [{ to: '/', label: 'ホーム', icon: '🏠' }] },
+  { group: 'ホーム', items: [{ to: '/', label: 'ホーム', icon: 'home' }] },
   {
     group: '教室運用',
     items: [
-      { to: '/schedule', label: 'スケジュール確定', icon: '🗓' },
-      { to: '/students', label: '生徒', icon: '👦' },
-      { to: '/staff', label: '講師', icon: '🧑‍🏫' },
+      { to: '/schedule', label: 'スケジュール確定', icon: 'calendar' },
+      { to: '/students', label: '生徒', icon: 'user' },
+      { to: '/staff', label: '講師', icon: 'presentation' },
     ],
   },
   {
     group: '申請・承認',
     items: [
-      { to: '/overtime', label: '時間外勤務 申請', icon: '🏠' },
-      { to: '/promotion', label: '進級処理', icon: '🎓' },
+      { to: '/overtime', label: '時間外勤務 申請', icon: 'file-check' },
+      { to: '/promotion', label: '進級処理', icon: 'graduation' },
     ],
   },
   {
     group: '経営',
     items: [
-      { to: '/revenue', label: '収入・収益', icon: '📈' },
-      { to: '/payroll', label: '給与計算・締め処理', icon: '🧮' },
+      { to: '/revenue', label: '収入・収益', icon: 'trending-up' },
+      { to: '/payroll', label: '給与計算・締め処理', icon: 'calculator' },
     ],
   },
   {
     group: '連絡',
     items: [
-      { to: '/inbox', label: '受信ボックス', icon: '🔔' },
-      { to: '/announcements', label: 'お知らせ', icon: '📢' },
+      { to: '/inbox', label: '受信ボックス', icon: 'inbox' },
+      { to: '/announcements', label: 'お知らせ', icon: 'megaphone' },
     ],
   },
   {
     group: 'マスタ',
     items: [
-      { to: '/master/courses', label: 'コース・料金', icon: '📋' },
-      { to: '/master/slots', label: '開催枠', icon: '⏰' },
-      { to: '/master/deadlines', label: '締め切り設定', icon: '⏳' },
-      { to: '/master/users', label: 'ユーザー・招待', icon: '👥' },
+      { to: '/master/courses', label: 'コース・料金', icon: 'list' },
+      { to: '/master/slots', label: '開催枠', icon: 'clock' },
+      { to: '/master/deadlines', label: '締め切り設定', icon: 'hourglass' },
+      { to: '/master/users', label: 'ユーザー・招待', icon: 'users' },
     ],
   },
 ];
@@ -63,18 +66,18 @@ export const ADMIN_NAV: NavGroup[] = [
  * タブは5本が上限（超えると "More" に押し込まれて使いにくくなる）。
  */
 export const PARENT_TABS: NavItem[] = [
-  { to: '/', label: 'ホーム', icon: '🏠' },
-  { to: '/submit', label: '希望提出', icon: '📅' },
-  { to: '/plan', label: '予定', icon: '✓' },
-  { to: '/news', label: 'お知らせ', icon: '🔔' },
+  { to: '/', label: 'ホーム', icon: 'home' },
+  { to: '/submit', label: '希望提出', icon: 'calendar' },
+  { to: '/plan', label: '予定', icon: 'check-circle' },
+  { to: '/news', label: 'お知らせ', icon: 'bell' },
 ];
 
 export const EMPLOYEE_TABS: NavItem[] = [
-  { to: '/', label: '担当', icon: '👥' },
-  { to: '/submit', label: '希望提出', icon: '📅' },
-  { to: '/plan', label: '予定', icon: '✓' },
-  { to: '/pay', label: '給与', icon: '💴' },
-  { to: '/news', label: 'お知らせ', icon: '🔔' },
+  { to: '/', label: '担当', icon: 'users' },
+  { to: '/submit', label: '希望提出', icon: 'calendar' },
+  { to: '/plan', label: '予定', icon: 'check-circle' },
+  { to: '/pay', label: '給与', icon: 'wallet' },
+  { to: '/news', label: 'お知らせ', icon: 'bell' },
 ];
 
 export function tabsFor(role: UserRole): NavItem[] {

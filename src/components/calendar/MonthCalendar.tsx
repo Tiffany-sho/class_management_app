@@ -1,4 +1,5 @@
 import { calendarCells, splitDate, isToday, WEEKDAY_JA } from '@/lib/date';
+import { Icon } from '@/components/ui';
 import type { Business, ScheduleSlot } from '@/types/domain';
 
 export interface DayState {
@@ -78,9 +79,11 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
                   </span>
                   {showStatus && has ? (
                     <span
-                      className={`ml-auto text-[9px] ${state!.allConfirmed ? 'text-forest' : 'text-coral'}`}
+                      className={`ml-auto flex items-center gap-[2px] text-[9px]
+                        ${state!.allConfirmed ? 'text-forest' : 'text-coral'}`}
                     >
-                      {state!.allConfirmed ? '✓ 確定' : '未確定'}
+                      {state!.allConfirmed ? <Icon name="check" size={10} /> : null}
+                      {state!.allConfirmed ? '確定' : '未確定'}
                     </span>
                   ) : null}
                 </div>
