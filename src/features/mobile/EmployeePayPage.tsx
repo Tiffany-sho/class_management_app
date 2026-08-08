@@ -7,7 +7,7 @@ import {
   fetchBusinesses, fetchMonthlyPay, fetchOvertimeRequests, fetchStaff,
 } from '@/lib/queries';
 import { currentMonthKey } from '@/lib/date';
-import { yen } from '@/lib/format';
+import { multiBusiness, yen } from '@/lib/format';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { MonthHeader } from './MonthHeader';
 import { OvertimeRequestSheet } from './OvertimeRequestSheet';
@@ -45,6 +45,8 @@ export function EmployeePayPage() {
 
   const me = d.staff.find((s) => s.id === user?.id);
   const bizMap = new Map(d.businesses.map((b) => [b.id, b.name]));
+  /* 掛け持ちの人にだけ教室を出す。1教室しか担当しない人には自明 */
+  const showBusiness = multiBusiness((me?.wages ?? []).map((w) => w.businessId));
 
   return (
     <div>
@@ -104,7 +106,9 @@ export function EmployeePayPage() {
               <div key={`${w.businessId}${w.jobLabel}`} className="flex items-center justify-between px-md py-sm">
                 <dt className="text-[13px] text-muted">
                   {w.jobLabel}
-                  <span className="ml-xs text-[11px]">（{bizMap.get(w.businessId) ?? '—'}）</span>
+                  {showBusiness ? (
+                    <span className="ml-xs text-[11px]">（{bizMap.get(w.businessId) ?? '—'}）</span>
+                  ) : null}
                 </dt>
                 <dd className="text-[14px] text-ink tnum">{yen(w.hourlyRate)} / 時</dd>
               </div>
@@ -162,8 +166,8 @@ export function EmployeePayPage() {
           <>
             <strong className="text-ink">確定するまでは見込み額</strong>です。
             確定したコマから計算しているので、担当が増えれば金額も変わります。
-            交通費は<strong className="text-ink">出勤した日数ぶん</strong>で、
-            同じ日に2教室を担当しても1日ぶんです。
+            交通費は<strong className="text-ink">出勤した日数ぶん</strong>です
+            {showBusiness ? '（同じ日に2教室を担当しても1日ぶんです）' : ''}。
           </>
         )}
       </Note>

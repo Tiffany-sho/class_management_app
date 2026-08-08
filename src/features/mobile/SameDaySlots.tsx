@@ -13,6 +13,7 @@ interface Props {
  *
  * **担当していない教室のコマは出さない。** 日曜は2教室が並行開催されるので、
  * 絞らないと自分が入らないコマまで並び、どれが自分のぶんか読めなくなる。
+ * 絞った結果ここに出るのは全部自分のコマなので、教室名は書かない。
  *
  * 一緒に入る講師の名前は押せる。当日の段取りで「誰と組むか」を確かめたくなる。
  */
@@ -33,9 +34,7 @@ export function SameDaySlots({ slots, meId, onOpenStaff }: Props) {
                 ${business?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
             />
             <div className="min-w-0 flex-1">
-              <div className="text-[14px] text-ink">
-                {business?.name ?? '—'} 第{slot.slotNo}コマ
-              </div>
+              <div className="text-[14px] text-ink">第{slot.slotNo}コマ</div>
               <div className="mt-[2px] flex flex-wrap items-center gap-x-xs text-[12px] text-muted">
                 <span className="tnum">{formatTimeRange(slot.startTime, slot.endTime)}</span>
                 <span>・ 生徒{slot.students.length}名</span>

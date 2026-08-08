@@ -8,7 +8,6 @@ export interface NoteTarget {
   studentName: string;
   sessionDate: string;
   slotNo: number;
-  businessName: string;
   current: string;
 }
 
@@ -37,7 +36,7 @@ export function LessonNoteSheet({ target, busy, onCancel, onSave }: Props) {
       open={target !== null}
       title={target ? `${target.studentName} の授業記録` : '授業記録'}
       subtitle={target
-        ? `${formatDayJa(target.sessionDate)} ${target.businessName} 第${target.slotNo}コマ`
+        ? `${formatDayJa(target.sessionDate)} 第${target.slotNo}コマ`
         : undefined}
       onClose={onCancel}
       footer={

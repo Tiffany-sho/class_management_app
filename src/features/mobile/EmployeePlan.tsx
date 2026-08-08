@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Card, Empty, Loading, ErrorNote, Note, SectionLabel } from '@/components/ui';
+import { Loading, ErrorNote, Note } from '@/components/ui';
 import { MonthCalendar, CalendarLegend, type DayState } from '@/components/calendar/MonthCalendar';
 import { DayDetailSheet } from '@/components/calendar/DayDetailSheet';
 import { useAsync } from '@/hooks/useAsync';
@@ -7,8 +7,10 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { StudentDetailSheet } from '@/features/students/StudentDetailSheet';
 import { StaffDetailSheet } from '@/features/staff/StaffDetailSheet';
 import { fetchBusinesses, fetchScheduleMonth } from '@/lib/queries';
-import { currentMonthKey, formatDayJa, formatMonthJa, formatTimeRange, isPast } from '@/lib/date';
+import { currentMonthKey } from '@/lib/date';
+import { multiBusiness } from '@/lib/format';
 import { MonthHeader } from './MonthHeader';
+import { EmployeeShiftList } from './EmployeeShiftList';
 
 /**
  * 講師の予定。
@@ -21,10 +23,15 @@ import { MonthHeader } from './MonthHeader';
  * 「管理者 または 確定済み」なので、**確定したコマは担当していない教室のぶんも
  * 全員に見える**（コマの行そのものには個人情報が無いため、その設計自体は正しい）。
  * 絞らずに出すと、他の講師のコマが自分の予定として並ぶ。
+ *
+ * 絞った結果ここに出るのは全部自分のコマなので、**教室名は書かない**
+ * （掛け持ちの人だけ例外 → `multiBusiness`）。カレンダーのマスも一覧の行も、
+ * 空いた場所は「誰と組むか・何人来るか」に使う。
  */
 export function EmployeePlan() {
   const [month, setMonth] = useState(currentMonthKey());
-  const [day, setDay] = useState<string | null>(null);
+  /** 日付を押したらその日ぜんぶ、コマを押したらその1コマだけ */
+  const [detail, setDetail] = useState<{ date: string; ids: string[] | null } | null>(null);
   const [student, setStudent] = useState<string | null>(null);
   const [staff, setStaff] = useState<string | null>(null);
   const { user } = useAuth();
@@ -52,9 +59,11 @@ export function EmployeePlan() {
   const d = state.data;
   if (!d) return null;
 
-  const bizMap = new Map(d.businesses.map((b) => [b.id, b]));
-  const sorted = [...d.slots].sort((a, b) =>
-    a.sessionDate.localeCompare(b.sessionDate) || a.slotNo - b.slotNo);
+  const showBusiness = multiBusiness(d.slots.map((s) => s.businessId));
+  const shown = detail
+    ? d.slots.filter((s) => s.sessionDate === detail.date
+      && (detail.ids === null || detail.ids.includes(s.id)))
+    : [];
 
   return (
     <div>
@@ -64,66 +73,41 @@ export function EmployeePlan() {
         monthKey={month}
         byDate={byDate}
         businesses={d.businesses}
-        onSelect={setDay}
+        onSelect={(date) => setDetail({ date, ids: null })}
+        cell={{ kind: 'assignment', meId }}
       />
 
-      <div className="mt-sm">
-        <CalendarLegend businesses={d.businesses} showStatus={false} />
-      </div>
+      {/* 掛け持ちしていない人には色の凡例が要らない（1色しか出ない） */}
+      {showBusiness ? (
+        <div className="mt-sm">
+          <CalendarLegend businesses={d.businesses} showStatus={false} />
+        </div>
+      ) : null}
 
       <p className="mb-lg mt-sm text-[12px] leading-relaxed text-muted">
-        <strong className="text-ink">自分が担当するコマだけ</strong>が出ます。
-        担当していない教室のコマは出ません。日付を押すと、その日の生徒と出欠が見られます。
+        マスと一覧の名前は<strong className="text-ink">一緒に入る講師</strong>です。
+        押すと生徒と出欠が見られます。
       </p>
 
-      <SectionLabel>{formatMonthJa(month)}の確定した勤務</SectionLabel>
-      <Card className="mb-md">
-        {sorted.length === 0 ? (
-          <Empty
-            title="この月に担当しているコマはありません。"
-            hint="教室がスケジュールを確定すると、ここに出ます。"
-          />
-        ) : (
-          <ul>
-            {sorted.map((s) => {
-              const b = bizMap.get(s.businessId);
-              const others = s.employees.filter((e) => e.name);
-              return (
-                <li key={s.id} className="border-b border-hairline px-md py-sm last:border-0">
-                  <div className="flex flex-wrap items-center gap-xs">
-                    <span
-                      aria-hidden
-                      className={`h-[9px] w-[9px] rounded-pill ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
-                    />
-                    <span className="text-[14px] text-ink">{formatDayJa(s.sessionDate)}</span>
-                    <span className="text-[12px] text-muted tnum">
-                      第{s.slotNo}コマ {formatTimeRange(s.startTime, s.endTime)}
-                    </span>
-                    {isPast(s.sessionDate) ? null : (
-                      <span className="ml-auto text-[11px] text-muted">これから</span>
-                    )}
-                  </div>
-                  <div className="mt-[3px] text-[12px] text-muted">
-                    {b?.name ?? '—'} ・ 生徒{s.students.length}名
-                    {others.length > 1 ? ` ・ ${others.map((e) => e.name).join('・')}で${others.length}名体制` : ''}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
+      <EmployeeShiftList
+        slots={d.slots}
+        businesses={d.businesses}
+        meId={meId}
+        showBusiness={showBusiness}
+        onOpen={(s) => setDetail({ date: s.sessionDate, ids: [s.id] })}
+      />
 
       <Note>
-        ここに出るのは<strong className="text-ink">確定した予定だけ</strong>です。調整中のものは表示されません。
-        <strong className="text-ink">確定した担当コマがそのまま勤務実績</strong>になり、給与の計算に使われます。
+        出るのは<strong className="text-ink">確定したコマだけ</strong>です。
+        これがそのまま勤務実績になり、給与の計算に使われます。
       </Note>
 
       <DayDetailSheet
-        date={day}
-        slots={d.slots.filter((s) => s.sessionDate === day)}
+        date={detail?.date ?? null}
+        slots={shown}
         businesses={d.businesses}
-        onClose={() => setDay(null)}
+        showBusinessName={showBusiness}
+        onClose={() => setDetail(null)}
         onOpenStudent={setStudent}
         onOpenStaff={setStaff}
       />

@@ -75,10 +75,8 @@ export function ParentPlan() {
               <LessonItem
                 key={r.key}
                 sessionDate={r.slot.sessionDate}
-                slotNo={r.slot.slotNo}
                 startTime={r.slot.startTime}
                 endTime={r.slot.endTime}
-                businessName={r.biz?.name ?? '—'}
                 colorKey={r.biz?.colorKey ?? 'forest'}
                 past={r.past}
                 attendanceStatus={r.student.attendanceStatus}

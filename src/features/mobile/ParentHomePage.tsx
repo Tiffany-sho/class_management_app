@@ -7,13 +7,16 @@ import {
 import { currentMonthKey, isPast, shiftMonth, sinceLabel, todayIso } from '@/lib/date';
 import { KidSwitch } from './KidSwitch';
 import { NextLessonCard } from './NextLessonCard';
+import { FeeCard } from './FeeCard';
 import { KidMonthPanel, type KidSession } from './KidMonthPanel';
 
 /**
  * 保護者のホーム。
  *
- * 構成はモックに合わせている: **お子さま切替 → 次回の受講 → 受講状況 → お知らせ**。
- * 兄弟で教室もコースも違うので、1人ずつに絞って見せる。
+ * **お子さま切替 → 次回の受講 → 月謝 → 受講状況 → お知らせ**。
+ * モックには月謝のカードが無く、受講状況の見出しに小さなバッジで添えていたが、
+ * 保護者がこのアプリで確かめたいものの筆頭なので、独立したカードに出す。
+ * 兄弟でコースも回数も違うので、1人ずつに絞って見せる。
  *
  * 「次回」は表示中の月に引きずられてはいけない（8月を見ていても次回は9月）。
  * そのため今月と来月の予定を別に読んで、そこから最初の1件を選んでいる。
@@ -73,10 +76,8 @@ export function ParentHomePage() {
       .sort((a, b) => a.sessionDate.localeCompare(b.sessionDate) || a.slotNo - b.slotNo)
       .map((slot) => ({
         sessionDate: slot.sessionDate,
-        slotNo: slot.slotNo,
         startTime: slot.startTime,
         endTime: slot.endTime,
-        businessName: bizMap.get(slot.businessId)?.name ?? '—',
         colorKey: bizMap.get(slot.businessId)?.colorKey ?? ('forest' as const),
         detail: slot.employees.length ? `担当 ${slot.employees.map((e) => e.name).join('・')}` : undefined,
       }))[0] ?? null;
@@ -113,13 +114,15 @@ export function ParentHomePage() {
       {monthly.error && !monthly.data ? (
         <ErrorNote message={monthly.error} onRetry={monthly.reload} />
       ) : (
-        <KidMonthPanel
-          studentName={kid.name}
-          month={month}
-          onMonth={setMonth}
-          sessions={sessions}
-          fee={monthly.data?.fees.get(kid.id) ?? null}
-        />
+        <>
+          <FeeCard month={month} fee={monthly.data?.fees.get(kid.id) ?? null} />
+          <KidMonthPanel
+            studentName={kid.name}
+            month={month}
+            onMonth={setMonth}
+            sessions={sessions}
+          />
+        </>
       )}
 
       <SectionLabel>お知らせ</SectionLabel>

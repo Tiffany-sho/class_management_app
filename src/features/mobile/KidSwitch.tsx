@@ -11,10 +11,14 @@ interface Props {
 /**
  * お子さま切替。
  *
- * 兄弟で通う教室もコースも違うので、**1人ずつに絞って見せる**。
+ * 兄弟でコースも回数も違うので、**1人ずつに絞って見せる**。
  * 全員ぶんを1つの一覧に混ぜると、どの回が誰のものか読み取れない。
  * 1人だけのときも出す（切替が「増えたり消えたり」すると、
  * 兄弟が増えた保護者が操作を見つけられない）。
+ *
+ * 教室名は出さない（きょうだいは必ず同じ教室で、保護者はそれを知っている）。
+ * 色の点だけ残す ―― アプリ全体で教室を色で表しているので、ここだけ外すと
+ * 色の意味が途切れる。
  */
 export function KidSwitch({ students, businesses, selectedId, onSelect }: Props) {
   const bizMap = new Map(businesses.map((b) => [b.id, b]));
@@ -47,7 +51,7 @@ export function KidSwitch({ students, businesses, selectedId, onSelect }: Props)
                 <span className="whitespace-nowrap">{s.name}</span>
               </span>
               <span className="mt-[2px] block whitespace-nowrap text-[11px] text-muted">
-                {s.gradeLabel} ・ {b?.name?.replace('教室', '') ?? '—'} 月{s.sessionsPerMonth}回
+                {s.gradeLabel} ・ 月{s.sessionsPerMonth}回
               </span>
             </button>
           );

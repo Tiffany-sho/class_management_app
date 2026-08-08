@@ -965,6 +965,11 @@
         <div class="kidswitch" id="kidSwitch"></div>
         <div id="nextCard"></div>
 
+        <!-- 月謝は保護者がこのアプリで一番確かめたいものなので、独立したカードで
+             金額をそのまま大きく出す（受講状況の見出しに小さく添えない）。
+             月は下の受講状況と連動するので、カードに月を必ず書く -->
+        <div id="feeCard"></div>
+
         <!-- 月を ‹ › と左右スワイプで前後できる。受講状況と授業記録は同じ回のものなので1つにまとめる -->
         <div class="panel" style="margin-bottom:16px;" id="attendPanel">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -976,9 +981,9 @@
             <button class="iconbtn" onclick="shiftKidMonth(1)" id="kidNext">›</button>
           </div>
           <div id="attendSummary"></div>
+          <!-- 月謝の話は上の月謝カードに置いた。ここに書くと同じことが2か所に出る -->
           <p class="muted" style="margin-top:10px;">
-            左右にスワイプしても月を切り替えられます。<br>
-            月謝は固定月額です。<strong>欠席しても請求額は変わりません。</strong>
+            左右にスワイプしても月を切り替えられます。
           </p>
         </div>
 
@@ -1125,17 +1130,18 @@
           </div>
           <div id="empCal"></div>
         </div>
+        <!-- 教室名と凡例は**2教室を掛け持ちする講師にだけ**出す。1教室しか担当しない人には
+             全部のマスに同じ教室名が並ぶだけで読むものが増えない。
+             ここでログイン中の中村は日曜のイラスト第2コマにも入るので出している。 -->
         <div class="mlegend" style="margin-top:10px;">
           <span><span class="dot prog"></span> プログラミング</span>
           <span><span class="dot illust"></span> イラスト</span>
         </div>
         <p class="muted" style="margin-top:10px;">
-          <strong>自分が担当するコマだけ</strong>が表示されます。担当していない教室のコマは出ません。
-          日付をクリックすると詳細が見られます。
+          マスと一覧の名前は<strong>一緒に入る講師</strong>です。押すと生徒と出欠が見られます。
         </p>
 
-        <div class="lbl" style="margin-top:22px;">9月の確定した勤務</div>
-        <div id="empSched"></div>
+        <div id="empSched" style="margin-top:22px;"></div>
       </section>
 
       <section class="screen" id="e-news">
@@ -2180,10 +2186,16 @@ function buildCal(targetId, mode, me, m){
           <span>${b.short}</span><span class="t">${ss.length}コマ</span></div>`;
       }).join('');
     } else {
-      // 従業員: 自分の担当コマごとに1チップ（担当者名 + 開始時刻）
-      inner += slots.map(s => `<div class="ev ${s.ok ? s.b.key : 'draft'}">
-        <span>${s.emps.join('・') || '担当未定'}</span>
-        <span class="t">${s.time.slice(0, 5)}</span></div>`).join('');
+      /* 従業員: 自分の担当コマごとに1チップ（一緒に入る講師 + 生徒数）。
+         どちらの教室かは本人が知っているので教室名は出さない。自分の名前も出さない
+         （全部のマスに同じ名前が並ぶだけで、読むものが増えない）。
+         1マスは画面幅の1/7しかないので姓だけにする。 */
+      inner += slots.map(s => {
+        const mates = s.emps.filter(e => e !== me);
+        return `<div class="ev ${s.ok ? s.b.key : 'draft'}">
+        <span>${mates.join('・')}</span>
+        <span class="t">${s.studs.length}名</span></div>`;
+      }).join('');
     }
     push(`<button class="${cls}" ${has || st === 'off'
       ? `onclick="openDay(${m},${d},'${mode}','${me || ''}')"` : 'disabled'}>${inner}</button>`);
@@ -2662,11 +2674,14 @@ const PARENT = '田中 さくら';
 const kids = students.filter(s => s.parent === PARENT);
 let kid = 0;
 
+/* 保護者の画面には教室名も「第〇コマ」も出さない。
+   きょうだいは必ず同じ教室で、保護者はどの教室に通わせているかを知っている。
+   コマ番号は教室の内部の並び順で、保護者に要るのは「何時からか」。 */
 function renderKids(){
   const html = kids.map((k,i) => `
     <button class="${i===kid?'on':''}" onclick="setKid(${i})">
       <div class="n"><span class="dot ${k.b.key}"></span>${k.n}</div>
-      <div class="g">${gradeName(k.grade)} ・ ${k.b.short} 月${k.sess}回</div>
+      <div class="g">${gradeName(k.grade)} ・ 月${k.sess}回</div>
     </button>`).join('');
   kidSwitch.innerHTML = html; kidSwitch2.innerHTML = html;
 
@@ -2674,8 +2689,8 @@ function renderKids(){
   nextCard.innerHTML = `
     <div class="next ${k.b.key}">
       <div class="k">次回の受講</div>
-      <div class="v">${k.b.key==='prog'?'9月6日（日）第1コマ':'9月5日（土）第1コマ'}</div>
-      <div class="s">13:00 〜 14:30 ・ ${k.b.name}</div>
+      <div class="v">${k.b.key==='prog'?'9月6日（日）':'9月5日（土）'}</div>
+      <div class="s">13:00 〜 14:30 ・ 担当 中村</div>
     </div>`;
 
   renderAttendSummary();
@@ -2685,8 +2700,8 @@ function renderKids(){
   renderPicks();
 
   parentSched.innerHTML = (k.b.key==='prog'
-    ? [['9月6日（日）','第1コマ 13:00〜14:30'],['9月20日（日）','第1コマ 13:00〜14:30']]
-    : [['9月5日（土）','第1コマ 13:00〜14:30'],['9月13日（日）','第2コマ 15:00〜16:30'],['9月26日（土）','第1コマ 13:00〜14:30']]
+    ? [['9月6日（日）','13:00〜14:30'],['9月20日（日）','13:00〜14:30']]
+    : [['9月5日（土）','13:00〜14:30'],['9月13日（日）','15:00〜16:30'],['9月26日（土）','13:00〜14:30']]
   ).map(([d,t]) => `
     <div class="card" style="padding:14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;">
       <span class="dot ${k.b.key}"></span>
@@ -2718,15 +2733,46 @@ function kidSessions(m){
   }
   return out;
 }
+/* 月謝カード。受講状況と同じ月を出す（月を切り替えたあとに戻ってきたとき、
+   どの月の金額を見ているのか分からなくなるため、カードに月を必ず書く）。
+   未払いのときだけ面を赤系にする ―― 色だけに頼らず「未払い」の文字も併記する。 */
+function renderFeeCard(){
+  const k = kids[kid], f = feeOf(students.indexOf(k), kidMonth);
+  const unpaid = !f.unbilled && !f.paid;
+  document.getElementById('feeCard').innerHTML = `
+    <div class="card" style="padding:18px;margin-bottom:16px;
+        ${unpaid ? 'border-color:var(--coral);background:#f7e8e8;' : ''}">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="muted" style="letter-spacing:.06em;">${MONTHS[kidMonth].label}の月謝</span>
+        <span style="flex:1"></span>
+        ${f.unbilled ? '<span class="badge draft">請求前</span>'
+          : f.paid ? '<span class="badge paid">支払済</span>'
+                   : '<span class="badge unpaid">未払い</span>'}
+      </div>
+      ${f.unbilled
+        ? '<div style="font-size:15px;color:var(--ink);margin-top:6px;">まだ請求されていません。</div>'
+        : `<div style="font-size:30px;font-weight:500;line-height:1.15;color:var(--ink);
+             margin-top:4px;font-variant-numeric:tabular-nums;">${yen(f.amount)}</div>
+           <div class="muted" style="margin-top:4px;">${f.date ? f.date + ' 入金' : 'お支払いをお待ちしています'}</div>
+           ${f.note ? `<div style="color:var(--body);font-size:12px;margin-top:10px;
+             border-left:2px solid var(--hairline);padding-left:10px;">${f.note}</div>` : ''}
+           <p class="muted" style="margin-top:10px;">
+             <strong>固定月額</strong>です。お休みされても金額は変わりません。</p>`}
+    </div>`;
+}
+
 function renderAttendSummary(){
   const k = kids[kid], list = kidSessions(kidMonth);
   document.getElementById('kidMonthLabel').textContent = MONTHS[kidMonth].label.replace(/\s/g, '');
   document.getElementById('kidPrev').disabled = !MONTHS[kidMonth - 1];
   document.getElementById('kidNext').disabled = !MONTHS[kidMonth + 1];
+  renderFeeCard();
 
+  /* 「済んだ n件 / これから n件」の集計は出さない。下に1件ずつ並んでいるものを
+     数え直しただけで、数えて分かることが増えない */
   document.getElementById('attendSummary').innerHTML = list.length ? list.map(x => {
     const st = x.status || (x.done ? '記録待ち' : '予定');
-    const label = `${dayLabel(x.m, x.d)} 第${x.sl.no}コマ`;
+    const label = dayLabel(x.m, x.d);
     return `<div class="listitem" style="align-items:flex-start;">
       <span class="dot ${k.b.key}" style="margin-top:7px"></span>
       <div style="flex:1">
@@ -2874,7 +2920,8 @@ function renderPicks(){
     return `<button class="pick ${on?'on':''} ${k.b.key==='illust'?'illust':''} ${off?'off':''}"
               onclick="togglePick(${i})" ${off?'disabled':''}>
       <span class="box">${on?'✓':''}</span>
-      <span style="flex:1"><span class="d">${d} 第${no}コマ</span>
+      <!-- 保護者にコマ番号は出さない。選ぶときに見ているのは時刻（下の行） -->
+      <span style="flex:1"><span class="d">${d}</span>
       <div class="tm">${sameDay ? 'この日は選択済み（1日1コマまで）' : t}</div></span>
     </button>`;
   }).join('') + (full ? `<p class="muted" style="margin-top:8px;">
@@ -2998,16 +3045,39 @@ function eToggle(i,el){
 /* 従業員の予定カレンダー: 中村としてログイン中。自分の担当コマかつ確定分のみ */
 buildCal('empCal', 'employee', '中村', empMonth);
 
-empSched.innerHTML = [
-  ['9月6日（日）', PROG, '第1コマ 13:00〜14:30', '生徒3名'],
-  ['9月6日（日）', PROG, '第2コマ 15:00〜16:30', '生徒2名'],
-  ['9月6日（日）', ILLU, '第2コマ 15:00〜16:30', '生徒2名 ・ 小林と2名体制'],
-].map(([d,b,t,s]) => `
-  <div class="card" style="padding:14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;">
-    <span class="dot ${b.key}"></span>
-    <div style="flex:1"><div style="color:var(--ink);font-size:14px;">${d} ${t}</div>
-    <div class="muted" style="margin-top:2px;">${b.name} ・ ${s}</div></div>
-  </div>`).join('');
+/* 勤務一覧。1行に出すのは「いつ・何時から・何人来るか・誰と組むか」だけ。
+   教室名もコマ番号も出さない（教室は本人が知っている。コマ番号は時刻より情報が少ない）。
+   終わった回とこれからの回を分ける ―― 混ぜて日付順に並べると、開いた瞬間に目に入るのが
+   もう終わった回になり、いちばん確かめたい「次はいつか」を毎回探すことになる。 */
+const EMP_SHIFTS = [
+  ['8月2日（日）', PROG, '13:00〜14:30', 3, '',     true],
+  ['8月2日（日）', PROG, '15:00〜16:30', 2, '',     true],
+  ['8月2日（日）', ILLU, '15:00〜16:30', 2, '小林', true],
+  ['9月6日（日）', PROG, '13:00〜14:30', 3, '',     false],
+  ['9月6日（日）', PROG, '15:00〜16:30', 2, '',     false],
+  ['9月6日（日）', ILLU, '15:00〜16:30', 2, '小林', false],
+];
+const shiftRow = ([d,b,t,n,mate,done]) => `
+  <button class="card" style="width:100%;padding:12px 14px;margin-bottom:7px;display:flex;
+      gap:9px;align-items:center;text-align:left;cursor:pointer;"
+      onclick="toast('${d} ${t} の詳細を開きます')">
+    <span class="dot ${b.key}" style="${done ? 'opacity:.45' : ''}"></span>
+    <span style="font-size:14px;color:var(--${done ? 'muted' : 'ink'});white-space:nowrap;">${d}</span>
+    <span class="muted" style="white-space:nowrap;">${t}</span>
+    <span style="flex:1"></span>
+    <!-- 教室名は掛け持ちの人にだけ。中村は日曜にイラストにも入るので出している -->
+    <span class="muted" style="white-space:nowrap;">${b.short}</span>
+    <span class="muted" style="white-space:nowrap;">生徒${n}名</span>
+    <span class="muted" style="white-space:nowrap;">${mate}</span>
+    <span class="muted">›</span>
+  </button>`;
+const upcoming = EMP_SHIFTS.filter(x => !x[5]);
+const finished = EMP_SHIFTS.filter(x => x[5]);
+empSched.innerHTML =
+  (upcoming.length ? `<div class="lbl">これから ${upcoming.length}件</div>`
+    + upcoming.map(shiftRow).join('') : '')
+  + (finished.length ? `<div class="lbl" style="margin-top:18px;">終わった ${finished.length}件</div>`
+    + finished.map(shiftRow).join('') : '');
 
 /* ========== 画面遷移 ========== */
 const titles = {home:'ホーム', schedule:'スケジュール確定', students:'生徒',

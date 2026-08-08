@@ -1,5 +1,6 @@
 import { calendarCells, splitDate, isToday, WEEKDAY_JA } from '@/lib/date';
 import { Icon } from '@/components/ui';
+import { DayCellChips, type CellMode } from './DayCellChips';
 import type { Business, ScheduleSlot } from '@/types/domain';
 
 export interface DayState {
@@ -16,6 +17,8 @@ interface Props {
   onSelect: (date: string) => void;
   /** 管理者だけ確定/未確定のラベルを出す。保護者・講師には関係のない区別 */
   showStatus?: boolean;
+  /** マスの中身。既定は事業ごとのコマ数（管理者向け）。→ DayCellChips */
+  cell?: CellMode;
 }
 
 /**
@@ -23,10 +26,14 @@ interface Props {
  *
  * 確定 / 未確定 は背景色だけで区別しない。隣り合う淡い面の色差は
  * ΔE で 2 を切ると人間には見分けられないので、左端の色帯と文字ラベルを併用する。
+ *
+ * マスの中身は読む人によって変える（`cell`）。管理者は「どの教室が何コマか」だが、
+ * 講師にとってはどちらの教室かは自明で、要るのは「誰と組むか・何人来るか」。
  */
-export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStatus = false }: Props) {
+export function MonthCalendar({
+  monthKey, byDate, businesses, onSelect, showStatus = false, cell = { kind: 'business' },
+}: Props) {
   const cells = calendarCells(monthKey);
-  const bizName = new Map(businesses.map((b) => [b.id, b]));
 
   return (
     <div className="overflow-hidden rounded-md border border-hairline bg-canvas shadow-card">
@@ -88,33 +95,7 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
                   ) : null}
                 </div>
 
-                {/* 事業ごとのコマ数をチップで出す。未確定は破線
-                   **切り詰めない。** 1マスは画面幅の1/7しかないので、「プログラミング」を
-                   入れようとすると必ず「プログラミ…」になる。何の略か分からない省略記号は
-                   出さず、**狭いときは色と数だけ**にして、名前は真下の凡例に任せる。
-                   広い画面（app 以上）は入るので名前も出す。 */}
-                {groupByBusiness(state?.slots ?? []).map(([businessId, list]) => {
-                  const b = bizName.get(businessId);
-                  const confirmed = list.every((s) => s.status === 'confirmed');
-                  const isProg = b?.colorKey === 'forest';
-                  return (
-                    <span
-                      key={businessId}
-                      title={`${b?.name ?? ''} ${list.length}コマ`}
-                      className={`flex items-center gap-[3px] whitespace-nowrap rounded-sm
-                        px-[5px] py-[2px] text-[10px] leading-tight
-                        ${confirmed
-                          ? isProg ? 'bg-forest text-on-dark' : 'bg-coral text-on-dark'
-                          : `border border-dashed ${isProg ? 'border-forest text-forest' : 'border-coral text-coral'}`}`}
-                    >
-                      <span className="hidden app:inline">
-                        {b?.name?.replace('教室', '') ?? '—'}
-                      </span>
-                      <span className="tnum">{list.length}</span>
-                      <span className="hidden sm:inline">コマ</span>
-                    </span>
-                  );
-                })}
+                <DayCellChips slots={state?.slots ?? []} businesses={businesses} mode={cell} />
               </button>
             );
           })}
@@ -122,16 +103,6 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
       ))}
     </div>
   );
-}
-
-function groupByBusiness(slots: ScheduleSlot[]): [string, ScheduleSlot[]][] {
-  const m = new Map<string, ScheduleSlot[]>();
-  for (const s of slots) {
-    const list = m.get(s.businessId) ?? [];
-    list.push(s);
-    m.set(s.businessId, list);
-  }
-  return [...m.entries()];
 }
 
 /**

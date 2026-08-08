@@ -19,17 +19,21 @@ export function OvertimeRequestSheet({ open, businesses, onClose, onSent }: {
   onSent: () => void;
 }) {
   const { toast } = useToast();
-  const [businessId, setBusinessId] = useState(businesses[0]?.id ?? '');
+  const [picked, setPicked] = useState('');
   const [date, setDate] = useState(todayIso());
   const [hours, setHours] = useState('1.0');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
 
+  /* 選んでいなければ先頭。**初期値を state に入れない** ―― このシートは
+     データが届く前にも組み立てられるので、そのとき空で固定されてしまう */
+  const businessId = picked || businesses[0]?.id || '';
+
   const submit = async () => {
     const h = Number(hours);
     if (!description.trim()) { toast('作業内容を入れてください。'); return; }
     if (!Number.isFinite(h) || h <= 0) { toast('時間は0より大きい数で入れてください。'); return; }
-    if (!businessId) { toast('教室を選んでください。'); return; }
+    if (!businessId) { toast('担当できる教室が設定されていません。'); return; }
 
     setBusy(true);
     try {
@@ -60,12 +64,17 @@ export function OvertimeRequestSheet({ open, businesses, onClose, onSent }: {
         </div>
       }
     >
-      <Field label="教室">
-        <Select value={businessId} onChange={(e) => setBusinessId(e.target.value)}>
-          {businesses.length === 0 ? <option value="">担当教室が未設定です</option> : null}
-          {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </Select>
-      </Field>
+      {/* 担当が1教室しかない人には選ばせない（選択肢が1つの選択欄は、
+          読む手間だけ足して何も決めさせていない）。0件のときは理由を出す */}
+      {businesses.length === 0 ? (
+        <Note icon="warning">担当できる教室が設定されていません。管理者に設定を依頼してください。</Note>
+      ) : businesses.length > 1 ? (
+        <Field label="教室">
+          <Select value={businessId} onChange={(e) => setPicked(e.target.value)}>
+            {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </Select>
+        </Field>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-sm">
         <Field label="勤務日">

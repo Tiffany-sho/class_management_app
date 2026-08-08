@@ -1,8 +1,8 @@
 import { Badge, Card, Empty, Icon } from '@/components/ui';
 import { useSwipeMonth } from '@/hooks/useSwipeMonth';
 import { formatDayJa, formatMonthJa, formatTimeRange, shiftMonth } from '@/lib/date';
-import { ATTENDANCE_LABEL, FEE_LABEL, attendanceTone } from '@/lib/format';
-import type { AttendanceStatus, BusinessColorKey, FeeStatus } from '@/types/domain';
+import { ATTENDANCE_LABEL, attendanceTone } from '@/lib/format';
+import type { AttendanceStatus, BusinessColorKey } from '@/types/domain';
 
 export interface KidSession {
   key: string;
@@ -23,7 +23,6 @@ interface Props {
   month: string;
   onMonth: (m: string) => void;
   sessions: KidSession[];
-  fee: { amount: number; status: FeeStatus; paidDate: string | null } | null;
 }
 
 /**
@@ -32,12 +31,15 @@ interface Props {
  * **出欠と授業記録を同じ行に出す。** 別のセクションに分けると、
  * 「どの回の記録か」を保護者が突き合わせることになり、食い違っても気づけない。
  *
- * 出席率は出さない。月2〜3回しか通わないので、1回休むと 67% になり実態より悪く見える。
- * 回数と1件ずつの記録だけを出す。
+ * **回数の集計は出さない。** 出席率は月2〜3回しか通わないので1回休むと 67% になり
+ * 実態より悪く見えるし、「済んだ n件 / これから n件」も下に1件ずつ並んでいるものを
+ * 数え直しただけで、数えて分かることが増えない。
+ *
+ * **コマ番号（第〇コマ）も出さない。** 保護者にとっては「何時からか」が要る情報で、
+ * 教室の内部の並び番号は意味を持たない。
  */
-export function KidMonthPanel({ studentName, month, onMonth, sessions, fee }: Props) {
+export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) {
   const ref = useSwipeMonth<HTMLDivElement>((d) => onMonth(shiftMonth(month, d)));
-  const done = sessions.filter((s) => s.past).length;
 
   return (
     <Card className="mb-md">
@@ -66,26 +68,6 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions, fee }: Pr
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-xs border-b border-hairline px-md py-xs
-          text-[12px] text-muted">
-          <span>済んだ授業 <strong className="text-ink tnum">{done}</strong></span>
-          <span>これから <strong className="text-ink tnum">{sessions.length - done}</strong></span>
-          <span className="flex-1" />
-          <span className="flex items-center gap-[6px]">
-            月謝
-            {!fee ? (
-              <Badge tone="neutral">請求前</Badge>
-            ) : (
-              <>
-                <Badge tone={fee.status === 'paid' ? 'success' : 'danger'}>
-                  {FEE_LABEL[fee.status]}
-                </Badge>
-                <span className="tnum">{fee.paidDate ? `入金 ${fee.paidDate.slice(5)}` : '入金待ち'}</span>
-              </>
-            )}
-          </span>
-        </div>
-
         {sessions.length === 0 ? (
           <Empty title={`${formatMonthJa(month)}に${studentName}さんの受講予定はありません。`} />
         ) : (
@@ -98,7 +80,6 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions, fee }: Pr
                     className={`h-[9px] w-[9px] rounded-pill ${s.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
                   />
                   <span className="text-[14px] text-ink">{formatDayJa(s.sessionDate)}</span>
-                  <span className="text-[12px] text-muted">第{s.slotNo}コマ</span>
                   <span className="flex-1" />
                   {!s.past ? (
                     <Badge tone="info">予定</Badge>
@@ -144,10 +125,9 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions, fee }: Pr
           </ul>
         )}
 
+        {/* 月謝の話は上の月謝カードに置いた。ここに書くと同じことが2か所に出る */}
         <p className="px-md py-sm text-[12px] leading-relaxed text-muted">
-          左右に払っても月を切り替えられます。<br />
-          月謝は<strong className="text-ink">固定月額</strong>です。
-          <strong className="text-ink">お休みされても請求額は変わりません。</strong>
+          左右に払っても月を切り替えられます。
         </p>
       </div>
     </Card>

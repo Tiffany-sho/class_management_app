@@ -71,7 +71,6 @@ export function EmployeeHomePage() {
       studentName: st.studentName,
       sessionDate: slot.slot.sessionDate,
       slotNo: slot.slot.slotNo,
-      businessName: slot.business?.name ?? '—',
       current: st.note ?? '',
     });
   };
@@ -102,7 +101,6 @@ export function EmployeeHomePage() {
           slotNo: next.slot.slotNo,
           startTime: next.slot.startTime,
           endTime: next.slot.endTime,
-          businessName: next.business?.name ?? '—',
           colorKey: next.business?.colorKey ?? 'forest',
           detail: `生徒${next.slot.students.length}名`,
         } : null}
@@ -125,7 +123,7 @@ export function EmployeeHomePage() {
       ) : null}
 
       {next ? (
-        <Panel title="同日の自分の担当" description="担当していない教室のコマは出ません">
+        <Panel title="同日の自分の担当">
           <SameDaySlots slots={sameDay} meId={meId} onOpenStaff={setStaff} />
         </Panel>
       ) : null}
@@ -146,9 +144,7 @@ export function EmployeeHomePage() {
                   className={`h-[9px] w-[9px] rounded-pill ${x.business?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
                 />
                 <span className="text-[14px] text-ink">{formatDayJa(x.slot.sessionDate)}</span>
-                <span className="text-[12px] text-muted">
-                  {x.business?.name ?? '—'} 第{x.slot.slotNo}コマ
-                </span>
+                <span className="text-[12px] text-muted">第{x.slot.slotNo}コマ</span>
               </div>
               <AttendanceList
                 slot={x.slot}

@@ -43,9 +43,12 @@ export function StaffDetailSheet({ employeeId, meId, mode, month, onClose }: Pro
     <Sheet
       open={employeeId !== null}
       title={d?.name ?? '講師'}
+      /* 講師どうしで開くのは同じコマに入る相手なので、教室は自明。管理者だけに出す */
       subtitle={d ? (
         <span className="flex flex-wrap items-center gap-xs">
-          {d.businesses.map((b) => b.name).join(' ・ ') || '担当教室なし'}
+          {mode === 'admin'
+            ? (d.businesses.map((b) => b.name).join(' ・ ') || '担当教室なし')
+            : null}
           <Badge tone={d.active ? 'success' : 'neutral'}>{d.active ? '在籍' : '退職'}</Badge>
         </span>
       ) : undefined}
@@ -59,7 +62,9 @@ export function StaffDetailSheet({ employeeId, meId, mode, month, onClose }: Pro
         <>
           <Section title="基本情報">
             <dl className="grid grid-cols-2 gap-md">
-              <KV k="担当教室" v={d.businesses.map((b) => b.name).join(' ・ ') || '—'} />
+              {mode === 'admin' ? (
+                <KV k="担当教室" v={d.businesses.map((b) => b.name).join(' ・ ') || '—'} />
+              ) : null}
               <KV k="在籍状態" v={d.active ? '在籍中' : '退職'} />
               {mode === 'admin' ? <KV k="メールアドレス" v={d.email ?? '—'} /> : null}
             </dl>

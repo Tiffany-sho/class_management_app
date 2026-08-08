@@ -10,6 +10,7 @@ import {
   currentMonthKey, formatDayJa, formatMonthJa, formatTimeRange, shiftMonth,
 } from '@/lib/date';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { multiBusiness } from '@/lib/format';
 import { MonthHeader } from './MonthHeader';
 import { SubmitCounter } from './SubmitCounter';
 import { PickRow } from './PickRow';
@@ -109,6 +110,8 @@ export function EmployeeSubmit() {
 
   const bizMap = new Map(d.businesses.map((b) => [b.id, b]));
   const list = openings.filter((o) => !me || me.businessIds.includes(o.businessId));
+  /* 掛け持ちの人にだけ教室を出す。1教室しか担当しない人には、全行に同じ名前が並ぶだけ */
+  const showBusiness = multiBusiness(list.map((o) => o.businessId));
 
   return (
     <div>
@@ -143,10 +146,12 @@ export function EmployeeSubmit() {
               key={key}
               selected={picked.includes(key)}
               disabled={closed}
-              showDot
+              showDot={showBusiness}
               colorKey={biz?.colorKey ?? 'forest'}
               title={`${formatDayJa(o.date)} 第${o.slotNo}コマ`}
-              sub={`${biz?.name ?? '—'} ${formatTimeRange(o.startTime, o.endTime)}`}
+              sub={showBusiness
+                ? `${biz?.name ?? '—'} ${formatTimeRange(o.startTime, o.endTime)}`
+                : formatTimeRange(o.startTime, o.endTime)}
               onToggle={() => toggle(key)}
             />
           );
@@ -164,8 +169,12 @@ export function EmployeeSubmit() {
       </Button>
 
       <Note>
-        担当できる教室の開催日だけが出ます。
-        <strong className="text-ink">日曜は2教室が並行開催</strong>されるため、同じ時間帯でも教室ごとに分かれています。
+        {showBusiness ? (
+          <>
+            <strong className="text-ink">日曜は2教室が並行開催</strong>されるため、
+            同じ時間帯でも教室ごとに分かれています。
+          </>
+        ) : null}
         出した希望がそのままシフトになるわけではなく、教室が調整して確定します。
         <strong className="text-ink">確定した担当コマがそのまま勤務実績</strong>になります。
       </Note>

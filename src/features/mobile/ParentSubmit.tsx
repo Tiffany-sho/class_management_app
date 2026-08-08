@@ -182,7 +182,9 @@ export function ParentSubmit() {
               selected={on}
               disabled={closed || sameDay || full}
               colorKey={d.businesses.find((b) => b.id === o.businessId)?.colorKey ?? 'forest'}
-              title={`${formatDayJa(o.date)} 第${o.slotNo}コマ`}
+              /* コマ番号は出さない。同じ日に2コマある教室でも、保護者が選ぶときに
+                 見ているのは時刻（下の sub）で、番号では何時からか分からない */
+              title={formatDayJa(o.date)}
               sub={sameDay
                 ? 'この日は選択済み（1日1コマまで）'
                 : full

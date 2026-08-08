@@ -8,6 +8,11 @@ interface Props {
   slots: ScheduleSlot[];
   businesses: Business[];
   onClose: () => void;
+  /**
+   * 教室名を出すか。講師が自分のコマを見るときは自明なので出さない
+   * （掛け持ちの人だけ true）。管理者は両方が並ぶので必ず出す。
+   */
+  showBusinessName?: boolean;
   /** 名前から詳細へ飛べるようにする。渡さない画面では素の文字のまま出す */
   onOpenStudent?: (studentId: string) => void;
   onOpenStaff?: (employeeId: string) => void;
@@ -22,7 +27,7 @@ interface Props {
  * 保護者・講師の画面でも使うので、どの詳細を開けるかが役割で変わる）。
  */
 export function DayDetailSheet({
-  date, slots, businesses, onClose, onOpenStudent, onOpenStaff,
+  date, slots, businesses, showBusinessName = true, onClose, onOpenStudent, onOpenStaff,
 }: Props) {
   const bizMap = new Map(businesses.map((b) => [b.id, b]));
   const past = date ? isPast(date) : false;
@@ -31,7 +36,10 @@ export function DayDetailSheet({
     <Sheet
       open={Boolean(date)}
       title={date ? formatDayJa(date) : ''}
-      subtitle={`${slots.length}コマ ・ ${past ? '実施済み' : 'これから'}`}
+      /* 1コマだけ開いたときに「1コマ」と書いても、下に1件しか無いのを見れば分かる */
+      subtitle={slots.length > 1
+        ? `${slots.length}コマ ・ ${past ? '実施済み' : 'これから'}`
+        : past ? '実施済み' : 'これから'}
       onClose={onClose}
       footer={<Button block onClick={onClose}>閉じる</Button>}
     >
@@ -47,7 +55,9 @@ export function DayDetailSheet({
                 aria-hidden
                 className={`h-[9px] w-[9px] rounded-pill ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
               />
-              <span className="text-[14px] text-ink">{b?.name ?? '—'} 第{s.slotNo}コマ</span>
+              <span className="text-[14px] text-ink">
+                {showBusinessName ? `${b?.name ?? '—'} ` : ''}第{s.slotNo}コマ
+              </span>
               <span className="text-[12px] text-muted tnum">
                 {formatTimeRange(s.startTime, s.endTime)}
               </span>

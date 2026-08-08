@@ -5,10 +5,12 @@ interface Props {
   label: string;
   lesson: {
     sessionDate: string;
-    slotNo: number;
+    /** 講師だけ。保護者には教室の内部の並び番号なので出さない */
+    slotNo?: number;
     startTime: string;
     endTime: string;
-    businessName: string;
+    /** 2教室にまたがる人にだけ渡す。1教室しか無い人には自明 */
+    businessName?: string;
     colorKey: BusinessColorKey;
     /** 担当講師など、下の行に足したいもの */
     detail?: string;
@@ -34,6 +36,12 @@ export function NextLessonCard({ label, lesson, emptyText }: Props) {
     );
   }
 
+  const sub = [
+    formatTimeRange(lesson.startTime, lesson.endTime),
+    lesson.businessName,
+    lesson.detail,
+  ].filter(Boolean).join(' ・ ');
+
   return (
     <div
       className={`mb-md rounded-md p-lg text-on-dark
@@ -41,12 +49,10 @@ export function NextLessonCard({ label, lesson, emptyText }: Props) {
     >
       <div className="mb-[6px] text-[11px] tracking-[0.06em] opacity-85">{label}</div>
       <div className="text-[22px] font-medium leading-[1.25]">
-        {formatDayJa(lesson.sessionDate)} 第{lesson.slotNo}コマ
+        {formatDayJa(lesson.sessionDate)}
+        {lesson.slotNo ? ` 第${lesson.slotNo}コマ` : ''}
       </div>
-      <div className="mt-[6px] text-[13px] opacity-90 tnum">
-        {formatTimeRange(lesson.startTime, lesson.endTime)} ・ {lesson.businessName}
-        {lesson.detail ? ` ・ ${lesson.detail}` : ''}
-      </div>
+      <div className="mt-[6px] text-[13px] opacity-90 tnum">{sub}</div>
     </div>
   );
 }

@@ -35,3 +35,29 @@ export function attendanceTone(s: AttendanceStatus | null): 'success' | 'danger'
 export function count(n: number, unit = '名'): string {
   return `${n}${unit}`;
 }
+
+/**
+ * 「中村 さとし」→「中村」。
+ *
+ * カレンダーのマスのように**そもそも姓しか入らない幅**のところで使う。
+ * 切り詰めて「中村 さ…」にはしない（何の略か分からない省略記号は出さない）。
+ */
+export function surname(fullName: string): string {
+  return fullName.split(/[ 　]/)[0] || fullName;
+}
+
+/**
+ * 教室名を出すかどうか。
+ *
+ * **保護者と講師には、自分が関わる教室が1つしかない。** その人の画面に
+ * 「プログラミング教室」と書いても、読む前から分かっていることを繰り返すだけで、
+ * 本当に読ませたいもの（日付・時間・生徒・出欠）を押しのける。
+ *
+ * ただし DB は2教室にまたがることを許している（`employee_businesses` は多対多、
+ * きょうだいが別の教室に通うこともありうる）。**またがる人にだけ出す。**
+ * 「今は誰もまたがっていないから」で消し込むと、またがる人が現れた日に
+ * どちらのコマか読めない画面になる。
+ */
+export function multiBusiness(businessIds: Iterable<string>): boolean {
+  return new Set(businessIds).size > 1;
+}

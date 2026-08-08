@@ -6,10 +6,8 @@ import type { AttendanceStatus, BusinessColorKey } from '@/types/domain';
 
 interface Props {
   sessionDate: string;
-  slotNo: number;
   startTime: string;
   endTime: string;
-  businessName: string;
   colorKey: BusinessColorKey;
   past: boolean;
   attendanceStatus?: AttendanceStatus | null;
@@ -21,13 +19,16 @@ interface Props {
 }
 
 /**
- * 1コマの表示。保護者のホームと講師の担当で共通に使う。
+ * 1コマの表示（保護者の予定）。
  *
  * 済んだ回は**出欠と授業記録を必ず同じ行に出す**。別の場所に置くと
  * 保護者が2か所を突き合わせることになるうえ、食い違ったときに気づけない。
+ *
+ * **コマ番号も教室名も出さない。** 保護者に要るのは「いつ・何時から」で、
+ * 教室は通っている1つしかなく、コマ番号は教室の内部の並び順でしかない。
  */
 export function LessonItem({
-  sessionDate, slotNo, startTime, endTime, businessName, colorKey,
+  sessionDate, startTime, endTime, colorKey,
   past, attendanceStatus, note, notedByName, extra, action,
 }: Props) {
   return (
@@ -39,7 +40,6 @@ export function LessonItem({
         />
         <span className="text-[14px] text-ink">{formatDayJa(sessionDate)}</span>
         <span className="text-[12px] text-muted tnum">{formatTimeRange(startTime, endTime)}</span>
-        <span className="text-[12px] text-muted">第{slotNo}コマ</span>
         {past && attendanceStatus ? (
           <Badge tone={attendanceTone(attendanceStatus)}>{ATTENDANCE_LABEL[attendanceStatus]}</Badge>
         ) : null}
@@ -48,7 +48,6 @@ export function LessonItem({
         {action ? <span className="ml-auto">{action}</span> : null}
       </div>
 
-      <div className="mt-[3px] text-[12px] text-muted">{businessName}</div>
       {extra}
 
       {past ? (
