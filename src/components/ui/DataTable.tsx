@@ -6,6 +6,12 @@ export interface Column<T> {
   /** 数値列は右寄せ＋等幅にする。桁がずれると読み違えるため */
   numeric?: boolean;
   sortable?: boolean;
+  /**
+   * 長い自由記述だけ折り返しを許す（作業内容・備考など）。
+   * **既定は折り返さない。** 氏名・教室名・コース名のような**それ以上短くできない語**が
+   * 途中で折れると、幅が足りないのか2件あるのか読み分けられなくなる。
+   */
+  wrap?: boolean;
   render: (row: T) => ReactNode;
 }
 
@@ -25,8 +31,15 @@ export function DataTable<T>({
   columns, rows, rowKey, onRowClick, sortKey, sortAsc, onSort, empty, footer,
 }: Props<T>) {
   return (
+    /**
+     * **表は縮めない。入りきらないときは横スクロールにする。**
+     * `w-full` だけだと、表は枠に合わせて縮み、列が足りなくなったぶんセルの中で
+     * 文字が折り返す。「プログラミング教室」が3行になっても幅が足りないと分からず、
+     * データが増えたようにも見える。`w-max min-w-full` にすると、
+     * 表は中身の幅を保ち、足りないぶんはこの枠がスクロールする。
+     */
     <div className="overflow-x-auto rounded-md border border-hairline bg-canvas shadow-card">
-      <table className="w-full border-collapse">
+      <table className="w-max min-w-full border-collapse">
         <thead>
           <tr className="border-b border-hairline">
             {columns.map((c) => (
@@ -82,7 +95,8 @@ export function DataTable<T>({
                   <td
                     key={c.key}
                     className={`px-md py-sm align-middle text-[13px]
-                      ${c.numeric ? 'text-right tnum' : 'text-left'}`}
+                      ${c.numeric ? 'text-right tnum' : 'text-left'}
+                      ${c.wrap ? 'min-w-[240px] max-w-[420px]' : 'whitespace-nowrap'}`}
                   >
                     {c.render(row)}
                   </td>

@@ -22,7 +22,10 @@ export function KidSwitch({ students, businesses, selectedId, onSelect }: Props)
   return (
     <>
       <SectionLabel>お子さま</SectionLabel>
-      <div className="mb-md flex gap-xs">
+      {/* **等分にしない。** flex-1 で割ると、3人いるとき1つが 160px ほどになり、
+          「5・6学年・中学生 ・ プログラミング 月3回」が3行に折り返す。
+          中身の幅のまま並べ、入りきらないときは横スクロールにする。 */}
+      <div className="mb-md flex gap-xs overflow-x-auto pb-[2px]">
         {students.map((s) => {
           const b = bizMap.get(s.businessId);
           const on = s.id === selectedId;
@@ -32,7 +35,7 @@ export function KidSwitch({ students, businesses, selectedId, onSelect }: Props)
               type="button"
               aria-pressed={on}
               onClick={() => onSelect(s.id)}
-              className={`flex-1 rounded-md border p-[10px] text-left
+              className={`shrink-0 rounded-md border p-[10px] text-left
                 ${on ? 'border-primary bg-surface-soft' : 'border-hairline bg-canvas'}`}
             >
               <span className="flex items-center gap-[6px] text-[14px] font-medium text-ink">
@@ -41,9 +44,9 @@ export function KidSwitch({ students, businesses, selectedId, onSelect }: Props)
                   className={`h-[9px] w-[9px] shrink-0 rounded-pill
                     ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
                 />
-                <span className="truncate">{s.name}</span>
+                <span className="whitespace-nowrap">{s.name}</span>
               </span>
-              <span className="mt-[2px] block text-[11px] text-muted">
+              <span className="mt-[2px] block whitespace-nowrap text-[11px] text-muted">
                 {s.gradeLabel} ・ {b?.name?.replace('教室', '') ?? '—'} 月{s.sessionsPerMonth}回
               </span>
             </button>

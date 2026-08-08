@@ -67,9 +67,15 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
                 className="flex w-full items-center gap-sm rounded-sm px-xs py-[5px] text-left
                   text-[12px] hover:bg-[#f3e6cd]"
               >
-                <span className="w-[190px] shrink-0 text-muted">{a.role}</span>
-                <span className="w-[100px] shrink-0 text-ink">{a.name}</span>
-                <span className="min-w-0 flex-1 truncate text-muted">{a.email}</span>
+                {/* 3つを横に並べると、固定幅の取り合いでメールが必ず切れる。
+                    押して入力欄に入る値なので、**切れてはいけないのはメール**。2行に分ける */}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-ink">
+                    {a.name}
+                    <span className="ml-xs text-muted">{a.role}</span>
+                  </span>
+                  <span className="block text-muted">{a.email}</span>
+                </span>
               </button>
             </li>
           ))}

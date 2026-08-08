@@ -42,7 +42,7 @@ export function AdminLayout() {
             R
           </div>
           <div className="min-w-0">
-            <div className="truncate text-[14px] font-medium text-ink">R-Tech 管理</div>
+            <div className="whitespace-nowrap text-[14px] font-medium text-ink">R-Tech 管理</div>
             <div className="text-[10px] tracking-[0.08em] text-muted">ADMIN CONSOLE</div>
           </div>
         </div>
@@ -73,18 +73,24 @@ export function AdminLayout() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-sm border-t border-hairline px-md py-sm">
-          <div className="grid h-8 w-8 place-items-center rounded-pill bg-surface-strong text-[13px] text-ink">
-            {user?.name?.[0] ?? '—'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] text-ink">{user?.name ?? '—'}</div>
-            <div className="text-[11px] text-muted">管理者</div>
+        {/* 氏名は長さが読めないので、**幅を取り合わせない**。
+            ログアウトを同じ行に置くと氏名の取り分が減り、長い名前が「田中 さと…」になる。
+            名前に1行まるごと与えて、ログアウトは下へ落とす。 */}
+        <div className="border-t border-hairline px-md py-sm">
+          <div className="flex items-center gap-sm">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-pill bg-surface-strong text-[13px] text-ink">
+              {user?.name?.[0] ?? '—'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] leading-snug text-ink">{user?.name ?? '—'}</div>
+              <div className="text-[11px] text-muted">管理者</div>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => void signOut()}
-            className="text-[12px] text-link underline"
+            className="mt-xs w-full rounded-md border border-hairline py-[5px] text-[12px]
+              text-ink hover:border-border-strong"
           >
             ログアウト
           </button>

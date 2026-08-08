@@ -70,6 +70,8 @@ export function OvertimePage() {
     {
       key: 'desc',
       header: '作業内容',
+      /* ここだけ自由記述。長くなるので折り返しを許す（読みやすい幅で折る） */
+      wrap: true,
       render: (o) => (
         <div>
           <div className="text-ink">{o.description}</div>

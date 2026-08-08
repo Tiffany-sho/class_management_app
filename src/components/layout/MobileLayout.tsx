@@ -21,13 +21,19 @@ export function MobileLayout({ title }: { title: string }) {
   return (
     <div className="mx-auto flex min-h-full max-w-[520px] flex-col bg-surface-soft">
       <header className="sticky top-0 z-30 flex items-center gap-sm border-b border-hairline bg-canvas px-md py-sm">
+        {/* 画面名は決まった短い語なので折らない。氏名は長さが読めないので、
+            入りきらないときは**省略記号ではなく折り返す**（読めなくなるより読める方がまし）。 */}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-title-sm">{title}</h1>
-          <p className="truncate text-[12px] text-muted">
+          <h1 className="whitespace-nowrap text-title-sm">{title}</h1>
+          <p className="text-[12px] leading-snug text-muted">
             {user?.name ?? '—'}（{ROLE_LABEL[role ?? 'parent']}）
           </p>
         </div>
-        <button type="button" onClick={() => void signOut()} className="text-[12px] text-link underline">
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="shrink-0 whitespace-nowrap text-[12px] text-link underline"
+        >
           ログアウト
         </button>
       </header>

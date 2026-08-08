@@ -88,7 +88,11 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
                   ) : null}
                 </div>
 
-                {/* 事業ごとのコマ数をチップで出す。未確定は破線 */}
+                {/* 事業ごとのコマ数をチップで出す。未確定は破線
+                   **切り詰めない。** 1マスは画面幅の1/7しかないので、「プログラミング」を
+                   入れようとすると必ず「プログラミ…」になる。何の略か分からない省略記号は
+                   出さず、**狭いときは色と数だけ**にして、名前は真下の凡例に任せる。
+                   広い画面（app 以上）は入るので名前も出す。 */}
                 {groupByBusiness(state?.slots ?? []).map(([businessId, list]) => {
                   const b = bizName.get(businessId);
                   const confirmed = list.every((s) => s.status === 'confirmed');
@@ -96,12 +100,18 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
                   return (
                     <span
                       key={businessId}
-                      className={`truncate rounded-sm px-[5px] py-[2px] text-[10px] leading-tight
+                      title={`${b?.name ?? ''} ${list.length}コマ`}
+                      className={`flex items-center gap-[3px] whitespace-nowrap rounded-sm
+                        px-[5px] py-[2px] text-[10px] leading-tight
                         ${confirmed
                           ? isProg ? 'bg-forest text-on-dark' : 'bg-coral text-on-dark'
                           : `border border-dashed ${isProg ? 'border-forest text-forest' : 'border-coral text-coral'}`}`}
                     >
-                      {b?.name?.replace('教室', '') ?? '—'} {list.length}
+                      <span className="hidden app:inline">
+                        {b?.name?.replace('教室', '') ?? '—'}
+                      </span>
+                      <span className="tnum">{list.length}</span>
+                      <span className="hidden sm:inline">コマ</span>
                     </span>
                   );
                 })}
