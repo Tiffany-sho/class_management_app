@@ -1235,10 +1235,7 @@
     <button class="iconbtn" onclick="closeStaff()">✕</button>
   </div>
   <div class="sheet-b" id="stfBody"></div>
-  <div class="sheet-f">
-    <button class="btn btn-secondary" style="flex:1" onclick="closeStaff()">閉じる</button>
-    <button class="btn btn-primary" style="flex:1" onclick="toast('講師情報の編集フォームを開きます')">編集</button>
-  </div>
+  <div class="sheet-f" id="stfFoot"></div>
 </div>
 
 <!-- ===== 授業記録シート（従業員が記入） ===== -->
@@ -1854,7 +1851,21 @@ function renderStaff(){
   : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;">該当する講師がいません</td></tr>';
 }
 
-function openStaff(i){
+/* ログイン中の講師。従業員画面はこの人として描く */
+const EMP_ME = '中村';
+
+const openStaffByName = (n, mode) =>
+  openStaff(staff.findIndex(s => s.n === n), mode || 'admin');
+
+/* mode: 'admin' = すべて / 'employee' = 名前・担当教室・一緒に入るコマだけ
+   （講師どうしで労働条件は見えない。時給・交通費・給与・出勤日数はいずれも
+   本人と管理者だけ ―― ドメインルール12。連絡先も出さない。教室の連絡は管理者を通す）
+
+   ★ DB 側もこの線で守られている。employee_monthly_pay は他人の行が見えてしまうが、
+   時給が読めないので金額は 0 になる。**0 円と表示されるのは誤情報**なので、
+   画面には最初から出さない。 */
+function openStaff(i, mode){
+  mode = mode || 'admin';
   const s = staff[i], st = staffStats(s.n, TODAY_M);
   const cur = s.wages.filter(w => w.cur), past = s.wages.filter(w => !w.cur);
   document.getElementById('stfName').textContent = s.n;
@@ -1864,6 +1875,50 @@ function openStaff(i){
   const kv = (k, v) => `<div><div class="muted">${k}</div>
     <div style="color:var(--ink);font-size:14px;margin-top:3px;">${v}</div></div>`;
 
+  /* ---- 講師向け: 名前・担当教室・一緒に入るコマのみ ---- */
+  if (mode === 'employee') {
+    /* 自分と同じコマに入っている回。「誰と組むか」は当日の段取りに要るので、そこだけ見せる */
+    const together = [];
+    for (const m of MONTH_KEYS) {
+      for (let d = 1; d <= MONTHS[m].days; d++) {
+        const st2 = stateOf(m, d);
+        if (!st2 || st2 === 'off') continue;
+        for (const x of slotsOf(m, d)) {
+          if (x.emps.includes(s.n) && x.emps.includes(EMP_ME)) together.push({ m, d, x });
+        }
+      }
+    }
+
+    document.getElementById('stfBody').innerHTML = `
+      <div class="lbl">基本情報</div>
+      <div class="panel" style="margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+          ${kv('担当教室', bizDots(s.biz))}
+          ${kv('在籍状態', s.active ? '在籍中' : '退職')}
+        </div>
+      </div>
+      <div class="lbl">一緒に入るコマ</div>
+      ${together.length
+        ? `<div class="panel">${together.slice(0, 8).map(({ m, d, x }) => `
+            <div class="listitem">
+              <span class="dot ${x.b.key}" style="margin-top:6px"></span>
+              <div><div class="t">${m}月${d}日 ${x.b.short} 第${x.no}コマ</div>
+              <div class="m">${x.time} ・ 生徒${x.studs.length}名</div></div>
+            </div>`).join('')}</div>`
+        : '<p class="muted">同じコマに入る予定はありません。</p>'}
+      <div class="cream-note" style="margin-top:18px;">
+        <span>🔒</span>
+        <div>時給・交通費・給与・出勤日数は<strong>講師どうしでは見られません</strong>。
+        本人と管理者のみが閲覧できます。連絡先も出していません（教室の連絡は管理者を通します）。</div>
+      </div>`;
+    document.getElementById('stfFoot').innerHTML =
+      `<button class="btn btn-secondary" style="flex:1" onclick="closeStaff()">閉じる</button>`;
+    document.getElementById('stfOverlay').classList.add('show');
+    document.getElementById('stfSheet').classList.add('show');
+    return;
+  }
+
+  /* ---- 管理者向け: すべて ---- */
   document.getElementById('stfBody').innerHTML = `
     <div class="lbl">基本情報</div>
     <div class="panel" style="margin-bottom:4px;">
@@ -1956,6 +2011,9 @@ function openStaff(i){
       <strong>出勤日数 × 日額</strong>で給与に自動反映されます。
       今月は ${st.days}日 × ${yen(s.commute)} = <strong>${yen(st.days * s.commute)}</strong> の見込みです。
     </p>`;
+  document.getElementById('stfFoot').innerHTML = `
+    <button class="btn btn-secondary" style="flex:1" onclick="closeStaff()">閉じる</button>
+    <button class="btn btn-primary" style="flex:1" onclick="toast('講師情報の編集フォームを開きます')">編集</button>`;
   document.getElementById('stfOverlay').classList.add('show');
   document.getElementById('stfSheet').classList.add('show');
 }
@@ -2172,7 +2230,10 @@ function openDay(m, d, mode, me){
           <span class="badge ${s.ok ? 'paid' : 'over'}">${s.ok ? '確定' : '未確定'}</span>
         </div>
         <div class="lbl">担当従業員（${s.emps.length}名 ／ 定員 ${s.emps.length * 3}名）</div>
-        <div class="row">${s.emps.map(e => `<span class="tag emp">${e}</span>`).join('') || '<span class="muted">未定</span>'}</div>
+        <div class="row">${s.emps.map(e =>
+          `<button class="tag emp" style="cursor:pointer;"
+             onclick="openStaffByName('${e}','${mode}')">${e} ›</button>`).join('')
+          || '<span class="muted">未定</span>'}</div>
         <div class="lbl" style="margin-top:10px;">受講生徒（${s.studs.length}名）</div>
         ${isPast(m, d)
           ? s.studs.map(x => {
@@ -2834,7 +2895,7 @@ function togglePick(i){
 /* 8/9（日）に中村が担当するコマのうち、受講生徒がいるもの
    （添字で固定すると、割り当て次第で空のコマを指してしまう） */
 const TODAY_KEY = '8-9';
-const todaySlot = slotsOf(8, 9).find(s => s.emps.includes('中村') && s.studs.length)
+const todaySlot = slotsOf(8, 9).find(s => s.emps.includes(EMP_ME) && s.studs.length)
                || slotsOf(8, 9)[0];
 const TODAY_SLOT  = todaySlot.no;
 const TODAY_LABEL = `8月9日（日） ${todaySlot.b.short} 第${todaySlot.no}コマ`;
@@ -2848,14 +2909,18 @@ empNext.innerHTML = `
     <div class="v">${todaySlot.b.name} 第${todaySlot.no}コマ</div>
     <div class="s">${todaySlot.time} ・ 生徒${todayStuds.length}名</div>
   </div>`;
+/* 一緒に入る講師は名前を押せる。当日の段取りで「誰と組むか」を確かめたくなるため */
+const coTeachers = s => s.emps.filter(e => e !== EMP_ME).map(e =>
+  `<button class="stu-link" onclick="openStaffByName('${e}','employee')">${e} ›</button>`).join('・');
+
 empOther.innerHTML = slotsOf(8, 9)
-  .filter(s => s.emps.includes('中村') && s !== todaySlot)
+  .filter(s => s.emps.includes(EMP_ME) && s !== todaySlot)
   .map(s => `
     <div class="listitem">
       <span class="dot ${s.b.key}" style="margin-top:6px"></span>
       <div><div class="t">${s.b.short} 第${s.no}コマ</div>
       <div class="m">${s.time} ・ 生徒${s.studs.length}名${
-        s.emps.length > 1 ? ' ・ ' + s.emps.filter(e => e !== '中村').join('・') + 'と2名体制' : ''}</div></div>
+        s.emps.length > 1 ? ' ・ ' + coTeachers(s) + 'と2名体制' : ''}</div></div>
     </div>`).join('') || '<p class="muted">この日の担当はこのコマだけです。</p>';
 
 function renderAtt(){
@@ -3065,7 +3130,7 @@ buildCal('adminCal', 'admin', '', adminMonth);
    金額を保存すると、コマを編集したときに古い金額が残って食い違うため。
    講師の給与ページ・講師詳細・収入収益・給与計算は、すべてこの staffPay() を見る。
    ========================================================================= */
-const EMP_ME = '中村';
+/* EMP_ME は講師詳細の手前で宣言している（従業員画面の描画がそれより前にあるため） */
 const SLOT_HOURS = 1.5;                                   // 1コマ90分
 const bizOfJob = j => j.includes('プログラ') ? 'prog' : 'illust';
 const rateOf = (s, bizKey) => (s.wages.find(w => w.cur && bizOfJob(w.j) === bizKey) || {r:0}).r;
