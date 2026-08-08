@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Segmented } from '@/components/ui';
+import { Badge, Button, Card, NameLink, Segmented } from '@/components/ui';
 import { formatTimeRange } from '@/lib/date';
 import type { AttendanceStatus, Business, ScheduleSlot } from '@/types/domain';
 
@@ -18,6 +18,8 @@ interface Props {
   busy: string | null;
   onToggleEmployee: (employeeId: string, assigned: boolean) => void;
   onMark: (studentId: string, status: AttendanceStatus) => void;
+  onOpenStudent: (studentId: string) => void;
+  onOpenStaff: (employeeId: string) => void;
 }
 
 /**
@@ -38,7 +40,8 @@ interface Props {
  * 保護者のマイページから記録ごと無くなる。月謝は固定月額なので、欠席にしても請求は変わらない。
  */
 export function DaySlotCard({
-  slot, business, candidates, reportedStudentIds, busy, onToggleEmployee, onMark,
+  slot, business, candidates, reportedStudentIds, busy,
+  onToggleEmployee, onMark, onOpenStudent, onOpenStaff,
 }: Props) {
   const assigned = new Set(slot.employees.map((e) => e.id));
   const spare = candidates.filter((c) => !assigned.has(c.id));
@@ -78,7 +81,9 @@ export function DaySlotCard({
           <ul className="mb-xs flex flex-col gap-xs">
             {slot.employees.map((e) => (
               <li key={e.id} className="flex items-center gap-sm rounded-md border border-hairline px-sm py-xs">
-                <span className="flex-1 text-[13px] text-ink">{e.name}</span>
+                <span className="flex-1 text-[13px]">
+                  <NameLink onClick={() => onOpenStaff(e.id)}>{e.name}</NameLink>
+                </span>
                 <Button
                   size="sm"
                   variant="danger"
@@ -137,8 +142,8 @@ export function DaySlotCard({
           <ul className="flex flex-col gap-xs">
             {slot.students.map((st) => (
               <li key={st.studentId} className="flex flex-wrap items-center gap-sm">
-                <span className="min-w-0 flex-1 text-[13px] text-ink">
-                  {st.studentName}
+                <span className="min-w-0 flex-1 text-[13px]">
+                  <NameLink onClick={() => onOpenStudent(st.studentId)}>{st.studentName}</NameLink>
                   {reportedStudentIds.has(st.studentId) ? (
                     <span className="ml-xs"><Badge tone="warn">欠席連絡あり</Badge></span>
                   ) : null}

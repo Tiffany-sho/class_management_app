@@ -10,6 +10,8 @@ import {
 } from '@/lib/queries';
 import { currentMonthKey, isPast } from '@/lib/date';
 import { DayDetailSheet } from '@/components/calendar/DayDetailSheet';
+import { StudentDetailSheet } from '@/features/students/StudentDetailSheet';
+import { StaffDetailSheet } from '@/features/staff/StaffDetailSheet';
 import { TodoList } from './TodoList';
 import { NextPrevClass } from './NextPrevClass';
 import { MonthSummary } from './MonthSummary';
@@ -22,6 +24,8 @@ import { MonthSummary } from './MonthSummary';
 export function AdminHomePage() {
   const [month, setMonth] = useState(currentMonthKey());
   const [selected, setSelected] = useState<string | null>(null);
+  const [student, setStudent] = useState<string | null>(null);
+  const [staff, setStaff] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const state = useAsync(
@@ -123,6 +127,15 @@ export function AdminHomePage() {
         slots={selected ? (byDate.get(selected)?.slots ?? []) : []}
         businesses={d.businesses}
         onClose={() => setSelected(null)}
+        onOpenStudent={setStudent}
+        onOpenStaff={setStaff}
+      />
+      <StudentDetailSheet studentId={student} mode="admin" onClose={() => setStudent(null)} />
+      <StaffDetailSheet
+        employeeId={staff}
+        mode="admin"
+        month={currentMonthKey()}
+        onClose={() => setStaff(null)}
       />
     </div>
   );

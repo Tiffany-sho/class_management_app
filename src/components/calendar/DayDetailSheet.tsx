@@ -1,4 +1,4 @@
-import { Badge, Button, Icon, Sheet } from '@/components/ui';
+import { Badge, Button, Icon, NameLink, Sheet } from '@/components/ui';
 import { formatDayJa, formatTimeRange, isPast } from '@/lib/date';
 import { ATTENDANCE_LABEL, attendanceTone } from '@/lib/format';
 import type { Business, ScheduleSlot } from '@/types/domain';
@@ -8,14 +8,22 @@ interface Props {
   slots: ScheduleSlot[];
   businesses: Business[];
   onClose: () => void;
+  /** 名前から詳細へ飛べるようにする。渡さない画面では素の文字のまま出す */
+  onOpenStudent?: (studentId: string) => void;
+  onOpenStaff?: (employeeId: string) => void;
 }
 
 /**
  * その日の詳細。
  * 実施済みの日は出欠と授業記録を出す。まだの日は割り当てだけ。
  * 出欠と記録は同じ行に出す（別々に並べると突き合わせることになる）。
+ *
+ * 名前を押すと詳細が開く。**押せるかどうかは呼ぶ側が決める**（このシートは
+ * 保護者・講師の画面でも使うので、どの詳細を開けるかが役割で変わる）。
  */
-export function DayDetailSheet({ date, slots, businesses, onClose }: Props) {
+export function DayDetailSheet({
+  date, slots, businesses, onClose, onOpenStudent, onOpenStaff,
+}: Props) {
   const bizMap = new Map(businesses.map((b) => [b.id, b]));
   const past = date ? isPast(date) : false;
 
@@ -62,11 +70,15 @@ export function DayDetailSheet({ date, slots, businesses, onClose }: Props) {
               </div>
               <div className="mb-md flex flex-wrap gap-xs">
                 {s.employees.length ? (
-                  s.employees.map((e) => (
+                  s.employees.map((e) => (onOpenStaff ? (
+                    <span key={e.id} className="text-[12px]">
+                      <NameLink onClick={() => onOpenStaff(e.id)}>{e.name}</NameLink>
+                    </span>
+                  ) : (
                     <span key={e.id} className="rounded-pill bg-surface-dark px-sm py-[3px] text-[12px] text-on-dark">
                       {e.name}
                     </span>
-                  ))
+                  )))
                 ) : (
                   <span className="text-[13px] text-coral">担当が決まっていません</span>
                 )}
@@ -82,7 +94,11 @@ export function DayDetailSheet({ date, slots, businesses, onClose }: Props) {
                   {s.students.map((st) => (
                     <li key={st.studentId} className="rounded-md border border-hairline px-sm py-xs">
                       <div className="flex items-center gap-xs">
-                        <span className="flex-1 text-[13px] text-ink">{st.studentName}</span>
+                        <span className="flex-1 text-[13px] text-ink">
+                          {onOpenStudent
+                            ? <NameLink onClick={() => onOpenStudent(st.studentId)}>{st.studentName}</NameLink>
+                            : st.studentName}
+                        </span>
                         {past ? (
                           st.attendanceStatus ? (
                             <Badge tone={attendanceTone(st.attendanceStatus)}>

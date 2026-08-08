@@ -9,6 +9,8 @@ import {
 } from '@/lib/queries';
 import { currentMonthKey, formatDayJa, todayIso } from '@/lib/date';
 import type { AttendanceStatus } from '@/types/domain';
+import { StudentDetailSheet } from '@/features/students/StudentDetailSheet';
+import { StaffDetailSheet } from '@/features/staff/StaffDetailSheet';
 import { DayNav } from './DayNav';
 import { DaySlotCard } from './DaySlotCard';
 
@@ -27,6 +29,8 @@ export function DayChangePage() {
   const { toast } = useToast();
   const [date, setDate] = useState(todayIso());
   const [busy, setBusy] = useState<string | null>(null);
+  const [student, setStudent] = useState<string | null>(null);
+  const [staff, setStaff] = useState<string | null>(null);
 
   const month = date.slice(0, 7);
 
@@ -155,9 +159,19 @@ export function DayChangePage() {
             busy={busy}
             onToggleEmployee={(id, assigned) => toggleEmployee(s.id, s.businessId, id, assigned)}
             onMark={(studentId, status) => mark(s.id, studentId, status)}
+            onOpenStudent={setStudent}
+            onOpenStaff={setStaff}
           />
         ))
       )}
+
+      <StudentDetailSheet studentId={student} mode="admin" onClose={() => setStudent(null)} />
+      <StaffDetailSheet
+        employeeId={staff}
+        mode="admin"
+        month={month}
+        onClose={() => setStaff(null)}
+      />
     </div>
   );
 }
