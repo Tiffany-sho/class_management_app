@@ -51,9 +51,13 @@ export async function fetchStudentDetail(studentId: string): Promise<StudentDeta
       .select('id, name, business_id, grade, grade_label, sessions_per_month, monthly_fee, enrollment_year, parent_id, businesses:business_id ( name )')
       .eq('id', studentId)
       .maybeSingle(),
+    /* ★ `schedules:schedule_id` とは書けない。schedule_students → schedules は
+       **複合外部キー (schedule_id, business_id)** なので、列名では関係を解決できず
+       400（PGRST200）になる。制約名で指定する。型チェックでは捕まらないうえ、
+       手書きの fixture は埋め込みを作り込んでいるので、そこでも捕まらない。 */
     supabase
       .from('schedule_students')
-      .select('schedule_id, attendance_status, note, schedules:schedule_id ( session_date, slot_no ), noted_by_user:noted_by ( name )')
+      .select('schedule_id, attendance_status, note, schedules!schedule_students_schedule_fk ( session_date, slot_no ), noted_by_user:noted_by ( name )')
       .eq('student_id', studentId)
       .limit(60),
     /* 講師のときは RLS が 0 件にする。エラーにはならないので分岐は要らない */
@@ -148,7 +152,8 @@ export async function fetchStaffDetail(
       .eq('employee_id', employeeId),
     supabase
       .from('schedule_employees')
-      .select('schedule_id, business_id, schedules:schedule_id ( session_date, slot_no )')
+      /* ここも複合外部キー (schedule_id, business_id)。制約名で指定する */
+      .select('schedule_id, business_id, schedules!schedule_employees_schedule_fk ( session_date, slot_no )')
       .eq('employee_id', employeeId),
   ]);
 

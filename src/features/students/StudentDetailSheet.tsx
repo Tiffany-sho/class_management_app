@@ -11,6 +11,8 @@ interface Props {
   studentId: string | null;
   mode: DetailMode;
   onClose: () => void;
+  /** 渡すと「編集」を出す。生徒一覧からだけ渡している */
+  onEdit?: () => void;
 }
 
 /**
@@ -24,7 +26,7 @@ interface Props {
  * 出席率は出さない。月2〜3回なので1回の欠席で数字が大きく振れて実態を表さない
  * （ドメインの決定。管理者向けも同じ）。
  */
-export function StudentDetailSheet({ studentId, mode, onClose }: Props) {
+export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) {
   const state = useAsync(
     async () => (studentId ? fetchStudentDetail(studentId) : null),
     [studentId ?? ''],
@@ -50,7 +52,12 @@ export function StudentDetailSheet({ studentId, mode, onClose }: Props) {
         ? `${d.businessName} ・ ${gradeLabel(d.grade)} ・ ${d.gradeLabel} 月${d.sessionsPerMonth}回`
         : undefined}
       onClose={onClose}
-      footer={<Button block onClick={onClose}>閉じる</Button>}
+      footer={onEdit ? (
+        <>
+          <Button className="flex-1" onClick={onClose}>閉じる</Button>
+          <Button className="flex-1" variant="primary" onClick={onEdit}>編集</Button>
+        </>
+      ) : <Button block onClick={onClose}>閉じる</Button>}
     >
       {state.loading && !d ? <Loading /> : null}
       {state.error ? <ErrorNote message={state.error} onRetry={state.reload} /> : null}

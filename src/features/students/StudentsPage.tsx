@@ -10,7 +10,7 @@ import {
 import { currentMonthKey, gradeLabel } from '@/lib/date';
 import { FEE_LABEL } from '@/lib/format';
 import type { Student } from '@/types/domain';
-import { StudentSheet } from './StudentSheet';
+import { StudentDetailSheet } from './StudentDetailSheet';
 import { StudentForm } from './StudentForm';
 
 type SortKey = 'name' | 'business' | 'grade' | 'sessions' | 'fee';
@@ -195,11 +195,16 @@ export function StudentsPage() {
         （毎年4月の一括更新が不要になり、更新漏れによる料金誤りが起きません）。
       </p>
 
-      <StudentSheet
-        student={selected}
-        month={month}
+      {/* 生徒詳細はどの画面からでも同じものを開く。ここだけ「編集」が付く */}
+      <StudentDetailSheet
+        studentId={selected?.id ?? null}
+        mode="admin"
         onClose={() => setSelected(null)}
-        onEdit={(s) => { setSelected(null); setEditing(s); setFormOpen(true); }}
+        onEdit={() => {
+          const s = selected;
+          setSelected(null);
+          if (s) { setEditing(s); setFormOpen(true); }
+        }}
       />
 
       <StudentForm
