@@ -168,6 +168,21 @@ npm run gen:types         # supabase link 済みであること
 
 **service_role キーは絶対に `.env` に置かない。** `VITE_` 接頭辞の値はバンドルに焼き込まれてブラウザに配られるため、RLS を全部素通りする鍵が公開されてしまう。
 
+### デプロイ（Vercel）
+
+`main` が本番。push すると自動でビルドされ、それ以外のブランチには**ブランチごとのプレビュー URL** が付く。設定は `vercel.json` だけ。
+
+**`rewrites` で全経路を `index.html` に向けているのが要。** BrowserRouter を使っているので、これが無いと `/schedule` などを直接開いたときに 404 になる（トップから遷移したときだけ動いて、URL を共有した瞬間に壊れる、という気づきにくい形で出る）。静的ファイルが存在する経路はリライトより先に解決されるので、`assets/` は素通りする。
+
+Vercel の環境変数に入れるのは **`VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` の2つだけ**。
+
+- **`SUPABASE_DB_PASSWORD` は絶対に入れない。** アプリは読まないうえ、これは RLS を全部素通りする鍵。
+- anon key はバンドルに出る前提のもの。**守っているのは鍵ではなく RLS**なので、ポリシーを変えたら `supabase/dev/tests/F_rls.sql` を流し直す。
+
+**公開 URL を作ったら、Supabase の Authentication → URL Configuration に本番ドメインを足す。** 招待メールとパスワード再設定のリンクがそこへ返るため、足さないとリンクを踏んでも `localhost` に飛ぶ。
+
+> **本物のデータを入れる前に、必ずデモアカウントを消すこと。** 公開 URL とパスワードが揃っている状態になる（`supabase/dev/dummy_data_cleanup.sql` と、ログイン画面の `DemoAccounts.tsx`）。
+
 ---
 
 ## モックとの関係
