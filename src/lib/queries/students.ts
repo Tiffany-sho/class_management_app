@@ -149,14 +149,9 @@ export async function fetchFees(yearMonth: string): Promise<Map<string, StudentF
  * 発行した額はコピーなので、あとで料金を改定してもこの月は変わらない。
  */
 export async function generateFees(yearMonth: string): Promise<number> {
-  /* 生成した型定義に generate_fees が載るのは、マイグレーションを流して
-     npm run gen:types を実行したあと。それまで名前を型に載せられないので
-     ここだけ型を外している。**流したら再生成してこのキャストを消すこと。** */
-  const { data, error } = await supabase.rpc(
-    'generate_fees' as never, { p_year_month: yearMonth } as never,
-  );
+  const { data, error } = await supabase.rpc('generate_fees', { p_year_month: yearMonth });
   if (error) throw error;
-  return (data as number | null) ?? 0;
+  return data ?? 0;
 }
 
 export async function setFeeStatus(

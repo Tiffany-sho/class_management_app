@@ -88,6 +88,23 @@
 | 締め切り後は保護者・従業員が編集不可 | RLS（`is_submission_open()`） |
 | 定員 = 担当従業員数 × 係数 | ビュー `schedule_capacity` |
 | 進級でコース変更が要る生徒の検出 | ビュー `students_needing_course_change` |
+| 月謝の発行（在籍生徒ぶんを作る） | 関数 `generate_fees(year_month)`。**既存行は書き換えない** |
+| 通知の記録 | `notifications` へのトリガー4本（下記） |
+
+### 通知は DB 側で作る
+
+`notifications` の行を作るのは**トリガーだけ**で、アプリからは作らない。
+アプリで作ると、ダッシュボードから直接操作したときや別の画面から同じ操作をしたときに漏れる。
+
+| きっかけ | 誰に | 実装 |
+|---------|------|------|
+| スケジュールが確定した | 受講生徒の保護者 / 担当講師 | `notify_schedule_confirmed()`。**文単位のトリガー**（遷移テーブル） |
+| 欠席連絡が届いた | 管理者 / 担当講師 | `notify_absence_reported()` |
+| 時間外勤務が決裁された | 申請した講師 | `notify_overtime_decided()` |
+| お知らせが送信された | 対象ロール・対象事業の利用者 | `notify_announcement_sent()` |
+
+**スケジュール確定だけ文単位にしてある。** 行単位だと月をまとめて確定したときに、
+同じ保護者へコマの数だけ通知が飛ぶ。遷移テーブルを使えば「誰に・どの月ぶんか」で1件にまとまる。
 
 **Supabase 側にイベントトリガー `ensure_rls` が入っている**（プロジェクト標準。関数は `public.rls_auto_enable()`）。public にテーブルを作ると **RLS が自動で有効になる**。
 ただし**ポリシーは作られない**ため、新しいテーブルにポリシーを書き忘れると、エラーではなく**「行が1件も無いように見える」**形で表面化する。データが消えたと勘違いしやすい。
@@ -107,18 +124,19 @@
 | `20260806100100_functions_and_views.sql` | 学年計算・締め切り判定・整合性トリガー・ビュー |
 | `20260806100200_rls_policies.sql` | RLS ポリシーと権限付与 |
 | `20260806100300_seed_master_data.sql` | 事業2件・開催枠6件・コース12件 |
+| `20260807090000_schedule_employees_user_fk.sql` | `schedule_employees.employee_id` → `users` の外部キー（埋め込みに必要） |
+| `20260808090000_fees_and_notifications.sql` | 月謝の発行と、通知のトリガー4本 |
+| `20260808100000_fix_announcement_notify_cast.sql` | お知らせ通知の型不一致（`user_role` = `text`）の修正 |
 
-適用手順（Supabase CLI は未インストール）:
+適用は `npx supabase db push`。`.env` に `SUPABASE_DB_PASSWORD` があれば対話なしで通る。
 
 ```bash
-npm i -D supabase
-npx supabase init            # config.toml を生成。既存の migrations は上書きされない
-# project-ref はダッシュボードの URL に入っている 20 文字（Settings → General の Reference ID）
-npx supabase link --project-ref ktbbphglfgypmtrhhrvi
-npx supabase db push
+npx supabase db push          # 未適用のファイルだけが流れる
+npx supabase migration list   # ローカルとリモートの差を見る
 ```
 
-ローカル実行には Docker が要る（未インストール）。無い場合はダッシュボードの SQL Editor に4ファイルを順に貼って実行する。
+**ローカル実行（`supabase start`）には Docker が要る。未インストールなので、開発中もリモートに直接あてている。**
+1回きりの調査や運用スクリプトは `node scripts/sql.mjs <ファイル or -c "SQL">` で流せる。
 
 **マスタデータはローカル専用の `seed.sql` ではなくマイグレーションに入れてある。** アプリはこれが無いと動かないため、本番にも必ず流す必要があるから。
 

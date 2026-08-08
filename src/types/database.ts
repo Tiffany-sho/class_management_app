@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -1294,6 +1293,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       generate_deadlines: { Args: { p_year_month?: string }; Returns: number }
+      generate_fees: { Args: { p_year_month?: string }; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to_schedule: {
         Args: { p_schedule_id: string }
@@ -1310,6 +1310,17 @@ export type Database = {
           p_year_month: string
         }
         Returns: boolean
+      }
+      push_notification: {
+        Args: {
+          p_body: string
+          p_subject_id?: string
+          p_subject_table?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       send_due_announcements: { Args: never; Returns: number }
       student_grade: {
