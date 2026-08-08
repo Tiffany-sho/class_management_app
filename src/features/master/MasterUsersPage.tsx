@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/AdminLayout';
 import {
-  Badge, Button, Chip, DataTable, Icon, Loading, ErrorNote, Note, TextInput,
+  Badge, Chip, DataTable, Icon, Loading, ErrorNote, Note, TextInput,
   useToast, type Column,
 } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
-import { toMessage } from '@/lib/supabase';
-import { fetchAllUsers, setUserActive, type ManagedUser } from '@/lib/queries';
+import { fetchAllUsers, type ManagedUser } from '@/lib/queries';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { UserSheet } from './UserSheet';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: '管理者',
@@ -31,13 +31,15 @@ const ROLE_TONE = {
  *
  * ここでできるのは、在籍/退職の切り替え（論理削除）だけ。
  * 行を消すと過去の実績や請求まで消えるので、消さずに無効にする。
+ * **切り替えは行を押して開くドロワーの中だけ。** 一覧は名前を探すために触る場所で、
+ * そこにボタンがあると、探している途中で人を無効にしてしまう。
  */
 export function MasterUsersPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<'all' | 'admin' | 'parent' | 'employee'>('all');
-  const [busy, setBusy] = useState<string | null>(null);
+  const [target, setTarget] = useState<ManagedUser | null>(null);
 
   const state = useAsync(fetchAllUsers, []);
 
@@ -50,19 +52,6 @@ export function MasterUsersPage() {
     }
     return list;
   }, [state.data, role, query]);
-
-  const toggle = async (u: ManagedUser) => {
-    setBusy(u.id);
-    try {
-      await setUserActive(u.id, !u.active);
-      toast(`${u.name} を${u.active ? '無効' : '在籍中'}にしました`);
-      state.reload();
-    } catch (e) {
-      toast(toMessage(e));
-    } finally {
-      setBusy(null);
-    }
-  };
 
   if (state.loading && !state.data) return <Loading />;
   if (state.error && !state.data) return <ErrorNote message={state.error} onRetry={state.reload} />;
@@ -83,12 +72,8 @@ export function MasterUsersPage() {
     { key: 'status', header: '状態', render: (u) => (
       u.active ? <Badge tone="success">在籍中</Badge> : <Badge tone="neutral">無効</Badge>
     ) },
-    { key: 'action', header: '', render: (u) => (
-      u.id === user?.id ? null : (
-        <Button size="sm" disabled={busy === u.id} onClick={() => void toggle(u)}>
-          {u.active ? '無効にする' : '在籍中に戻す'}
-        </Button>
-      )
+    { key: 'action', header: '', render: () => (
+      <span className="text-muted"><Icon name="chevron-right" size={16} /></span>
     ) },
   ];
 
@@ -130,12 +115,27 @@ export function MasterUsersPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} rows={rows} rowKey={(u) => u.id} empty="該当するユーザーがいません。" />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(u) => u.id}
+        onRowClick={setTarget}
+        empty="該当するユーザーがいません。"
+      />
 
       <p className="mt-md text-[12px] leading-relaxed text-muted">
-        「無効にする」は<strong className="text-ink">論理削除</strong>です。行は残るので、
+        行を押すと詳細が開き、そこで<strong className="text-ink">在籍中 / 無効</strong>を切り替えられます。
+        「無効にする」は<strong className="text-ink">論理削除</strong>なので、行は残り、
         過去の担当コマ・給与・請求の記録は消えません。
       </p>
+
+      <UserSheet
+        user={target}
+        isSelf={Boolean(target && target.id === user?.id)}
+        onClose={() => setTarget(null)}
+        onSaved={(m) => { toast(m); setTarget(null); state.reload(); }}
+        onError={(m) => toast(m)}
+      />
     </div>
   );
 }
