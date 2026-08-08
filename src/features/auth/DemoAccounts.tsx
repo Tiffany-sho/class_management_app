@@ -14,6 +14,8 @@ import { Icon } from '@/components/ui';
  */
 export const DEMO_PASSWORD = 'rtech-demo-2026';
 
+/* 「2人」= きょうだいが2人いる保護者。子の切り替えを試すときはこちらを使う。
+   **きょうだいは必ず同じ事業**なので、1人の保護者が2事業にまたがることはない。 */
 const ACCOUNTS: { role: string; name: string; email: string }[] = [
   { role: '講師（プログラミング）', name: '中村 さとし', email: 'nakamura@example.com' },
   { role: '講師（プログラミング）', name: '高橋 けんた', email: 'takahashi@example.com' },
@@ -22,9 +24,21 @@ const ACCOUNTS: { role: string; name: string; email: string }[] = [
   { role: '講師（イラスト）', name: '伊藤 ゆうき', email: 'ito@example.com' },
   { role: '講師（イラスト）', name: '山本 えみ', email: 'yamamoto@example.com' },
   { role: '講師（イラスト）', name: '加藤 りょう', email: 'kato@example.com' },
-  { role: '保護者（陽翔・咲希）', name: '田中 さくら', email: 'tanaka@example.com' },
-  { role: '保護者（結衣）', name: '佐藤 ひろみ', email: 'sato@example.com' },
-  { role: '保護者（大和・ひなた）', name: '鈴木 なおき', email: 'suzuki@example.com' },
+  { role: '保護者（プログラミング・2人）', name: '田中 さくら', email: 'tanaka@example.com' },
+  { role: '保護者（プログラミング）', name: '佐藤 ひろみ', email: 'sato@example.com' },
+  { role: '保護者（プログラミング・2人）', name: '鈴木 なおき', email: 'suzuki@example.com' },
+  { role: '保護者（プログラミング・2人）', name: '山田 かおり', email: 'yamada@example.com' },
+  { role: '保護者（プログラミング）', name: '中川 たかし', email: 'nakagawa@example.com' },
+  { role: '保護者（プログラミング・2人）', name: '石井 まなみ', email: 'ishii@example.com' },
+  { role: '保護者（イラスト・2人）', name: '森 ちひろ', email: 'mori@example.com' },
+  { role: '保護者（イラスト・2人）', name: '池田 ゆうこ', email: 'ikeda@example.com' },
+  { role: '保護者（イラスト・2人）', name: '大西 けいすけ', email: 'onishi@example.com' },
+  { role: '保護者（イラスト）', name: '平野 あき', email: 'hirano@example.com' },
+  { role: '保護者（イラスト・2人）', name: '内田 まゆみ', email: 'uchida@example.com' },
+  { role: '保護者（イラスト）', name: '三浦 しんじ', email: 'miura@example.com' },
+  { role: '保護者（イラスト・2人）', name: '松本 なつき', email: 'matsumoto@example.com' },
+  { role: '保護者（イラスト）', name: '木下 ひかる', email: 'kinoshita@example.com' },
+  { role: '保護者（イラスト・2人）', name: '川村 さおり', email: 'kawamura@example.com' },
 ];
 
 export function DemoAccounts({ onPick }: { onPick: (email: string, password: string) => void }) {
@@ -53,8 +67,8 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
                 className="flex w-full items-center gap-sm rounded-sm px-xs py-[5px] text-left
                   text-[12px] hover:bg-[#f3e6cd]"
               >
-                <span className="w-[150px] shrink-0 text-muted">{a.role}</span>
-                <span className="w-[80px] shrink-0 text-ink">{a.name}</span>
+                <span className="w-[190px] shrink-0 text-muted">{a.role}</span>
+                <span className="w-[100px] shrink-0 text-ink">{a.name}</span>
                 <span className="min-w-0 flex-1 truncate text-muted">{a.email}</span>
               </button>
             </li>

@@ -34,9 +34,23 @@ declare
   v_emp_ito       uuid := 'dddddddd-0000-0000-0000-000000000105';  -- イラスト
   v_emp_yamamoto  uuid := 'dddddddd-0000-0000-0000-000000000106';  -- イラスト
   v_emp_kato      uuid := 'dddddddd-0000-0000-0000-000000000107';  -- イラスト
-  v_par_tanaka  uuid := 'dddddddd-0000-0000-0000-000000000201';
-  v_par_sato    uuid := 'dddddddd-0000-0000-0000-000000000202';
-  v_par_suzuki  uuid := 'dddddddd-0000-0000-0000-000000000203';
+  /* 保護者。**きょうだいは必ず同じ事業に通う**ので、保護者も事業ごとに分かれる。
+     1人の保護者の子がプログラミングとイラストに分かれることはない。 */
+  v_par_tanaka    uuid := 'dddddddd-0000-0000-0000-000000000201';  -- プログラミング
+  v_par_sato      uuid := 'dddddddd-0000-0000-0000-000000000202';  -- プログラミング
+  v_par_suzuki    uuid := 'dddddddd-0000-0000-0000-000000000203';  -- プログラミング
+  v_par_yamada    uuid := 'dddddddd-0000-0000-0000-000000000204';  -- プログラミング
+  v_par_nakagawa  uuid := 'dddddddd-0000-0000-0000-000000000205';  -- プログラミング
+  v_par_ishii     uuid := 'dddddddd-0000-0000-0000-000000000206';  -- プログラミング
+  v_par_mori      uuid := 'dddddddd-0000-0000-0000-000000000207';  -- イラスト
+  v_par_ikeda     uuid := 'dddddddd-0000-0000-0000-000000000208';  -- イラスト
+  v_par_onishi    uuid := 'dddddddd-0000-0000-0000-000000000209';  -- イラスト
+  v_par_hirano    uuid := 'dddddddd-0000-0000-0000-000000000210';  -- イラスト
+  v_par_uchida    uuid := 'dddddddd-0000-0000-0000-000000000211';  -- イラスト
+  v_par_miura     uuid := 'dddddddd-0000-0000-0000-000000000212';  -- イラスト
+  v_par_matsumoto uuid := 'dddddddd-0000-0000-0000-000000000213';  -- イラスト
+  v_par_kinoshita uuid := 'dddddddd-0000-0000-0000-000000000214';  -- イラスト
+  v_par_kawamura  uuid := 'dddddddd-0000-0000-0000-000000000215';  -- イラスト
   v_this_month  text := to_char(current_date, 'YYYY-MM');
   v_next_month  text := to_char(current_date + interval '1 month', 'YYYY-MM');
   v_day         date;
@@ -102,7 +116,19 @@ begin
     (v_emp_kato,      'kato@example.com',      '加藤 りょう',   'employee'),
     (v_par_tanaka,    'tanaka@example.com',    '田中 さくら',   'parent'),
     (v_par_sato,      'sato@example.com',      '佐藤 ひろみ',   'parent'),
-    (v_par_suzuki,    'suzuki@example.com',    '鈴木 なおき',   'parent')
+    (v_par_suzuki,    'suzuki@example.com',    '鈴木 なおき',   'parent'),
+    (v_par_yamada,    'yamada@example.com',    '山田 かおり',   'parent'),
+    (v_par_nakagawa,  'nakagawa@example.com',  '中川 たかし',   'parent'),
+    (v_par_ishii,     'ishii@example.com',     '石井 まなみ',   'parent'),
+    (v_par_mori,      'mori@example.com',      '森 ちひろ',     'parent'),
+    (v_par_ikeda,     'ikeda@example.com',     '池田 ゆうこ',   'parent'),
+    (v_par_onishi,    'onishi@example.com',    '大西 けいすけ', 'parent'),
+    (v_par_hirano,    'hirano@example.com',    '平野 あき',     'parent'),
+    (v_par_uchida,    'uchida@example.com',    '内田 まゆみ',   'parent'),
+    (v_par_miura,     'miura@example.com',     '三浦 しんじ',   'parent'),
+    (v_par_matsumoto, 'matsumoto@example.com', '松本 なつき',   'parent'),
+    (v_par_kinoshita, 'kinoshita@example.com', '木下 ひかる',   'parent'),
+    (v_par_kawamura,  'kawamura@example.com',  '川村 さおり',   'parent')
   ) as v(id, email, name, role)
   on conflict (id) do nothing;
 
@@ -157,18 +183,46 @@ begin
     ('dddddddd-0000-0000-0000-000000000317', v_emp_kato,      300, date_trunc('year', current_date)::date)
   on conflict (id) do nothing;
 
-  -- ---------------------------------------------------------------- 生徒
-  --   enrollment_year は「小1になった年度」。学年 = 今年度 − enrollment_year + 1。
-  --   結衣と大和はわざとコースの学年区分から外し、進級処理に出るようにしてある。
+  /* ---------------------------------------------------------------- 生徒
+     プログラミング10名 / イラスト15名。
+     **きょうだいは必ず同じ事業。** 同じ保護者の子がプログラミングとイラストに
+     分かれることはないので、保護者ごと事業が決まる。
+     grade は「今の学年」。enrollment_year（小1になった年度）はここから逆算する
+     （学年カラムは持たない ― docs/domain.md）。小1=1 .. 小6=6、中1=7 .. 中3=9。
+     結衣・大和・芽依はわざとコースの学年区分から外し、進級処理に出るようにしてある
+     （大和は中3を超えていて該当コースが無い = suggested が null になる側の確認用）。 */
   insert into public.students (id, name, parent_id, business_id, course_id, enrollment_year)
-  select v.id, v.name, v.parent_id, v.business_id, c.id, v.enrollment_year
+  select v.id, v.name, v.parent_id, v.business_id, c.id,
+         (public.academic_year(current_date) - v.grade + 1)::smallint
   from (values
-    ('dddddddd-0000-0000-0000-000000000401'::uuid, '田中 陽翔', v_par_tanaka, v_prog, '1・2学年',         2, (public.academic_year(current_date) - 1)::smallint),
-    ('dddddddd-0000-0000-0000-000000000402'::uuid, '佐藤 結衣', v_par_sato,   v_prog, '3・4学年',         2, (public.academic_year(current_date) - 4)::smallint),
-    ('dddddddd-0000-0000-0000-000000000403'::uuid, '田中 咲希', v_par_tanaka, v_illu, '3・4学年',         2, (public.academic_year(current_date) - 3)::smallint),
-    ('dddddddd-0000-0000-0000-000000000404'::uuid, '鈴木 大和', v_par_suzuki, v_prog, '5・6学年・中学生', 3, (public.academic_year(current_date) - 9)::smallint),
-    ('dddddddd-0000-0000-0000-000000000405'::uuid, '鈴木 ひなた', v_par_suzuki, v_illu, '1・2学年',       2, public.academic_year(current_date)::smallint)
-  ) as v(id, name, parent_id, business_id, grade_label, sessions, enrollment_year)
+    -- プログラミング教室（10名）
+    ('dddddddd-0000-0000-0000-000000000401'::uuid, '田中 陽翔',   v_par_tanaka,    v_prog, '1・2学年',         2,  2),
+    ('dddddddd-0000-0000-0000-000000000402'::uuid, '田中 咲希',   v_par_tanaka,    v_prog, '3・4学年',         2,  4),
+    ('dddddddd-0000-0000-0000-000000000403'::uuid, '佐藤 結衣',   v_par_sato,      v_prog, '3・4学年',         2,  5),  -- 進級対象
+    ('dddddddd-0000-0000-0000-000000000404'::uuid, '鈴木 大和',   v_par_suzuki,    v_prog, '5・6学年・中学生', 3, 10),  -- 進級対象（該当コース無し）
+    ('dddddddd-0000-0000-0000-000000000405'::uuid, '鈴木 ひなた', v_par_suzuki,    v_prog, '1・2学年',         2,  1),
+    ('dddddddd-0000-0000-0000-000000000406'::uuid, '山田 蓮',     v_par_yamada,    v_prog, '3・4学年',         3,  3),
+    ('dddddddd-0000-0000-0000-000000000407'::uuid, '山田 葵',     v_par_yamada,    v_prog, '5・6学年・中学生', 3,  6),
+    ('dddddddd-0000-0000-0000-000000000408'::uuid, '中川 悠真',   v_par_nakagawa,  v_prog, '5・6学年・中学生', 2,  7),
+    ('dddddddd-0000-0000-0000-000000000409'::uuid, '石井 陽菜',   v_par_ishii,     v_prog, '1・2学年',         3,  2),
+    ('dddddddd-0000-0000-0000-000000000410'::uuid, '石井 律',     v_par_ishii,     v_prog, '3・4学年',         2,  4),
+    -- イラスト教室（15名）
+    ('dddddddd-0000-0000-0000-000000000411'::uuid, '森 芽依',     v_par_mori,      v_illu, '1・2学年',         2,  3),  -- 進級対象
+    ('dddddddd-0000-0000-0000-000000000412'::uuid, '森 湊',       v_par_mori,      v_illu, '1・2学年',         2,  1),
+    ('dddddddd-0000-0000-0000-000000000413'::uuid, '池田 心春',   v_par_ikeda,     v_illu, '3・4学年',         2,  4),
+    ('dddddddd-0000-0000-0000-000000000414'::uuid, '池田 樹',     v_par_ikeda,     v_illu, '5・6学年・中学生', 3,  6),
+    ('dddddddd-0000-0000-0000-000000000415'::uuid, '大西 凛',     v_par_onishi,    v_illu, '1・2学年',         3,  2),
+    ('dddddddd-0000-0000-0000-000000000416'::uuid, '大西 蒼',     v_par_onishi,    v_illu, '5・6学年・中学生', 2,  5),
+    ('dddddddd-0000-0000-0000-000000000417'::uuid, '平野 結菜',   v_par_hirano,    v_illu, '3・4学年',         2,  3),
+    ('dddddddd-0000-0000-0000-000000000418'::uuid, '内田 楓',     v_par_uchida,    v_illu, '1・2学年',         2,  1),
+    ('dddddddd-0000-0000-0000-000000000419'::uuid, '内田 陽向',   v_par_uchida,    v_illu, '3・4学年',         3,  4),
+    ('dddddddd-0000-0000-0000-000000000420'::uuid, '三浦 詩織',   v_par_miura,     v_illu, '5・6学年・中学生', 3,  8),
+    ('dddddddd-0000-0000-0000-000000000421'::uuid, '松本 奏',     v_par_matsumoto, v_illu, '1・2学年',         2,  2),
+    ('dddddddd-0000-0000-0000-000000000422'::uuid, '松本 一花',   v_par_matsumoto, v_illu, '5・6学年・中学生', 2,  6),
+    ('dddddddd-0000-0000-0000-000000000423'::uuid, '木下 大翔',   v_par_kinoshita, v_illu, '5・6学年・中学生', 3,  5),
+    ('dddddddd-0000-0000-0000-000000000424'::uuid, '川村 莉子',   v_par_kawamura,  v_illu, '3・4学年',         2,  3),
+    ('dddddddd-0000-0000-0000-000000000425'::uuid, '川村 颯',     v_par_kawamura,  v_illu, '1・2学年',         3,  1)
+  ) as v(id, name, parent_id, business_id, grade_label, sessions, grade)
   join public.courses c
     on c.business_id = v.business_id
    and c.grade_label = v.grade_label
@@ -177,9 +231,16 @@ begin
 
   /* コースの学年区分と回数が合わないと join が空振りして、生徒が黙って作られない。
      気づきにくいのでここで止める。 */
-  if (select count(*) from public.students where id::text like 'dddddddd-%') <> 5 then
-    raise exception '生徒が5名そろいませんでした（%名）。courses のマスタが想定と違う可能性があります。',
+  if (select count(*) from public.students where id::text like 'dddddddd-%') <> 25 then
+    raise exception '生徒が25名そろいませんでした（%名）。courses のマスタが想定と違う可能性があります。',
       (select count(*) from public.students where id::text like 'dddddddd-%');
+  end if;
+
+  /* きょうだいが事業をまたいでいないことを確かめる。生徒を足すときに壊しやすい。 */
+  if exists (select 1 from public.students
+              where id::text like 'dddddddd-%'
+              group by parent_id having count(distinct business_id) > 1) then
+    raise exception 'きょうだいが2つの事業に分かれています。同じ保護者の子は同じ事業にしてください。';
   end if;
 
   -- ---------------------------------------------------------------- コマ（今月・来月）
@@ -229,18 +290,45 @@ begin
         ) e
        where (e.pos + v_n) % e.total < 2
       on conflict do nothing;
-
-      -- 受講生徒。id の末尾で第1コマ／第2コマに振り分ける（1日1コマにするため）
-      insert into public.schedule_students (schedule_id, student_id, business_id)
-      select v_sched, s.id, r.business_id
-        from public.students s
-       where s.business_id = r.business_id
-         and s.active
-         and s.id::text like 'dddddddd-%'
-         and (right(s.id::text, 1)::int % 2) + 1 = r.slot_no
-      on conflict do nothing;
     end loop;
   end loop;
+
+  /* ---------------------------------------------------- 受講生徒（今月・来月）
+     **コースの月回数ぶんだけ入れる。** 全開催日に入れると、生徒25名では
+     定員（担当2名 × 係数3 = 6名）をどのコマでも超えるうえ、月2回のコースの生徒が
+     月5回通っていることになって料金と食い違う。
+     生徒ごとに開始日をずらし、使うコマ番号も交互にすることで、
+     1コマあたり2〜3名に散らしつつ「1日1コマ」を保つ。 */
+  with day_no as (
+    -- 事業 × 月ごとに開催日へ通し番号を振る。日数も一緒に持つ
+    select business_id, ym, session_date,
+           row_number() over (partition by business_id, ym order by session_date) as day_rn,
+           count(*)     over (partition by business_id, ym)                       as days
+      from (
+        select distinct business_id, to_char(session_date, 'YYYY-MM') as ym, session_date
+          from public.schedules
+         where id::text like 'dddddddd-%'
+      ) d
+  ),
+  student_no as (
+    -- 事業ごとに生徒へ 0 始まりの番号を振る。この番号で割り当てをずらす
+    select s.id, s.business_id, c.sessions_per_month,
+           row_number() over (partition by s.business_id order by s.id) - 1 as k
+      from public.students s
+      join public.courses c on c.id = s.course_id
+     where s.active and s.id::text like 'dddddddd-%'
+  )
+  insert into public.schedule_students (schedule_id, student_id, business_id)
+  select sc.id, st.id, st.business_id
+    from student_no st
+    join day_no dn
+      on dn.business_id = st.business_id
+     and (dn.day_rn + st.k) % dn.days < st.sessions_per_month
+    join public.schedules sc
+      on sc.business_id  = st.business_id
+     and sc.session_date = dn.session_date
+     and sc.slot_no      = (st.k % 2) + 1
+  on conflict do nothing;
 
   /* 済んだコマに出欠と授業記録を入れる。欠席の回に記録は付けない（トリガーが落とす）。
      絞り込みは status ではなく日付で行う。今月は月末まで確定済みなので、
@@ -282,38 +370,38 @@ begin
      where schedule_id = r.schedule_id and student_id = r.student_id;
   end loop;
 
-  -- ---------------------------------------------------------------- 希望（来月）
-  --   受講回数の上限はトリガーが見ているので、コースの回数を超えないようにする
-  v_n := 0;
-  for r in
-    select s.id as student_id, s.business_id, c.sessions_per_month
+  /* ------------------------------------------------------------ 受講希望（来月）
+     コマの割り当てとまったく同じ規則で作る。こうすると来月は
+     「希望どおりに仮確定してあるが、まだ確定していない」状態になり、
+     確定画面で希望と仮確定が食い違って見えることがない。
+     受講回数の上限と「1日1コマ」はトリガーと一意制約が見ているので、
+     この規則を崩すとここで落ちる。 */
+  with day_no as (
+    select business_id, session_date,
+           row_number() over (partition by business_id order by session_date) as day_rn,
+           count(*)     over (partition by business_id)                       as days
+      from (
+        select distinct business_id, session_date
+          from public.schedules
+         where id::text like 'dddddddd-%'
+           and to_char(session_date, 'YYYY-MM') = v_next_month
+      ) d
+  ),
+  student_no as (
+    select s.id, s.business_id, c.sessions_per_month,
+           row_number() over (partition by s.business_id order by s.id) - 1 as k
       from public.students s
       join public.courses c on c.id = s.course_id
      where s.active and s.id::text like 'dddddddd-%'
-  loop
-    /* 開催日は business_slots から引く。来月のコマはまだ作られていないので、
-       schedules を見に行くと1件も取れない。 */
-    insert into public.preferences (id, student_id, year_month, session_date, slot_no)
-    select ('dddddddd-0000-0000-0000-' || lpad((600000 + v_n * 10 + pd.rn)::text, 12, '0'))::uuid,
-           r.student_id, v_next_month, pd.session_date, pd.slot_no
-      from (
-        select d::date as session_date, min(bs.slot_no) as slot_no,
-               row_number() over (order by d) as rn
-          from generate_series(
-            date_trunc('month', current_date + interval '1 month'),
-            date_trunc('month', current_date + interval '2 month') - interval '1 day',
-            interval '1 day') d
-          join public.business_slots bs
-            on bs.business_id = r.business_id
-           and bs.weekday = extract(dow from d)::smallint
-           and bs.active
-         group by d
-         order by d
-         limit r.sessions_per_month
-      ) pd
-    on conflict do nothing;
-    v_n := v_n + 1;
-  end loop;
+  )
+  insert into public.preferences (id, student_id, year_month, session_date, slot_no)
+  select ('dddddddd-0000-0000-0000-' || lpad((600000 + row_number() over ())::text, 12, '0'))::uuid,
+         st.id, v_next_month, dn.session_date, ((st.k % 2) + 1)::smallint
+    from student_no st
+    join day_no dn
+      on dn.business_id = st.business_id
+     and (dn.day_rn + st.k) % dn.days < st.sessions_per_month
+  on conflict do nothing;
 
   /* 講師の勤務希望（来月）。担当事業の開催日に出す。
      全員が全部の日に出すと確定画面で選ぶ意味が無くなるので、講師ごとに一部の日を落とす。
@@ -335,18 +423,24 @@ begin
    where (e.pos + extract(day from d)::int) % 4 <> 0   -- 4日に1日は希望を出さない
   on conflict do nothing;
 
-  -- ---------------------------------------------------------------- 月謝（今月）
-  --   ひなたは行を作らない = 「請求前」の表示を確かめるため
+  /* ------------------------------------------------------------ 月謝（今月）
+     3人に1人を未納にして、督促の表示を確かめられるようにする。
+     1人ぶんは行そのものを作らない = 「請求前」の表示の確認用。
+     生徒名で分岐させない（生徒を入れ替えるたびに直すことになるため）。 */
   insert into public.fees (id, student_id, year_month, amount, status, paid_date)
-  select ('dddddddd-0000-0000-0000-' || lpad((800000 + row_number() over (order by s.name))::text, 12, '0'))::uuid,
-         s.id, v_this_month, c.monthly_fee,
-         case when s.name in ('田中 陽翔', '鈴木 大和') then 'paid'::public.fee_status
-              else 'unpaid'::public.fee_status end,
-         case when s.name in ('田中 陽翔', '鈴木 大和')
-              then date_trunc('month', current_date)::date + 9 else null end
-    from public.students s
-    join public.courses c on c.id = s.course_id
-   where s.id::text like 'dddddddd-%' and s.name <> '鈴木 ひなた'
+  select ('dddddddd-0000-0000-0000-' || lpad((800000 + t.rn)::text, 12, '0'))::uuid,
+         t.id, v_this_month, t.monthly_fee,
+         case when t.rn % 3 = 0 then 'unpaid'::public.fee_status
+              else 'paid'::public.fee_status end,
+         case when t.rn % 3 = 0 then null
+              else date_trunc('month', current_date)::date + 9 end
+    from (
+      select s.id, c.monthly_fee, row_number() over (order by s.id) as rn
+        from public.students s
+        join public.courses c on c.id = s.course_id
+       where s.id::text like 'dddddddd-%'
+    ) t
+   where t.rn > 1
   on conflict (student_id, year_month) do nothing;
 
   -- ---------------------------------------------------------------- 欠席連絡
@@ -418,6 +512,22 @@ union all select '  兼任（0であること）', count(*) from (
           group by employee_id having count(*) > 1) x
 union all select '保護者', count(*) from public.users where role = 'parent'
 union all select '生徒',   count(*) from public.students
+union all select '  プログラミング教室（10名）', count(*)
+         from public.students s
+         join public.businesses b on b.id = s.business_id
+        where b.name = 'プログラミング教室' and s.id::text like 'dddddddd-%'
+union all select '  イラスト教室（15名）', count(*)
+         from public.students s
+         join public.businesses b on b.id = s.business_id
+        where b.name = 'イラスト教室' and s.id::text like 'dddddddd-%'
+union all select '  きょうだいの事業またぎ（0であること）', count(*) from (
+         select parent_id from public.students
+          where id::text like 'dddddddd-%'
+          group by parent_id having count(distinct business_id) > 1) y
+-- 生徒を増やすと真っ先に壊れるところ。定員 = 担当講師数 × 係数
+union all select '  定員超過のコマ（0であること）', count(*)
+         from public.schedule_capacity
+        where is_over_capacity and schedule_id::text like 'dddddddd-%'
 union all select 'コマ（今月）', count(*) from public.schedules
          where to_char(session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM')
 union all select '  うち確定（全部であること）', count(*) from public.schedules
