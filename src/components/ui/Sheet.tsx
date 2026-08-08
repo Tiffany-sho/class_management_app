@@ -1,5 +1,6 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Icon } from './Icon';
+import { lockBodyScroll, pushEscapeHandler } from './overlayStack';
 
 interface Props {
   open: boolean;
@@ -13,19 +14,25 @@ interface Props {
 /**
  * 右から出る詳細パネル（モバイルでは下から）。
  * Esc で閉じられること、開いている間に背面がスクロールしないことを守る。
+ *
+ * **背面の固定と Esc は overlayStack で共有する。** シートは重なることがある
+ * （日別シートの上に生徒詳細など）ので、各自が「前の値」を覚えて戻す方式だと、
+ * 戻す順によって 'hidden' が残り、**シートが無いのにスクロールできなくなる**。
+ *
+ * `onClose` は**依存配列に入れない**。呼ぶ側はほぼ毎回その場で関数を作るので、
+ * 入れると親が再描画するたびに効果が張り直され、固定の状態が余計に揺れる。
+ * 最新の関数は ref で拾う。
  */
 export function Sheet({ open, title, subtitle, onClose, footer, children }: Props) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
+    const release = lockBodyScroll();
+    const pop = pushEscapeHandler(() => onCloseRef.current());
+    return () => { pop(); release(); };
+  }, [open]);
 
   if (!open) return null;
 
