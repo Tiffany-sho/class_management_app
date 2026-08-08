@@ -1,57 +1,48 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
-  Badge, Button, Card, Empty, Loading, ErrorNote, Note, Segmented, SectionLabel,
-  TextArea, useToast,
+  Card, Empty, ErrorNote, Loading, Note, Panel, SectionLabel, useToast,
 } from '@/components/ui';
-import { useAsync } from '@/hooks/useAsync';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { StudentDetailSheet } from '@/features/students/StudentDetailSheet';
+import { StaffDetailSheet } from '@/features/staff/StaffDetailSheet';
+import { setAttendance, setLessonNote } from '@/lib/queries';
+import { currentMonthKey, formatDayJa, formatTimeRange } from '@/lib/date';
 import { toMessage } from '@/lib/supabase';
-import { fetchBusinesses, fetchScheduleMonth, setAttendance, setLessonNote } from '@/lib/queries';
-import { currentMonthKey, formatDayJa, formatTimeRange, isPast } from '@/lib/date';
-import { MonthHeader } from './MonthHeader';
 import type { AttendanceStatus } from '@/types/domain';
-
-const OPTIONS: { value: AttendanceStatus; label: string }[] = [
-  { value: 'present', label: '出席' },
-  { value: 'late', label: '遅刻' },
-  { value: 'absent', label: '欠席' },
-];
+import { AttendanceList } from './AttendanceList';
+import { LessonNoteSheet, type NoteTarget } from './LessonNoteSheet';
+import { NextLessonCard } from './NextLessonCard';
+import { SameDaySlots } from './SameDaySlots';
+import { useEmployeeDay, type DaySlot } from './useEmployeeDay';
 
 /**
- * 講師のホーム（担当コマ）。
+ * 講師のホーム（担当）。モックの「担当」タブと同じ3段構成にする。
  *
- * 出欠と授業記録は**同じ1行**なので、ここで両方入力する。
- * 欠席にすると記録は残せない（DB のトリガーが note を落とす）。
- * 書けるのは自分が担当しているコマだけで、これは RLS が保証している。
+ *   直近の担当 → 出席 → 同日の自分の担当
+ *
+ * **月ぶんのコマを並べない。** 開いて確かめたいのは「次はいつで、誰が来るか」で、
+ * 月の一覧の中にそれが埋もれると毎回探すことになる。
+ *
+ * 生徒名・講師名は押せる。押すとそれぞれの詳細が開く（講師には月謝も他人の
+ * 労働条件も出ない ―― 出さないのではなく RLS が返さない）。
  */
 export function EmployeeHomePage() {
   const { toast } = useToast();
-  const [month, setMonth] = useState(currentMonthKey());
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  const { user } = useAuth();
+  const meId = user?.id ?? null;
+
   const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<NoteTarget | null>(null);
+  const [student, setStudent] = useState<string | null>(null);
+  const [staff, setStaff] = useState<string | null>(null);
 
-  const state = useAsync(async () => {
-    const [businesses, slots] = await Promise.all([fetchBusinesses(), fetchScheduleMonth(month)]);
-    return { businesses, slots };
-  }, [month]);
+  const { state, next, sameDay, unrecorded, mineCount } = useEmployeeDay(meId);
 
-  const days = useMemo(() => {
-    const d = state.data;
-    if (!d) return [];
-    const bizMap = new Map(d.businesses.map((b) => [b.id, b]));
-    return d.slots
-      .map((s) => ({ slot: s, biz: bizMap.get(s.businessId), past: isPast(s.sessionDate) }))
-      .sort((a, b) =>
-        a.slot.sessionDate.localeCompare(b.slot.sessionDate) || a.slot.slotNo - b.slot.slotNo);
-  }, [state.data]);
-
-  const mark = async (
-    scheduleId: string, studentId: string, status: AttendanceStatus,
-  ) => {
-    const key = `${scheduleId}-${studentId}`;
+  const run = async (key: string, fn: () => Promise<void>, ok: string) => {
     setBusy(key);
     try {
-      await setAttendance(scheduleId, studentId, status);
-      toast(status === 'absent' ? '欠席にしました（記録は残りません）' : '出欠を記録しました');
+      await fn();
+      toast(ok);
       state.reload();
     } catch (e) {
       toast(toMessage(e));
@@ -60,152 +51,141 @@ export function EmployeeHomePage() {
     }
   };
 
-  const saveNote = async (scheduleId: string, studentId: string) => {
-    const key = `${scheduleId}-${studentId}`;
-    setBusy(key);
-    try {
-      await setLessonNote(scheduleId, studentId, notes[key] ?? '');
-      toast('授業記録を保存しました');
-      setNotes((p) => { const { [key]: _drop, ...rest } = p; return rest; });
-      state.reload();
-    } catch (e) {
-      toast(toMessage(e));
-    } finally {
-      setBusy(null);
-    }
+  const mark = (slot: DaySlot, studentId: string, status: AttendanceStatus) => {
+    const name = slot.slot.students.find((x) => x.studentId === studentId)?.studentName ?? '生徒';
+    void run(
+      `${slot.slot.id}-${studentId}`,
+      () => setAttendance(slot.slot.id, studentId, status),
+      status === 'absent'
+        ? `${name} を欠席にしました（授業記録は残りません）`
+        : `${name} の出欠を記録しました`,
+    );
+  };
+
+  const openNote = (slot: DaySlot, studentId: string) => {
+    const st = slot.slot.students.find((x) => x.studentId === studentId);
+    if (!st) return;
+    setNote({
+      scheduleId: slot.slot.id,
+      studentId,
+      studentName: st.studentName,
+      sessionDate: slot.slot.sessionDate,
+      slotNo: slot.slot.slotNo,
+      businessName: slot.business?.name ?? '—',
+      current: st.note ?? '',
+    });
+  };
+
+  const saveNote = (text: string) => {
+    const t = note;
+    if (!t) return;
+    void run(
+      `${t.scheduleId}-${t.studentId}`,
+      async () => {
+        await setLessonNote(t.scheduleId, t.studentId, text);
+        setNote(null);
+      },
+      text.trim() ? '授業記録を保存しました' : '授業記録を消しました',
+    );
   };
 
   if (state.loading && !state.data) return <Loading />;
   if (state.error && !state.data) return <ErrorNote message={state.error} onRetry={state.reload} />;
 
-  const totalSlots = days.length;
-  const unmarked = days
-    .filter((x) => x.past)
-    .reduce((a, x) => a + x.slot.students.filter((s) => !s.attendanceStatus).length, 0);
-
   return (
     <div>
-      <MonthHeader month={month} onChange={setMonth}>
-        <div className="mt-sm flex justify-center gap-lg text-center">
-          <div>
-            <div className="text-[11px] text-muted">担当コマ</div>
-            <div className="text-[18px] font-medium text-ink tnum">{totalSlots}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-muted">未マーク</div>
-            <div className={`text-[18px] font-medium tnum ${unmarked ? 'text-coral' : 'text-ink'}`}>
-              {unmarked}
-            </div>
-          </div>
-        </div>
-      </MonthHeader>
+      <SectionLabel>直近の担当</SectionLabel>
+      <NextLessonCard
+        label={`担当コマ ${mineCount}件（今月・来月）`}
+        lesson={next ? {
+          sessionDate: next.slot.sessionDate,
+          slotNo: next.slot.slotNo,
+          startTime: next.slot.startTime,
+          endTime: next.slot.endTime,
+          businessName: next.business?.name ?? '—',
+          colorKey: next.business?.colorKey ?? 'forest',
+          detail: `生徒${next.slot.students.length}名`,
+        } : null}
+        emptyText="担当するコマはまだありません。スケジュールが確定すると出ます。"
+      />
 
-      {unmarked > 0 ? (
-        <Note icon="warning">
-          出欠が未記録の生徒が <strong className="text-ink">{unmarked}名</strong> います。
-          記録しないと保護者のマイページに何も出ません。
-        </Note>
+      {next ? (
+        <Panel
+          title="出席"
+          description={`${formatDayJa(next.slot.sessionDate)} ${formatTimeRange(next.slot.startTime, next.slot.endTime)} ・ 押すと記録されます`}
+        >
+          <AttendanceList
+            slot={next.slot}
+            busy={busy}
+            onMark={(id, s) => mark(next, id, s)}
+            onOpenNote={(id) => openNote(next, id)}
+            onOpenStudent={setStudent}
+          />
+        </Panel>
       ) : null}
 
-      <SectionLabel>担当コマ</SectionLabel>
-      {days.length === 0 ? (
-        <Card><Empty title="この月に担当しているコマはありません。" /></Card>
-      ) : (
-        days.map(({ slot, biz, past }) => (
-          <Card key={slot.id} className="mb-md">
-            <div className="flex flex-wrap items-center gap-xs border-b border-hairline px-md py-sm">
-              <span
-                aria-hidden
-                className={`h-[9px] w-[9px] rounded-pill ${biz?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
+      {next ? (
+        <Panel title="同日の自分の担当" description="担当していない教室のコマは出ません">
+          <SameDaySlots slots={sameDay} meId={meId} onOpenStaff={setStaff} />
+        </Panel>
+      ) : null}
+
+      {/* モックには無い。これが無いと、休んだ日の記録を後から入れる手段が無くなる */}
+      {unrecorded.length > 0 ? (
+        <>
+          <SectionLabel>記録がまだのコマ</SectionLabel>
+          <Note icon="warning">
+            出欠が未記録のコマが <strong className="text-ink">{unrecorded.length}件</strong> あります。
+            記録しないと保護者のマイページに何も出ません。
+          </Note>
+          {unrecorded.map((x) => (
+            <Card key={x.slot.id} className="mb-md p-md">
+              <div className="mb-sm flex flex-wrap items-center gap-xs">
+                <span
+                  aria-hidden
+                  className={`h-[9px] w-[9px] rounded-pill ${x.business?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
+                />
+                <span className="text-[14px] text-ink">{formatDayJa(x.slot.sessionDate)}</span>
+                <span className="text-[12px] text-muted">
+                  {x.business?.name ?? '—'} 第{x.slot.slotNo}コマ
+                </span>
+              </div>
+              <AttendanceList
+                slot={x.slot}
+                busy={busy}
+                onMark={(id, s) => mark(x, id, s)}
+                onOpenNote={(id) => openNote(x, id)}
+                onOpenStudent={setStudent}
               />
-              <span className="text-[14px] text-ink">{formatDayJa(slot.sessionDate)}</span>
-              <span className="text-[12px] text-muted tnum">
-                {formatTimeRange(slot.startTime, slot.endTime)}
-              </span>
-              <span className="text-[12px] text-muted">{biz?.name ?? '—'} 第{slot.slotNo}コマ</span>
-              {past ? null : <Badge tone="info">予定</Badge>}
-            </div>
+            </Card>
+          ))}
+        </>
+      ) : null}
 
-            {slot.students.length === 0 ? (
-              <div className="px-md py-sm text-[13px] text-muted">受講生徒はいません。</div>
-            ) : (
-              <ul>
-                {slot.students.map((st) => {
-                  const key = `${slot.id}-${st.studentId}`;
-                  const editing = notes[key] !== undefined;
-                  return (
-                    <li key={st.studentId} className="border-b border-hairline px-md py-sm last:border-0">
-                      <div className="flex items-center gap-sm">
-                        <span className="min-w-0 flex-1 text-[14px] text-ink">{st.studentName}</span>
-                        {past ? (
-                          <Segmented
-                            value={st.attendanceStatus ?? ''}
-                            options={OPTIONS}
-                            onChange={(v) => void mark(slot.id, st.studentId, v)}
-                            disabled={busy === key}
-                          />
-                        ) : null}
-                      </div>
-
-                      {past && st.attendanceStatus !== 'absent' ? (
-                        <div className="mt-xs">
-                          {editing ? (
-                            <>
-                              <TextArea
-                                rows={3}
-                                value={notes[key] ?? ''}
-                                onChange={(e) => setNotes((p) => ({ ...p, [key]: e.target.value }))}
-                                placeholder="今日進めた内容や様子を書きます"
-                              />
-                              <div className="mt-xs flex gap-xs">
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  disabled={busy === key}
-                                  onClick={() => void saveNote(slot.id, st.studentId)}
-                                >
-                                  保存
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => setNotes((p) => {
-                                    const { [key]: _drop, ...rest } = p; return rest;
-                                  })}
-                                >
-                                  やめる
-                                </Button>
-                              </div>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              className="text-left text-[12px] leading-relaxed text-muted underline decoration-hairline"
-                              onClick={() => setNotes((p) => ({ ...p, [key]: st.note ?? '' }))}
-                            >
-                              {st.note ?? '授業記録を書く'}
-                            </button>
-                          )}
-                        </div>
-                      ) : null}
-
-                      {past && st.attendanceStatus === 'absent' ? (
-                        <div className="mt-[4px] text-[12px] text-muted">
-                          欠席のため授業記録はありません。
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-        ))
-      )}
+      {mineCount === 0 ? (
+        <Card><Empty title="担当しているコマがありません。" /></Card>
+      ) : null}
 
       <Note>
         出欠と授業記録は<strong className="text-ink">同じ1件</strong>として保存されます。
-        欠席にすると記録は残りません（休んだ回に所見だけが残ることを防ぐためです）。
+        欠席にすると記録は残りません（休んだ回に所見だけが残ることを防ぐためです）。<br />
+        <strong className="text-ink">生徒名・講師名を押すと詳細が開きます。</strong>
       </Note>
+
+      <LessonNoteSheet
+        target={note}
+        busy={busy !== null}
+        onCancel={() => setNote(null)}
+        onSave={saveNote}
+      />
+      <StudentDetailSheet studentId={student} mode="employee" onClose={() => setStudent(null)} />
+      <StaffDetailSheet
+        employeeId={staff}
+        meId={meId}
+        mode="employee"
+        month={currentMonthKey()}
+        onClose={() => setStaff(null)}
+      />
     </div>
   );
 }

@@ -3,6 +3,9 @@ import { Card, Empty, Loading, ErrorNote, Note, SectionLabel } from '@/component
 import { MonthCalendar, CalendarLegend, type DayState } from '@/components/calendar/MonthCalendar';
 import { DayDetailSheet } from '@/components/calendar/DayDetailSheet';
 import { useAsync } from '@/hooks/useAsync';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { StudentDetailSheet } from '@/features/students/StudentDetailSheet';
+import { StaffDetailSheet } from '@/features/staff/StaffDetailSheet';
 import { fetchBusinesses, fetchScheduleMonth } from '@/lib/queries';
 import { currentMonthKey, formatDayJa, formatMonthJa, formatTimeRange, isPast } from '@/lib/date';
 import { MonthHeader } from './MonthHeader';
@@ -13,17 +16,25 @@ import { MonthHeader } from './MonthHeader';
  * **月カレンダーが主で、一覧はその下**（モックと同じ構成）。日曜は2教室が
  * 並行開催されるので、日単位で見ないと自分がどちらに入っているか分からない。
  *
- * 出るのは**自分が担当する確定済みのコマだけ**。担当していない教室のコマも、
- * 未確定のコマも RLS が返さないので、ここで絞り込みを書いていない。
+ * **自分が担当するコマだけに絞るのはここ。** 以前は「RLS が返さないので絞り込みは
+ * 要らない」と書いてあったが、それは誤りだった。`schedules` の select ポリシーは
+ * 「管理者 または 確定済み」なので、**確定したコマは担当していない教室のぶんも
+ * 全員に見える**（コマの行そのものには個人情報が無いため、その設計自体は正しい）。
+ * 絞らずに出すと、他の講師のコマが自分の予定として並ぶ。
  */
 export function EmployeePlan() {
   const [month, setMonth] = useState(currentMonthKey());
   const [day, setDay] = useState<string | null>(null);
+  const [student, setStudent] = useState<string | null>(null);
+  const [staff, setStaff] = useState<string | null>(null);
+  const { user } = useAuth();
+  const meId = user?.id ?? null;
 
   const state = useAsync(async () => {
-    const [businesses, slots] = await Promise.all([fetchBusinesses(), fetchScheduleMonth(month)]);
+    const [businesses, all] = await Promise.all([fetchBusinesses(), fetchScheduleMonth(month)]);
+    const slots = all.filter((s) => meId && s.employees.some((e) => e.id === meId));
     return { businesses, slots };
-  }, [month]);
+  }, [month, meId ?? '']);
 
   const byDate = useMemo(() => {
     const m = new Map<string, DayState>();
@@ -113,6 +124,16 @@ export function EmployeePlan() {
         slots={d.slots.filter((s) => s.sessionDate === day)}
         businesses={d.businesses}
         onClose={() => setDay(null)}
+        onOpenStudent={setStudent}
+        onOpenStaff={setStaff}
+      />
+      <StudentDetailSheet studentId={student} mode="employee" onClose={() => setStudent(null)} />
+      <StaffDetailSheet
+        employeeId={staff}
+        meId={meId}
+        mode="employee"
+        month={month}
+        onClose={() => setStaff(null)}
       />
     </div>
   );

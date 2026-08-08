@@ -9,9 +9,26 @@ export function Card({ className = '', children }: { className?: string; childre
   );
 }
 
-export function Panel({ className = '', children }: { className?: string; children: ReactNode }) {
+/**
+ * 見出し付きの白面。
+ *
+ * `description` は**見出しのすぐ下**に置く。「タップで記録されます」のような
+ * 操作の説明は、対象から離すと読まれない。
+ */
+export function Panel({
+  title, description, className = '', children,
+}: {
+  title?: ReactNode;
+  description?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <div className={`rounded-md border border-hairline bg-canvas p-lg shadow-card ${className}`}>
+    <div className={`mb-md rounded-md border border-hairline bg-canvas p-lg shadow-card ${className}`}>
+      {title ? <h3 className="text-[14px] font-medium text-ink">{title}</h3> : null}
+      {description ? (
+        <div className="mb-sm mt-[2px] text-[12px] text-muted">{description}</div>
+      ) : title ? <div className="mb-sm" /> : null}
       {children}
     </div>
   );
