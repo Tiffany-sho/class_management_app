@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "check:queries": "node scripts/check-queries.mjs",
+    "check:layout": "node scripts/layout-check.mjs",
     "lint": "eslint src",
     "gen:types": "supabase gen types typescript --linked > src/types/database.ts"
   },
@@ -29,6 +30,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "pg": "^8.22.0",
+    "playwright-core": "^1.62.1",
     "postcss": "^8.4.47",
     "supabase": "^1.226.4",
     "tailwindcss": "^3.4.13",

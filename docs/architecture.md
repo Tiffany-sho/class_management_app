@@ -159,10 +159,16 @@ src/
 npm install
 cp .env.example .env      # Supabase の URL と anon key を入れる
 npm run dev               # http://localhost:5173
-npm run typecheck        # tsc -b --noEmit
+npm run typecheck         # tsc -b --noEmit
 npm run build
+npm run check:queries     # DB に投げるものを本物のスキーマに当てる
+npm run check:layout      # 本物のブラウザで実寸を測る（先に npm run preview）
 npm run gen:types         # supabase link 済みであること
 ```
+
+> **`tailwind.config.js` を変えたら `npm run dev` は再起動する。** 起動したままの
+> dev サーバーは古い CSS を配り続けるので、**直したはずのものが直って見えない**。
+> 見た目を確かめるときは `npm run build && npm run preview` のほうが確実。
 
 ### DB に投げるものを検査する（`npm run check:queries`）
 
@@ -179,6 +185,26 @@ npm run gen:types         # supabase link 済みであること
 **手書きの fixture ではこの種の間違いは永久に出ない。** 埋め込み結果を人が作り込んでいるので関係の解決を経ず、知らない列でのフィルタも素通りする。**自分で書いた fixture は自分の思い込みをそのまま写すので、思い込みを反証できない。**
 
 > **複合外部キーは列名では引けない。** `schedule_students → schedules` は `(schedule_id, business_id)` の複合キーなので、`schedules:schedule_id` と書くと 400 になる。`schedules!schedule_students_schedule_fk` と**制約名**で指定する。複合キーの一覧は `pg_constraint` を `array_length(conkey,1) > 1` で引けば出る。
+
+### 見た目を検査する（`npm run check:layout`）
+
+**jsdom はレイアウトを計算しない。** クラス名が正しいかまでは見られるが、**実際に収まっているかは測れない**。実際、文字サイズを上げたときに出席リストの氏名が3行に折れていたのを、jsdom のテストは1本も落とさずに通した（文字は全部見えているので「切り詰めていない」検査は成立してしまう）。
+
+`npm run check:layout` は、**端末にインストール済みの Chrome / Edge** を playwright-core で開き、375 / 768 / 1280px の3幅でロールごとに全タブを回って測る。Chromium はダウンロードしない。
+
+| 検査 | 見るもの |
+|------|---------|
+| 文字サイズ | ブラウザが計算した `clamp()` の実値。11px 未満が無いこと |
+| はみ出し | `scrollWidth - clientWidth`（ページ全体・要素ごと） |
+| 折り返し | **rect の上端が何種類あるか**＝行ボックスの数 |
+
+> 行数の数え方は2回まちがえた。**高さ ÷ 行の高さ**は padding を数えてボタンが常に2行に見え、**`Range.getClientRects()` の個数**は「3・4学年」のように欧文と和文が混ざると同じ行でもフォントごとに分かれて4行と数える。
+
+**この検査自体が落ちることを毎回確かめている。** わざと折り返す要素を差し込んで、見つけられなければ検査ごと失敗にする（「0件」が数え方の誤りでないと言い切れないため）。
+
+**`npm run dev` のサーバーには当てないこと。** 上のとおり古い CSS を配っている可能性がある。`npm run preview` を使う。
+
+---
 
 **`.env` が無くてもアプリは起動する。** 真っ白ではなく「何を設定すればいいか」の画面が出る。設定漏れと故障を区別できるようにするため。
 

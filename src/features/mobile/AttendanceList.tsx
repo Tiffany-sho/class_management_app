@@ -21,6 +21,11 @@ interface Props {
  * 名前・出欠・記録を**1行に横並び**にする（モックの「出席」パネル）。
  * 生徒ごとに縦へ積むと、10名で画面が埋まって出欠を付け終えるまでスクロールし続ける。
  *
+ * **ただしスマホでは名前を1行占有させる。** 出欠3つ＋記録のボタンを並べると
+ * 名前に 60px ほどしか残らず、「鈴木 ひなた」が3行に折れる。**氏名を折るくらいなら
+ * 行を1つ増やすほうがよい**（誰の出欠を付けているのか読めなくなるため）。
+ * 幅が足りる画面（640px 以上）では元どおり横に並べる。
+ *
  * 授業記録は行に直接書かせず、押して開く。所見は他の生徒の画面を見ながら書くもの
  * ではないうえ、入力欄が並ぶと出欠のボタンが押しにくくなる。
  */
@@ -35,7 +40,7 @@ export function AttendanceList({ slot, busy, onMark, onOpenNote, onOpenStudent }
         const key = `${slot.id}-${st.studentId}`;
         return (
           <li key={st.studentId} className="flex flex-wrap items-center gap-xs">
-            <span className="min-w-0 flex-1 text-ui-md">
+            <span className="w-full whitespace-nowrap text-ui-md sm:w-auto sm:flex-1">
               <NameLink onClick={() => onOpenStudent(st.studentId)}>{st.studentName}</NameLink>
             </span>
             <Segmented
