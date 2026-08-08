@@ -46,8 +46,8 @@ export function DayCard({ day, businesses, selected, onSelect }: Props) {
           : 'border-hairline bg-canvas hover:border-border-strong'}`}
     >
       <div className="flex items-baseline gap-[4px]">
-        <span className="text-[18px] font-medium text-ink tnum">{d}</span>
-        <span className={`text-[12px] ${w === 0 ? 'text-coral' : w === 6 ? 'text-info' : 'text-muted'}`}>
+        <span className="text-ui-xl font-medium text-ink tnum">{d}</span>
+        <span className={`text-ui-sm ${w === 0 ? 'text-coral' : w === 6 ? 'text-info' : 'text-muted'}`}>
           日（{WEEKDAY_JA[w]}）
         </span>
         <span className="flex-1" />
@@ -60,7 +60,7 @@ export function DayCard({ day, businesses, selected, onSelect }: Props) {
           return (
             <span
               key={businessId}
-              className={`rounded-sm px-[5px] py-[1px] text-[10px] leading-tight text-on-dark
+              className={`rounded-sm px-[5px] py-[1px] text-ui-2xs leading-tight text-on-dark
                 ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
             >
               {b?.name?.replace('教室', '') ?? '—'} {count}
@@ -69,7 +69,7 @@ export function DayCard({ day, businesses, selected, onSelect }: Props) {
         })}
       </div>
 
-      <div className="mt-xs text-[11px] tnum">
+      <div className="mt-xs text-ui-xs tnum">
         {needsWork ? (
           <span className="text-coral">
             {day.noEmployee > 0 ? `担当未定 ${day.noEmployee}` : ''}

@@ -61,7 +61,7 @@ export function MasterCoursesPage() {
         )];
         return (
           <div key={b.id} className="mb-lg">
-            <h3 className="mb-xs flex items-center gap-[6px] text-[14px] font-medium text-ink">
+            <h3 className="mb-xs flex items-center gap-[6px] text-ui-md font-medium text-ink">
               <span
                 aria-hidden
                 className={`h-[10px] w-[10px] rounded-pill ${b.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
@@ -71,7 +71,7 @@ export function MasterCoursesPage() {
             <Panel className="overflow-x-auto p-0">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-hairline text-[12px] text-muted">
+                  <tr className="border-b border-hairline text-ui-sm text-muted">
                     <th className="px-md py-sm text-left font-medium">学年区分</th>
                     <th className="px-md py-sm text-right font-medium">対象学年</th>
                     <th className="px-md py-sm text-right font-medium">月2回</th>
@@ -103,7 +103,7 @@ export function MasterCoursesPage() {
                           hover:bg-surface-soft focus:bg-surface-soft focus:outline-none"
                       >
                         <td className="px-md py-sm text-ink">{label}</td>
-                        <td className="px-md py-sm text-right text-[12px] text-muted tnum">
+                        <td className="px-md py-sm text-right text-ui-sm text-muted tnum">
                           {range ? `${range.gradeMin}〜${range.gradeMax}` : '—'}
                         </td>
                         <td className="px-md py-sm text-right">{feeCell(two)}</td>
@@ -121,7 +121,7 @@ export function MasterCoursesPage() {
         );
       })}
 
-      <p className="text-[12px] leading-relaxed text-muted">
+      <p className="text-ui-sm leading-relaxed text-muted">
         「標準」は各学年区分の既定コースです。
         <strong className="text-ink">5・6学年・中学生だけ標準が月3回</strong>で、月2回にすると安くなります
         （他の学年とは増減が逆になるため、「追加料金」という言い方はしないでください）。

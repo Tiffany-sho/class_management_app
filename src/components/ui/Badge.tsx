@@ -15,7 +15,7 @@ const TONE: Record<Tone, string> = {
 /** 状態は色だけで表さない。必ず文字を入れること（色覚と隣接面の見分けのため） */
 export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className={`inline-block rounded-pill px-xs py-[2px] text-[11px] font-medium ${TONE[tone]}`}>
+    <span className={`inline-block rounded-pill px-xs py-[2px] text-ui-xs font-medium ${TONE[tone]}`}>
       {children}
     </span>
   );

@@ -38,8 +38,8 @@ export function LessonItem({
           aria-hidden
           className={`h-[9px] w-[9px] rounded-pill ${colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
         />
-        <span className="text-[14px] text-ink">{formatDayJa(sessionDate)}</span>
-        <span className="text-[12px] text-muted tnum">{formatTimeRange(startTime, endTime)}</span>
+        <span className="text-ui-md text-ink">{formatDayJa(sessionDate)}</span>
+        <span className="text-ui-sm text-muted tnum">{formatTimeRange(startTime, endTime)}</span>
         {past && attendanceStatus ? (
           <Badge tone={attendanceTone(attendanceStatus)}>{ATTENDANCE_LABEL[attendanceStatus]}</Badge>
         ) : null}
@@ -51,7 +51,7 @@ export function LessonItem({
       {extra}
 
       {past ? (
-        <div className="mt-[5px] text-[12px] leading-relaxed text-muted">
+        <div className="mt-[5px] text-ui-sm leading-relaxed text-muted">
           {attendanceStatus === 'absent' ? (
             '欠席のため授業記録はありません。'
           ) : note ? (

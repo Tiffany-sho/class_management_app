@@ -55,7 +55,7 @@ export function LessonNoteSheet({ target, busy, onCancel, onSave }: Props) {
         onChange={(e) => setText(e.target.value)}
         placeholder="今日進めた内容や様子を書きます"
       />
-      <p className="mt-sm text-[12px] leading-relaxed text-muted">
+      <p className="mt-sm text-ui-sm leading-relaxed text-muted">
         ここに書いた内容は<strong className="text-ink">保護者のマイページにそのまま出ます。</strong>
         空にして保存すると記録を消せます。
       </p>

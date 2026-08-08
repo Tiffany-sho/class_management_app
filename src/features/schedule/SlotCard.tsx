@@ -34,7 +34,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
           aria-hidden
           className={`h-[9px] w-[9px] rounded-pill ${isProg ? 'bg-forest' : 'bg-coral'}`}
         />
-        <span className="text-[14px] text-ink">
+        <span className="text-ui-md text-ink">
           {business?.name ?? '—'} 第{g.slotNo}コマ
         </span>
         <span className="flex-1" />
@@ -50,7 +50,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
         )}
       </header>
 
-      <div className="mb-xs flex items-baseline gap-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+      <div className="mb-xs flex items-baseline gap-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
         <span>担当講師</span>
         <span className="tnum">
           {g.pickedEmployees.length}名 ／ 定員 {g.capacity}名
@@ -59,7 +59,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
       <div className="mb-md">
         <div className="flex flex-wrap gap-xs">
           {g.wantEmployees.length === 0 ? (
-            <span className="text-[12px] text-muted">勤務希望が出ていません</span>
+            <span className="text-ui-sm text-muted">勤務希望が出ていません</span>
           ) : (
             g.wantEmployees.map((e) => (
               <PickChip
@@ -76,7 +76,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
         <HiddenNote count={g.hiddenEmployees} what="担当" />
       </div>
 
-      <div className="mb-xs flex items-baseline gap-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+      <div className="mb-xs flex items-baseline gap-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
         <span>受講生徒</span>
         <span className="tnum">
           {picked}名{g.capacity > 0 ? ` ／ 定員 ${g.capacity}名` : ''}
@@ -84,7 +84,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
       </div>
       <div className="flex flex-wrap gap-xs">
         {g.wantStudents.length === 0 ? (
-          <span className="text-[12px] text-muted">受講希望が出ていません</span>
+          <span className="text-ui-sm text-muted">受講希望が出ていません</span>
         ) : (
           g.wantStudents.map((s) => (
             <PickChip
@@ -101,7 +101,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
       <HiddenNote count={g.hiddenStudents} what="受講" />
 
       {g.isOverCapacity ? (
-        <p className="mt-sm text-[12px] text-coral">
+        <p className="mt-sm text-ui-sm text-coral">
           定員を {picked - g.capacity}名 超えています。講師を追加すると定員が伸びます。
         </p>
       ) : null}
@@ -117,7 +117,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
 function HiddenNote({ count, what }: { count: number; what: '担当' | '受講' }) {
   if (count === 0) return null;
   return (
-    <p className="mt-xs text-[12px] text-muted">
+    <p className="mt-xs text-ui-sm text-muted">
       希望を出していない{count}名が{what}に入っています（当日の変更から直せます）。
     </p>
   );
@@ -142,7 +142,7 @@ function PickChip({
       /* 押したときに何が起きるかを、色だけでなく言葉でも出す。
          塗りつぶし＝外れる、点線＝入る、は色を見分けられないと伝わらない */
       title={picked ? `${label} を外す` : `${label} を仮確定する`}
-      className={`rounded-pill border px-sm py-[3px] text-[12px] transition-colors
+      className={`rounded-pill border px-sm py-[3px] text-ui-sm transition-colors
         disabled:opacity-50 ${picked ? solid : dashed}`}
     >
       {label}

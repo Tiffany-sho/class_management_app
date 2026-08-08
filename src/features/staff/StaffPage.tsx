@@ -50,8 +50,8 @@ export function StaffPage() {
       header: '講師',
       render: (s) => (
         <div>
-          <div className="text-[14px] text-ink">{s.name}</div>
-          <div className="text-[12px] text-muted">{s.email}</div>
+          <div className="text-ui-md text-ink">{s.name}</div>
+          <div className="text-ui-sm text-muted">{s.email}</div>
         </div>
       ),
     },
@@ -60,7 +60,7 @@ export function StaffPage() {
       header: '担当事業',
       render: (s) => (
         <div className="flex flex-wrap gap-[4px]">
-          {s.businessIds.length === 0 ? <span className="text-[12px] text-muted">未設定</span> : null}
+          {s.businessIds.length === 0 ? <span className="text-ui-sm text-muted">未設定</span> : null}
           {s.businessIds.map((id) => {
             const b = bizMap.get(id);
             return (
@@ -77,11 +77,11 @@ export function StaffPage() {
       header: '時給（現在）',
       render: (s) => (
         s.wages.length === 0
-          ? <span className="text-[12px] text-muted">未設定</span>
+          ? <span className="text-ui-sm text-muted">未設定</span>
           : (
             <div className="space-y-[2px]">
               {s.wages.map((w) => (
-                <div key={`${w.businessId}${w.jobLabel}`} className="text-[12px] tnum">
+                <div key={`${w.businessId}${w.jobLabel}`} className="text-ui-sm tnum">
                   <span className="text-muted">{w.jobLabel}</span>{' '}
                   <span className="text-ink">{yen(w.hourlyRate)}</span>
                 </div>
@@ -107,7 +107,7 @@ export function StaffPage() {
       render: (s) => (
         <div className="tnum">
           <div className="text-ink">{s.monthSlots}コマ</div>
-          <div className="text-[12px] text-muted">{s.monthHours}時間 / {s.monthDays}日</div>
+          <div className="text-ui-sm text-muted">{s.monthHours}時間 / {s.monthDays}日</div>
         </div>
       ),
     },

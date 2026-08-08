@@ -41,7 +41,7 @@ export function MonthCalendar({
         {WEEKDAY_JA.map((w, i) => (
           <div
             key={w}
-            className={`px-xs py-[6px] text-left text-[11px] font-medium
+            className={`px-xs py-[6px] text-left text-ui-xs font-medium
               ${i === 0 ? 'text-coral' : i === 6 ? 'text-info' : 'text-muted'}`}
           >
             {w}
@@ -78,18 +78,21 @@ export function MonthCalendar({
               >
                 <div className="flex items-center gap-[4px]">
                   <span
-                    className={`text-[12px] tnum ${today
-                      ? 'grid h-[19px] w-[19px] place-items-center rounded-pill bg-primary text-on-primary'
+                    className={`text-ui-sm tnum ${today
+                      ? 'grid h-[24px] w-[24px] place-items-center rounded-pill bg-primary text-on-primary'
                       : 'text-muted'}`}
                   >
                     {day}
                   </span>
+                  {/* 文字を大きくしたぶん、狭い画面では日付と並べると入らない。
+                      **入らないものは出さない**（切り詰めない）。確定／未確定は
+                      マスの面の色と左の帯でも分かり、凡例がその意味を書いている */}
                   {showStatus && has ? (
                     <span
-                      className={`ml-auto flex items-center gap-[2px] text-[9px]
+                      className={`ml-auto hidden items-center gap-[2px] text-ui-2xs sm:flex
                         ${state!.allConfirmed ? 'text-forest' : 'text-coral'}`}
                     >
-                      {state!.allConfirmed ? <Icon name="check" size={10} /> : null}
+                      {state!.allConfirmed ? <Icon name="check" size={11} /> : null}
                       {state!.allConfirmed ? '確定' : '未確定'}
                     </span>
                   ) : null}
@@ -116,7 +119,7 @@ export function CalendarLegend({ businesses, showStatus = true }: {
   showStatus?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-md text-[11px] text-muted">
+    <div className="flex flex-wrap items-center gap-md text-ui-xs text-muted">
       {businesses.map((b) => (
         <span key={b.id} className="inline-flex items-center gap-[5px]">
           <i className={`h-[9px] w-[9px] rounded-pill ${b.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`} />

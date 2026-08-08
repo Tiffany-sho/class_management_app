@@ -45,7 +45,7 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) 
     <Card className="mb-md">
       <div ref={ref}>
         <div className="flex items-center gap-xs border-b border-hairline px-md py-sm">
-          <h3 className="text-[14px] font-medium text-ink">受講状況</h3>
+          <h3 className="text-ui-md font-medium text-ink">受講状況</h3>
           <span className="flex-1" />
           <button
             type="button"
@@ -55,7 +55,7 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) 
           >
             <Icon name="chevron-left" size={14} />
           </button>
-          <span className="min-w-[92px] text-center text-[14px] text-ink tnum">
+          <span className="min-w-[92px] text-center text-ui-md text-ink tnum">
             {formatMonthJa(month)}
           </span>
           <button
@@ -79,7 +79,7 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) 
                     aria-hidden
                     className={`h-[9px] w-[9px] rounded-pill ${s.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
                   />
-                  <span className="text-[14px] text-ink">{formatDayJa(s.sessionDate)}</span>
+                  <span className="text-ui-md text-ink">{formatDayJa(s.sessionDate)}</span>
                   <span className="flex-1" />
                   {!s.past ? (
                     <Badge tone="info">予定</Badge>
@@ -92,7 +92,7 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) 
                   )}
                 </div>
 
-                <div className="mt-[3px] text-[12px] text-muted tnum">
+                <div className="mt-[3px] text-ui-sm text-muted tnum">
                   {formatTimeRange(s.startTime, s.endTime)}
                   <span className="ml-xs">
                     担当 {s.employeeNames.length ? s.employeeNames.join('・') : '未定'}
@@ -101,21 +101,21 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) 
 
                 {s.past ? (
                   s.attendanceStatus === 'absent' ? (
-                    <div className="mt-[6px] text-[12px] text-muted">
+                    <div className="mt-[6px] text-ui-sm text-muted">
                       欠席のため授業記録はありません。
                     </div>
                   ) : s.note ? (
                     <>
-                      <p className="my-[7px] border-l-2 border-hairline pl-sm text-[13px]
+                      <p className="my-[7px] border-l-2 border-hairline pl-sm text-ui-base
                         leading-relaxed text-body">
                         {s.note}
                       </p>
                       {s.notedByName ? (
-                        <div className="text-[12px] text-muted">記録: {s.notedByName}</div>
+                        <div className="text-ui-sm text-muted">記録: {s.notedByName}</div>
                       ) : null}
                     </>
                   ) : (
-                    <div className="mt-[6px] text-[12px] text-muted">
+                    <div className="mt-[6px] text-ui-sm text-muted">
                       授業記録はまだ記入されていません。
                     </div>
                   )
@@ -126,7 +126,7 @@ export function KidMonthPanel({ studentName, month, onMonth, sessions }: Props) 
         )}
 
         {/* 月謝の話は上の月謝カードに置いた。ここに書くと同じことが2か所に出る */}
-        <p className="px-md py-sm text-[12px] leading-relaxed text-muted">
+        <p className="px-md py-sm text-ui-sm leading-relaxed text-muted">
           左右に払っても月を切り替えられます。
         </p>
       </div>

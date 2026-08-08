@@ -24,38 +24,38 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{font-family:var(--font);color:var(--body);background:var(--surface-soft);
-       font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;}
+       font-size:clamp(15px, 14.2px + 0.21vw, 17px);line-height:1.4;-webkit-font-smoothing:antialiased;}
   h1,h2,h3{color:var(--ink);font-weight:500;margin:0;}
   button{font-family:inherit;cursor:pointer;}
   table{border-collapse:collapse;}
 
   /* ===== モック用ロール切替バー（アプリ本体ではない） ===== */
   .devbar{background:#0e1421;color:#aeb6c4;padding:8px 16px;display:flex;
-          align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;position:sticky;top:0;z-index:60;}
+          align-items:center;gap:12px;flex-wrap:wrap;font-size:clamp(13px, 12.2px + 0.21vw, 15px);position:sticky;top:0;z-index:60;}
   .devbar .lbl{letter-spacing:.06em;opacity:.7;}
   .devbar .seg{display:flex;gap:4px;background:#1b2333;padding:3px;border-radius:var(--r-pill);}
-  .devbar .seg button{border:0;background:transparent;color:#aeb6c4;font-size:12px;
+  .devbar .seg button{border:0;background:transparent;color:#aeb6c4;font-size:clamp(13px, 12.2px + 0.21vw, 15px);
     padding:5px 14px;border-radius:var(--r-pill);}
   .devbar .seg button.on{background:var(--canvas);color:var(--ink);font-weight:500;}
   .devbar .note{margin-left:auto;opacity:.55;}
 
   /* ===== 共通パーツ ===== */
-  .btn{border-radius:var(--r-lg);padding:10px 18px;font-size:14px;font-weight:500;
+  .btn{border-radius:var(--r-lg);padding:10px 18px;font-size:clamp(15px, 14.2px + 0.21vw, 17px);font-weight:500;
     border:1px solid transparent;line-height:1.4;display:inline-flex;align-items:center;gap:8px;}
   .btn-primary{background:var(--primary);color:var(--on-primary);}
   .btn-primary:hover{background:var(--primary-active);}
   .btn-secondary{background:var(--canvas);color:var(--ink);border-color:var(--hairline);}
   .btn-secondary:hover{border-color:var(--border-strong);}
-  .btn-sm{padding:6px 12px;font-size:13px;border-radius:var(--r-md);}
+  .btn-sm{padding:6px 12px;font-size:clamp(14px, 13.2px + 0.21vw, 16px);border-radius:var(--r-md);}
   .btn-block{width:100%;justify-content:center;padding:14px;}
   .btn[disabled]{opacity:.45;cursor:not-allowed;}
 
   .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hairline);
-    background:var(--canvas);border-radius:var(--r-pill);padding:5px 13px;font-size:13px;color:var(--body);}
+    background:var(--canvas);border-radius:var(--r-pill);padding:5px 13px;font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--body);}
   .chip.active{background:var(--primary);color:#fff;border-color:var(--primary);}
   .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
   .dot.prog{background:var(--forest);} .dot.illust{background:var(--coral);}
-  .badge{font-size:11px;padding:2px 8px;border-radius:var(--r-pill);font-weight:500;display:inline-block;}
+  .badge{font-size:clamp(12px, 11.2px + 0.21vw, 14px);padding:2px 8px;border-radius:var(--r-pill);font-weight:500;display:inline-block;}
   .badge.draft{background:var(--surface-strong);color:var(--muted);}
   .badge.confirmed{background:#e6f0e6;color:var(--success);}
   .badge.over{background:#f7e8e8;color:var(--coral);}
@@ -66,14 +66,14 @@
 
   .card{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);}
   .panel{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);padding:20px;}
-  .muted{color:var(--muted);font-size:12px;}
+  .muted{color:var(--muted);font-size:clamp(13px, 12.2px + 0.21vw, 15px);}
   .cream-note{display:flex;gap:10px;background:var(--cream);border:1px solid #e8d9bb;
-    border-radius:var(--r-md);padding:12px 16px;font-size:13px;color:#5a4a2a;margin-bottom:18px;}
+    border-radius:var(--r-md);padding:12px 16px;font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:#5a4a2a;margin-bottom:18px;}
 
   table.data{width:100%;background:var(--canvas);}
   table.data th,table.data td{padding:12px 14px;border-bottom:1px solid var(--hairline);
-    font-size:13.5px;text-align:left;}
-  table.data th{background:var(--surface-soft);color:var(--muted);font-weight:500;font-size:12px;}
+    font-size:clamp(15px, 14.2px + 0.21vw, 17px);text-align:left;}
+  table.data th{background:var(--surface-soft);color:var(--muted);font-weight:500;font-size:clamp(13px, 12.2px + 0.21vw, 15px);}
   table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabular-nums;}
   table.data td.name{color:var(--ink);font-weight:500;}
   table.data tr:hover td{background:var(--surface-soft);}
@@ -87,56 +87,56 @@
            display:flex;flex-direction:column;position:sticky;top:37px;height:calc(100vh - 37px);}
   .brand{padding:20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--hairline);}
   .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--primary);
-    color:#fff;display:grid;place-items:center;font-weight:600;font-size:15px;}
-  .brand .name{font-weight:500;color:var(--ink);font-size:15px;line-height:1.2;}
-  .brand .sub{font-size:11px;color:var(--muted);letter-spacing:.02em;}
+    color:#fff;display:grid;place-items:center;font-weight:600;font-size:clamp(17px, 15.8px + 0.32vw, 19px);}
+  .brand .name{font-weight:500;color:var(--ink);font-size:clamp(17px, 15.8px + 0.32vw, 19px);line-height:1.2;}
+  .brand .sub{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--muted);letter-spacing:.02em;}
   .nav{padding:12px;display:flex;flex-direction:column;gap:2px;flex:1;}
-  .nav .grp{font-size:11px;color:var(--border-strong);padding:12px 12px 4px;letter-spacing:.06em;}
+  .nav .grp{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--border-strong);padding:12px 12px 4px;letter-spacing:.06em;}
   .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-    background:transparent;border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--body);font-size:14px;}
+    background:transparent;border:0;border-radius:var(--r-sm);padding:9px 12px;color:var(--body);font-size:clamp(15px, 14.2px + 0.21vw, 17px);}
   .nav button .ic{width:18px;text-align:center;opacity:.75;}
   .nav button:hover{background:var(--surface-soft);}
   .nav button.on{background:var(--surface-strong);color:var(--ink);font-weight:500;}
-  .navbadge{margin-left:auto;background:var(--coral);color:#fff;font-size:11px;font-weight:600;
+  .navbadge{margin-left:auto;background:var(--coral);color:#fff;font-size:clamp(12px, 11.2px + 0.21vw, 14px);font-weight:600;
     min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-pill);display:grid;place-items:center;}
   .who{padding:14px 16px;border-top:1px solid var(--hairline);display:flex;align-items:center;gap:10px;}
   .avatar{width:32px;height:32px;border-radius:var(--r-pill);background:var(--forest);
-    color:#fff;display:grid;place-items:center;font-size:13px;flex:none;}
-  .who .meta{font-size:13px;} .who .meta .r{font-size:11px;color:var(--muted);}
+    color:#fff;display:grid;place-items:center;font-size:clamp(14px, 13.2px + 0.21vw, 16px);flex:none;}
+  .who .meta{font-size:clamp(14px, 13.2px + 0.21vw, 16px);} .who .meta .r{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--muted);}
   .main{display:flex;flex-direction:column;min-width:0;}
   .topbar{height:60px;background:var(--canvas);border-bottom:1px solid var(--hairline);
     display:flex;align-items:center;gap:16px;padding:0 24px;position:sticky;top:37px;z-index:5;}
-  .topbar h1{font-size:20px;} .topbar .spacer{flex:1;}
+  .topbar h1{font-size:clamp(21px, 19.4px + 0.43vw, 25px);} .topbar .spacer{flex:1;}
   .content{padding:24px;max-width:1280px;width:100%;}
   .toolbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
   .monthnav{display:flex;align-items:center;gap:6px;}
-  .monthnav .m{font-size:17px;font-weight:500;color:var(--ink);min-width:150px;text-align:center;}
+  .monthnav .m{font-size:clamp(18px, 16.6px + 0.37vw, 20px);font-weight:500;color:var(--ink);min-width:150px;text-align:center;}
   .iconbtn{width:34px;height:34px;border-radius:var(--r-pill);border:1px solid var(--hairline);
-    background:var(--canvas);color:var(--ink);font-size:15px;display:grid;place-items:center;}
+    background:var(--canvas);color:var(--ink);font-size:clamp(17px, 15.8px + 0.32vw, 19px);display:grid;place-items:center;}
   .iconbtn:hover{background:var(--surface-soft);}
   .hamb{display:none;}
 
   /* 定員つきコマカード */
   .daygroup{margin-bottom:22px;}
   .dayhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;}
-  .dayhead .d{font-size:15px;font-weight:500;color:var(--ink);}
+  .dayhead .d{font-size:clamp(17px, 15.8px + 0.32vw, 19px);font-weight:500;color:var(--ink);}
   .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
   .slot{border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--canvas);overflow:hidden;}
   .slot .sh{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--hairline);}
-  .slot .sh .t{font-weight:500;color:var(--ink);font-size:13.5px;}
-  .slot .sh .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .slot .sh .t{font-weight:500;color:var(--ink);font-size:clamp(15px, 14.2px + 0.21vw, 17px);}
+  .slot .sh .time{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);font-variant-numeric:tabular-nums;}
   .slot .sb{padding:12px 14px;}
-  .cap{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted);}
+  .cap{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);}
   .capbar{flex:1;height:6px;background:var(--surface-strong);border-radius:var(--r-pill);overflow:hidden;}
   .capbar i{display:block;height:100%;background:var(--forest);}
   .capbar.over i{background:var(--coral);}
   .row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
-  .tag{font-size:12px;padding:3px 9px;border-radius:var(--r-pill);background:var(--surface-soft);
+  .tag{font-size:clamp(13px, 12.2px + 0.21vw, 15px);padding:3px 9px;border-radius:var(--r-pill);background:var(--surface-soft);
     border:1px solid var(--hairline);color:var(--body);}
   .tag.emp{background:var(--surface-dark);color:#fff;border-color:var(--surface-dark);}
-  .lbl{font-size:11px;color:var(--border-strong);margin-bottom:5px;letter-spacing:.04em;}
+  .lbl{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--border-strong);margin-bottom:5px;letter-spacing:.04em;}
   /* 希望チップ: 点線＝希望のみ / 塗り＝仮確定 */
-  .wish{font-size:12.5px;padding:5px 12px;border-radius:var(--r-pill);font-family:inherit;
+  .wish{font-size:clamp(14px, 13.2px + 0.21vw, 16px);padding:5px 12px;border-radius:var(--r-pill);font-family:inherit;
     background:var(--canvas);border:1px dashed var(--border-strong);color:var(--muted);}
   .wish:hover{border-color:var(--primary);color:var(--ink);}
   .wish.on{border-style:solid;color:#fff;font-weight:500;}
@@ -150,33 +150,33 @@
     display:flex;flex-direction:column;border-left:1px solid var(--hairline);border-right:1px solid var(--hairline);}
   .mhead{padding:16px 18px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:12px;
     position:sticky;top:37px;background:var(--canvas);z-index:5;}
-  .mhead h2{font-size:17px;} .mhead .spacer{flex:1;}
+  .mhead h2{font-size:clamp(18px, 16.6px + 0.37vw, 20px);} .mhead .spacer{flex:1;}
   .mbody{padding:18px;flex:1;padding-bottom:90px;}
   .tabs{position:fixed;bottom:0;left:0;right:0;max-width:560px;margin:0 auto;background:var(--canvas);
     border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(4,1fr);z-index:10;}
   .tabs.t3{grid-template-columns:repeat(3,1fr);}
   .tabs button{border:0;background:transparent;padding:9px 4px 12px;display:flex;flex-direction:column;
-    align-items:center;gap:3px;color:var(--border-strong);font-size:11px;}
-  .tabs button .ic{font-size:19px;line-height:1;}
+    align-items:center;gap:3px;color:var(--border-strong);font-size:clamp(12px, 11.2px + 0.21vw, 14px);}
+  .tabs button .ic{font-size:clamp(21px, 19.4px + 0.43vw, 25px);line-height:1;}
   .tabs button.on{color:var(--primary);font-weight:500;}
 
   .kidswitch{display:flex;gap:8px;margin-bottom:16px;}
   .kidswitch button{flex:1;border:1px solid var(--hairline);background:var(--canvas);border-radius:var(--r-md);
     padding:10px;text-align:left;color:var(--body);}
   .kidswitch button.on{border-color:var(--primary);background:var(--surface-soft);}
-  .kidswitch .n{font-size:14px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:6px;}
-  .kidswitch .g{font-size:11px;color:var(--muted);margin-top:2px;}
+  .kidswitch .n{font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);font-weight:500;display:flex;align-items:center;gap:6px;}
+  .kidswitch .g{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--muted);margin-top:2px;}
 
   .next{border-radius:var(--r-md);padding:18px;color:#fff;margin-bottom:16px;}
   .next.prog{background:var(--forest);} .next.illust{background:var(--coral);}
-  .next .k{font-size:11px;opacity:.85;letter-spacing:.06em;margin-bottom:6px;}
-  .next .v{font-size:22px;font-weight:500;line-height:1.25;}
-  .next .s{font-size:13px;opacity:.9;margin-top:6px;font-variant-numeric:tabular-nums;}
+  .next .k{font-size:clamp(12px, 11.2px + 0.21vw, 14px);opacity:.85;letter-spacing:.06em;margin-bottom:6px;}
+  .next .v{font-size:clamp(24px, 22.1px + 0.51vw, 29px);font-weight:500;line-height:1.25;}
+  .next .s{font-size:clamp(14px, 13.2px + 0.21vw, 16px);opacity:.9;margin-top:6px;font-variant-numeric:tabular-nums;}
 
   .listitem{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--hairline);align-items:flex-start;}
   .listitem:last-child{border-bottom:0;}
-  .listitem .t{font-size:14px;color:var(--ink);}
-  .listitem .m{font-size:12px;color:var(--muted);margin-top:3px;}
+  .listitem .t{font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);}
+  .listitem .m{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);margin-top:3px;}
 
   /* ===== 受信ボックス（管理者に届く通知） ===== */
   .nrow{display:flex;gap:13px;padding:15px 20px;border-bottom:1px solid var(--hairline);
@@ -185,11 +185,11 @@
   .nrow.unread{background:#f5f8fd;}
   .nrow.need{box-shadow:inset 4px 0 0 var(--coral);}
   .nrow .ni{width:32px;height:32px;border-radius:var(--r-md);background:var(--surface-soft);
-    border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;}
-  .nrow .nt{font-size:14px;color:var(--ink);}
+    border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;flex:none;font-size:clamp(17px, 15.8px + 0.32vw, 19px);}
+  .nrow .nt{font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);}
   .nrow.unread .nt{font-weight:500;}
-  .nrow .nb{font-size:13px;color:var(--muted);margin-top:4px;}
-  .nrow .nm{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:10px;
+  .nrow .nb{font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--muted);margin-top:4px;}
+  .nrow .nm{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);margin-top:6px;display:flex;gap:10px;
     align-items:center;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
   .nrow .nact{display:flex;gap:8px;align-items:center;flex:none;padding-top:2px;}
   .nrow .udot{width:8px;height:8px;border-radius:50%;background:var(--link);flex:none;margin-top:11px;}
@@ -203,59 +203,59 @@
   /* 希望提出 */
   .counter{display:flex;align-items:center;gap:10px;background:var(--surface-soft);
     border:1px solid var(--hairline);border-radius:var(--r-md);padding:12px 14px;margin-bottom:14px;}
-  .counter .c{font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .counter .c{font-size:clamp(21px, 19.4px + 0.43vw, 25px);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;}
   .pick{border:1px solid var(--hairline);border-radius:var(--r-md);padding:12px 14px;margin-bottom:9px;
     display:flex;align-items:center;gap:12px;background:var(--canvas);width:100%;text-align:left;}
   .pick.on{border-color:var(--forest);background:#f2f7f4;}
   .pick.on.illust{border-color:var(--coral);background:#fbf3f3;}
   .pick.off{opacity:.45;}
   .pick .box{width:20px;height:20px;border-radius:var(--r-sm);border:1.5px solid var(--border-strong);
-    display:grid;place-items:center;color:#fff;font-size:12px;flex:none;}
+    display:grid;place-items:center;color:#fff;font-size:clamp(13px, 12.2px + 0.21vw, 15px);flex:none;}
   .pick.on .box{background:var(--forest);border-color:var(--forest);}
   .pick.on.illust .box{background:var(--coral);border-color:var(--coral);}
-  .pick .d{font-size:14px;color:var(--ink);} .pick .tm{font-size:12px;color:var(--muted);margin-top:2px;}
+  .pick .d{font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);} .pick .tm{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);margin-top:2px;}
 
   /* 出席マーク */
   .att{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--hairline);}
-  .att .nm{flex:1;font-size:14px;color:var(--ink);}
+  .att .nm{flex:1;font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);}
   /* ===== 従業員詳細（shift_manage_app の時給設定より移設） ===== */
-  .draw-sec{font-size:12px;color:var(--muted);font-weight:500;margin:24px 0 10px;
+  .draw-sec{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);font-weight:500;margin:24px 0 10px;
     padding-bottom:6px;border-bottom:1px solid var(--hairline);}
   .wage-item{display:flex;justify-content:space-between;align-items:center;gap:12px;
     border:1px solid var(--hairline);border-radius:var(--r-sm);padding:11px 14px;margin-bottom:8px;}
-  .wage-item .job{font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px;}
-  .wage-item .from{font-size:11px;color:var(--muted);margin-top:3px;}
-  .wage-item .rate{font-size:16px;font-weight:500;color:var(--ink);
+  .wage-item .job{font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .wage-item .from{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--muted);margin-top:3px;}
+  .wage-item .rate{font-size:clamp(17px, 15.8px + 0.32vw, 19px);font-weight:500;color:var(--ink);
     font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .hist-label{font-size:11px;color:var(--border-strong);margin:10px 0 4px 2px;}
-  .hist .h{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);
+  .hist-label{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--border-strong);margin:10px 0 4px 2px;}
+  .hist .h{display:flex;justify-content:space-between;gap:10px;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);
     padding:5px 10px;border-left:2px solid var(--hairline);margin:0 0 2px 8px;
     font-variant-numeric:tabular-nums;}
 
   /* 並び替え可能な列見出し */
-  .sortbtn{border:0;background:transparent;font-family:inherit;font-size:12px;color:var(--muted);
+  .sortbtn{border:0;background:transparent;font-family:inherit;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);
     font-weight:500;padding:0;display:inline-flex;align-items:center;white-space:nowrap;}
   .sortbtn:hover{color:var(--ink);}
   .sortbtn.on{color:var(--ink);}
-  .sortbtn i{font-style:normal;font-size:10px;}
+  .sortbtn i{font-style:normal;font-size:clamp(11px, 10.2px + 0.21vw, 13px);}
 
   .stu-link{border:0;background:transparent;text-align:left;font-family:inherit;padding:0;color:var(--ink);}
   .stu-link:hover{color:var(--link);}
   /* 過去の日の受講生徒（出席と記録つき・生徒ページへ遷移） */
   .stu-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-family:inherit;
     background:var(--canvas);border:0;border-bottom:1px solid var(--hairline);
-    padding:10px 2px;font-size:13.5px;}
+    padding:10px 2px;font-size:clamp(15px, 14.2px + 0.21vw, 17px);}
   .stu-row:last-child{border-bottom:0;}
   .stu-row:hover{background:var(--surface-soft);}
   .att .seg3{display:flex;gap:4px;}
   .att .seg3 button{border:1px solid var(--hairline);background:var(--canvas);border-radius:var(--r-sm);
-    padding:6px 10px;font-size:12px;color:var(--body);}
+    padding:6px 10px;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--body);}
   .att .seg3 button.on{border-color:var(--primary);background:var(--primary);color:#fff;}
 
   /* ===== カレンダー（shift_manage_app と同じレイアウト） ===== */
   .calendar{background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-md);overflow:hidden;}
   .cal-head,.cal-row{display:grid;grid-template-columns:repeat(7,1fr);}
-  .cal-head div{padding:10px 8px;font-size:12px;color:var(--muted);text-align:left;
+  .cal-head div{padding:10px 8px;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);text-align:left;
     border-bottom:1px solid var(--hairline);background:var(--surface-soft);}
   .cal-head div.sun{color:var(--coral);} .cal-head div.sat{color:var(--info);}
   /* 管理者ホームのカレンダーは左右に余白を取り、1画面に6週が収まる高さにする */
@@ -270,7 +270,7 @@
   .cell.dim{background:#fbfcfd;}
   .cell.has{cursor:pointer;}
   .cell.has:hover{background:var(--surface-soft);}
-  .cell .dnum{font-size:12px;color:var(--body);font-variant-numeric:tabular-nums;}
+  .cell .dnum{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--body);font-variant-numeric:tabular-nums;}
   .cell .dnum.sun{color:var(--coral);} .cell .dnum.sat{color:var(--info);}
   .cell.today .dnum{background:var(--primary);color:#fff;border-radius:var(--r-pill);
     width:22px;height:22px;display:grid;place-items:center;font-weight:500;}
@@ -280,24 +280,24 @@
   .cell.pending{background:#fdeeeb;box-shadow:inset 4px 0 0 var(--coral);}
   .cell.off{background:var(--surface-strong);}
   .dhead{display:flex;align-items:center;gap:6px;min-height:22px;}
-  .dstate{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:var(--r-pill);
+  .dstate{margin-left:auto;font-size:clamp(11px, 10.2px + 0.21vw, 13px);padding:1px 7px;border-radius:var(--r-pill);
     font-weight:500;letter-spacing:.02em;white-space:nowrap;}
   .dstate.ok{background:#d3e6da;color:var(--forest);}
   .dstate.ng{background:#f6d6d1;color:var(--coral);}
-  .ev{border-radius:var(--r-sm);padding:3px 7px;font-size:11.5px;color:#fff;cursor:pointer;
+  .ev{border-radius:var(--r-sm);padding:3px 7px;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:#fff;cursor:pointer;
     display:flex;justify-content:space-between;gap:4px;line-height:1.3;border:1px solid transparent;}
   .ev.prog{background:var(--forest);} .ev.illust{background:var(--coral);}
   .ev.draft{background:var(--canvas);color:var(--muted);border:1px dashed var(--border-strong);}
-  .ev .t{opacity:.85;font-variant-numeric:tabular-nums;font-size:10.5px;}
+  .ev .t{opacity:.85;font-variant-numeric:tabular-nums;font-size:clamp(12px, 11.2px + 0.21vw, 14px);}
   .cell.has:hover .ev{filter:brightness(1.08);}
-  .offlabel{font-size:11px;color:var(--muted);}
-  .mlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+  .offlabel{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--muted);}
+  .mlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);}
   .mlegend span{display:inline-flex;align-items:center;gap:6px;}
   .mlegend i{width:14px;height:11px;border-radius:3px;display:inline-block;flex:none;}
   @media(max-width:900px){ .cell{min-height:88px;} }
   @media(max-width:640px){
     .cell{min-height:76px;padding:4px;gap:3px;}
-    .ev{font-size:10px;padding:2px 5px;} .ev .t{display:none;}
+    .ev{font-size:clamp(11px, 10.2px + 0.21vw, 13px);padding:2px 5px;} .ev .t{display:none;}
     .home-lower{grid-template-columns:1fr !important;}
   }
   @media(max-width:900px){ .rev-cols{grid-template-columns:1fr !important;} }
@@ -306,42 +306,42 @@
   .kvrow{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;
          border-bottom:1px solid var(--hairline);}
   .kvrow:last-child{border-bottom:0;}
-  .kvrow .v{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;}
+  .kvrow .v{color:var(--ink);font-size:clamp(17px, 15.8px + 0.32vw, 19px);font-variant-numeric:tabular-nums;}
   .kvrow.total{border-top:1px solid var(--border-strong);border-bottom:0;margin-top:2px;padding-top:13px;}
-  .kvrow.total .v{font-size:17px;font-weight:500;}
+  .kvrow.total .v{font-size:clamp(18px, 16.6px + 0.37vw, 20px);font-weight:500;}
 
   /* ===== 締め切り: 繰り返しルール ===== */
   .rule{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 0;
         border-bottom:1px solid var(--hairline);}
   .rule:last-child{border-bottom:0;}
-  .rule .who{min-width:170px;color:var(--ink);font-size:14px;}
+  .rule .who{min-width:170px;color:var(--ink);font-size:clamp(15px, 14.2px + 0.21vw, 17px);}
   .num-in{border:1px solid var(--hairline);border-radius:var(--r-sm);padding:6px 8px;
-    font-family:inherit;font-size:14px;color:var(--ink);width:56px;text-align:right;
+    font-family:inherit;font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);width:56px;text-align:right;
     font-variant-numeric:tabular-nums;background:var(--canvas);}
   .num-in:focus{outline:2px solid var(--primary);outline-offset:-1px;}
 
   /* ===== 給与（shift_manage_app より移設） ===== */
   .summ{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
-  .summ .card{padding:18px 20px;} .summ .k{font-size:12px;color:var(--muted);margin-bottom:8px;}
-  .summ .v{font-size:24px;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;}
-  .summ .v small{font-size:13px;color:var(--muted);font-weight:400;margin-left:2px;}
-  .sub{font-size:11px;color:var(--border-strong);font-weight:400;}
+  .summ .card{padding:18px 20px;} .summ .k{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);margin-bottom:8px;}
+  .summ .v{font-size:clamp(26px, 23.9px + 0.56vw, 31px);color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;}
+  .summ .v small{font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--muted);font-weight:400;margin-left:2px;}
+  .sub{font-size:clamp(12px, 11.2px + 0.21vw, 14px);color:var(--border-strong);font-weight:400;}
   table.data tfoot td{border-top:2px solid var(--border-strong);border-bottom:0;
     font-weight:600;color:var(--ink);background:var(--surface-soft);}
   .btn-danger{background:var(--canvas);color:var(--coral);border-color:var(--hairline);}
 
   /* ===== 入力 ===== */
   .field{margin-bottom:16px;}
-  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+  .field label{display:block;font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);margin-bottom:6px;font-weight:500;}
   .input{width:100%;height:44px;border:1px solid var(--hairline);border-radius:var(--r-sm);
-    padding:11px 14px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--canvas);}
+    padding:11px 14px;font-size:clamp(15px, 14.2px + 0.21vw, 17px);font-family:inherit;color:var(--ink);background:var(--canvas);}
   .input:focus{outline:2px solid #458fff;border-color:#458fff;}
   .seg-opt{display:flex;gap:6px;flex-wrap:wrap;}
   .seg-opt button{flex:1;min-width:80px;border:1px solid var(--hairline);border-radius:var(--r-sm);
-    padding:9px 8px;text-align:center;font-size:13px;background:var(--canvas);color:var(--body);}
+    padding:9px 8px;text-align:center;font-size:clamp(14px, 13.2px + 0.21vw, 16px);background:var(--canvas);color:var(--body);}
   .seg-opt button.sel{border-color:var(--primary);background:var(--surface-soft);
     color:var(--ink);font-weight:500;}
-  .lnk{display:block;text-align:center;margin-top:14px;color:var(--link);font-size:13px;cursor:pointer;}
+  .lnk{display:block;text-align:center;margin-top:14px;color:var(--link);font-size:clamp(14px, 13.2px + 0.21vw, 16px);cursor:pointer;}
 
   /* ===== ログイン ===== */
   .login-wrap{min-height:calc(100vh - 37px);display:grid;place-items:center;padding:24px;}
@@ -363,7 +363,7 @@
   .sheet-f{padding:14px 20px;border-top:1px solid var(--hairline);display:flex;gap:10px;}
 
   .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
-    background:var(--primary);color:#fff;padding:12px 20px;border-radius:var(--r-md);font-size:13px;
+    background:var(--primary);color:#fff;padding:12px 20px;border-radius:var(--r-md);font-size:clamp(14px, 13.2px + 0.21vw, 16px);
     opacity:0;visibility:hidden;transition:all .2s;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.2);}
   .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
 
@@ -648,7 +648,7 @@
       <section class="screen" id="s-overtime">
         <div class="toolbar">
           <div>
-            <h2 style="font-size:17px;margin-bottom:4px;">時間外勤務 申請</h2>
+            <h2 style="font-size:clamp(18px, 16.6px + 0.37vw, 20px);margin-bottom:4px;">時間外勤務 申請</h2>
             <div class="muted">シフト外に自宅等で行った勤務。承認した分だけが給与に加算されます。</div>
           </div>
           <div class="spacer" style="flex:1"></div>
@@ -713,7 +713,7 @@
 
         <div class="toolbar" style="margin-top:26px;">
           <div>
-            <h2 style="font-size:15px;margin-bottom:4px;">月謝の支払い状況</h2>
+            <h2 style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);margin-bottom:4px;">月謝の支払い状況</h2>
             <div class="muted" id="revFeeSub"></div>
           </div>
           <div class="spacer" style="flex:1"></div>
@@ -822,7 +822,7 @@
       <section class="screen" id="s-inbox">
         <div class="toolbar">
           <div>
-            <h2 style="font-size:17px;margin-bottom:4px;">受信ボックス</h2>
+            <h2 style="font-size:clamp(18px, 16.6px + 0.37vw, 20px);margin-bottom:4px;">受信ボックス</h2>
             <div class="muted">講師・保護者からの申請や連絡が届きます。<strong>対応が必要なものが上</strong>に並びます。</div>
           </div>
           <div class="spacer" style="flex:1"></div>
@@ -843,14 +843,14 @@
           <div class="panel" style="padding:0;">
             <div style="padding:16px 20px;border-bottom:1px solid var(--hairline);
                         display:flex;align-items:center;gap:10px;">
-              <h3 style="font-size:14px;">お知らせ一覧</h3>
+              <h3 style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);">お知らせ一覧</h3>
               <span style="flex:1"></span>
               <span class="muted" id="anPending"></span>
             </div>
             <div style="padding:6px 20px 16px;" id="announceList"></div>
           </div>
           <div class="panel">
-            <h3 style="font-size:14px;margin-bottom:14px;">新規投稿</h3>
+            <h3 style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin-bottom:14px;">新規投稿</h3>
             <div class="field">
               <label>タイトル</label>
               <input class="input" id="anTitle" placeholder="例）9月の受講希望について">
@@ -973,7 +973,7 @@
         <!-- 月を ‹ › と左右スワイプで前後できる。受講状況と授業記録は同じ回のものなので1つにまとめる -->
         <div class="panel" style="margin-bottom:16px;" id="attendPanel">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <h3 style="font-size:14px;">受講状況</h3>
+            <h3 style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);">受講状況</h3>
             <span style="flex:1"></span>
             <button class="iconbtn" onclick="shiftKidMonth(-1)" id="kidPrev">‹</button>
             <div style="min-width:96px;text-align:center;font-variant-numeric:tabular-nums;"
@@ -988,7 +988,7 @@
         </div>
 
         <div class="panel">
-          <h3 style="font-size:14px;margin-bottom:10px;">お知らせ</h3>
+          <h3 style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin-bottom:10px;">お知らせ</h3>
           <div class="listitem">
             <span>📢</span>
             <div><div class="t">9月の受講希望は8月20日締切です</div><div class="m">8月1日</div></div>
@@ -1006,7 +1006,7 @@
         <div class="counter">
           <div><div class="muted">選択中</div><div class="c"><span id="pickCount">2</span> / <span id="pickMax">2</span> コマ</div></div>
           <div class="spacer" style="flex:1"></div>
-          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:13px;color:var(--ink);">8月20日 23:59</div></div>
+          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--ink);">8月20日 23:59</div></div>
         </div>
         <div class="lbl" id="pickHint">2026年9月 の候補日</div>
         <div id="pickList"></div>
@@ -1090,12 +1090,12 @@
         <div class="lbl">直近の担当</div>
         <div id="empNext" style="margin-bottom:16px;"></div>
         <div class="panel">
-          <h3 style="font-size:14px;margin-bottom:2px;">出席</h3>
+          <h3 style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin-bottom:2px;">出席</h3>
           <div class="muted" style="margin-bottom:6px;">タップで記録されます</div>
           <div id="attList"></div>
         </div>
         <div class="panel" style="margin-top:14px;">
-          <h3 style="font-size:14px;margin-bottom:2px;">同日の自分の担当</h3>
+          <h3 style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin-bottom:2px;">同日の自分の担当</h3>
           <div class="muted" style="margin-bottom:6px;">担当していない教室のコマは出ません</div>
           <div id="empOther"></div>
         </div>
@@ -1105,7 +1105,7 @@
         <div class="counter">
           <div><div class="muted">選択中</div><div class="c"><span id="ePickCount">5</span> コマ</div></div>
           <div class="spacer" style="flex:1"></div>
-          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:13px;color:var(--ink);">8月25日 23:59</div></div>
+          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--ink);">8月25日 23:59</div></div>
         </div>
         <div class="lbl">2026年9月 勤務可能なコマ</div>
         <div id="ePickList"></div>
@@ -1119,7 +1119,7 @@
         <div class="toolbar" style="margin-bottom:10px;">
           <div class="monthnav">
             <button class="iconbtn" onclick="shiftMonth('emp',-1)">‹</button>
-            <div class="m" id="empMonthLabel" style="font-size:15px;min-width:120px;">2026年 8月</div>
+            <div class="m" id="empMonthLabel" style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);min-width:120px;">2026年 8月</div>
             <button class="iconbtn" onclick="shiftMonth('emp',1)">›</button>
           </div>
         </div>
@@ -1138,7 +1138,7 @@
           <span><span class="dot illust"></span> イラスト</span>
         </div>
         <p class="muted" style="margin-top:10px;">
-          マスと一覧の名前は<strong>一緒に入る講師</strong>です。押すと生徒と出欠が見られます。
+          数字は<strong>その回に来る生徒の人数</strong>です。押すと生徒・出欠・一緒に入る講師が見られます。
         </p>
 
         <div id="empSched" style="margin-top:22px;"></div>
@@ -1205,13 +1205,13 @@
 <div class="overlay" id="absOverlay" onclick="closeAbs()"></div>
 <div class="sheet" id="absSheet">
   <div class="sheet-h">
-    <h3 style="font-size:16px;">欠席のご連絡</h3>
+    <h3 style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);">欠席のご連絡</h3>
     <button class="iconbtn" onclick="closeAbs()">✕</button>
   </div>
   <div class="sheet-b">
     <div class="card" style="padding:14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;">
       <span class="dot" id="absDot"></span>
-      <div><div style="color:var(--ink);font-size:14px;" id="absWhen">—</div>
+      <div><div style="color:var(--ink);font-size:clamp(15px, 14.2px + 0.21vw, 17px);" id="absWhen">—</div>
       <div class="muted" style="margin-top:2px;" id="absWho">—</div></div>
     </div>
     <div class="field">
@@ -1235,7 +1235,7 @@
 <div class="sheet" id="stfSheet" style="max-width:620px;">
   <div class="sheet-h">
     <div>
-      <h3 style="font-size:17px;" id="stfName">—</h3>
+      <h3 style="font-size:clamp(18px, 16.6px + 0.37vw, 20px);" id="stfName">—</h3>
       <div class="muted" id="stfSub">—</div>
     </div>
     <button class="iconbtn" onclick="closeStaff()">✕</button>
@@ -1249,7 +1249,7 @@
 <div class="sheet" id="recSheet" style="max-width:540px;">
   <div class="sheet-h">
     <div>
-      <h3 style="font-size:16px;">授業記録</h3>
+      <h3 style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);">授業記録</h3>
       <div class="muted" id="recWho">—</div>
     </div>
     <button class="iconbtn" onclick="closeRec()">✕</button>
@@ -1279,7 +1279,7 @@
 <div class="sheet" id="daySheet" style="max-width:600px;">
   <div class="sheet-h">
     <div>
-      <h3 style="font-size:17px;" id="dayTitle">—</h3>
+      <h3 style="font-size:clamp(18px, 16.6px + 0.37vw, 20px);" id="dayTitle">—</h3>
       <div class="muted" id="daySub">—</div>
     </div>
     <button class="iconbtn" onclick="closeDay()">✕</button>
@@ -1293,7 +1293,7 @@
 <div class="sheet" id="stuSheet" style="max-width:680px;">
   <div class="sheet-h">
     <div>
-      <h3 style="font-size:17px;" id="stuName">—</h3>
+      <h3 style="font-size:clamp(18px, 16.6px + 0.37vw, 20px);" id="stuName">—</h3>
       <div class="muted" id="stuSub">—</div>
     </div>
     <button class="iconbtn" onclick="closeStu()">✕</button>
@@ -1306,7 +1306,7 @@
 <div class="overlay" id="invOverlay" onclick="closeInv()"></div>
 <div class="sheet" id="invSheet" style="max-width:520px;">
   <div class="sheet-h">
-    <h3 style="font-size:16px;">ユーザーを招待</h3>
+    <h3 style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);">ユーザーを招待</h3>
     <button class="iconbtn" onclick="closeInv()">✕</button>
   </div>
   <div class="sheet-b">
@@ -1331,7 +1331,7 @@
     <div id="invKids">
       <div style="display:flex;align-items:center;gap:8px;margin:22px 0 10px;
                   padding-bottom:7px;border-bottom:1px solid var(--hairline);">
-        <span style="font-size:12px;color:var(--muted);font-weight:500;">お子さま</span>
+        <span style="font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);font-weight:500;">お子さま</span>
         <span class="muted" id="invKidCount"></span>
         <span style="flex:1"></span>
         <button class="btn btn-secondary btn-sm" onclick="addKidRow()">＋ 追加</button>
@@ -1599,11 +1599,11 @@ function openStu(i, mode){
     `${bBadge(s.b)} ${gradeName(s.grade)} ・ ${s.label} 月${s.sess}回`;
 
   const kv = (k, v) => `<div><div class="muted">${k}</div>
-    <div style="color:var(--ink);font-size:14px;margin-top:3px;">${v}</div></div>`;
+    <div style="color:var(--ink);font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin-top:3px;">${v}</div></div>`;
   const lastCard = last
     ? `<div class="card" style="padding:14px;margin-bottom:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
          <div><div class="muted">前回の受講</div>
-           <div style="color:var(--ink);font-size:15px;margin-top:3px;">${last.label} ${last.slot}</div></div>
+           <div style="color:var(--ink);font-size:clamp(17px, 15.8px + 0.32vw, 19px);margin-top:3px;">${last.label} ${last.slot}</div></div>
          <span style="flex:1"></span>
          <span class="badge ${last.status === '出席' ? 'paid' : last.status === '欠席' ? 'unpaid' : 'draft'}">${last.status}</span>
        </div>`
@@ -1658,7 +1658,7 @@ function openStu(i, mode){
         ${[['受講',n],['出席',p],['遅刻',l],['欠席',a]].map(([k,v]) => `
           <div class="card" style="padding:11px;">
             <div class="muted">${k}</div>
-            <div style="font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums;">${v}</div>
+            <div style="font-size:clamp(21px, 19.4px + 0.43vw, 25px);color:var(--ink);font-variant-numeric:tabular-nums;">${v}</div>
           </div>`).join('')}
       </div>
       <p class="muted" style="margin-top:12px;">
@@ -1676,11 +1676,11 @@ function openStu(i, mode){
       <div style="padding:16px 18px;display:flex;gap:24px;align-items:baseline;
                   border-bottom:1px solid var(--hairline);flex-wrap:wrap;">
         <div><div class="muted">支払累計</div>
-          <div style="font-size:22px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;">${yen(cum)}</div></div>
+          <div style="font-size:clamp(24px, 22.1px + 0.51vw, 29px);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;">${yen(cum)}</div></div>
         <div><div class="muted">今月（8月）</div>
           <div style="margin-top:5px;"><span class="badge ${feeState[i]?'paid':'unpaid'}">${feeState[i]?'支払済':'未払い'}</span></div></div>
         ${unpaid.length ? `<div><div class="muted">未払い</div>
-          <div style="font-size:15px;color:var(--coral);margin-top:4px;">${unpaid.length}件 ${yen(unpaid.reduce((t,x)=>t+x.amount,0))}</div></div>` : ''}
+          <div style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);color:var(--coral);margin-top:4px;">${unpaid.length}件 ${yen(unpaid.reduce((t,x)=>t+x.amount,0))}</div></div>` : ''}
         <span style="flex:1"></span>
         <button class="btn btn-secondary btn-sm" onclick="toast('${s.n} の請求額を編集します（手入力で上書き可）')">請求を編集</button>
       </div>
@@ -1879,7 +1879,7 @@ function openStaff(i, mode){
     `${bizDots(s.biz)} ・ <span class="badge ${s.active ? 'paid' : 'draft'}">${s.active ? '在籍' : '退職'}</span>`;
 
   const kv = (k, v) => `<div><div class="muted">${k}</div>
-    <div style="color:var(--ink);font-size:14px;margin-top:3px;">${v}</div></div>`;
+    <div style="color:var(--ink);font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin-top:3px;">${v}</div></div>`;
 
   /* ---- 講師向け: 名前・担当教室・一緒に入るコマのみ ---- */
   if (mode === 'employee') {
@@ -1946,7 +1946,7 @@ function openStaff(i, mode){
            ['勤務時間', st.hours.toFixed(1) + 'h'], ['担当生徒', st.studs + '名']].map(([k, v]) => `
           <div class="card" style="padding:11px;">
             <div class="muted">${k}</div>
-            <div style="font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;">${v}</div>
+            <div style="font-size:clamp(19px, 17.5px + 0.4vw, 22px);color:var(--ink);font-variant-numeric:tabular-nums;">${v}</div>
           </div>`).join('')}
       </div>
       <p class="muted" style="margin-top:10px;">
@@ -2000,7 +2000,7 @@ function openStaff(i, mode){
     ${cur.map(w => `
       <div class="wage-item">
         <div><div class="job">${jobDot(w.j)} ${w.j}</div><div class="from">適用 ${w.from} 〜</div></div>
-        <div class="rate">${yen(w.r)}<span class="muted" style="font-size:11px;"> /時</span></div>
+        <div class="rate">${yen(w.r)}<span class="muted" style="font-size:clamp(12px, 11.2px + 0.21vw, 14px);"> /時</span></div>
       </div>`).join('')}
     ${past.length ? `<div class="hist-label">昇給・改定履歴</div><div class="hist">${
       past.map(w => `<div class="h"><span>${w.j}　${yen(w.r)}</span><span>${w.from} 〜</span></div>`).join('')
@@ -2011,7 +2011,7 @@ function openStaff(i, mode){
     <div class="draw-sec">交通費（日額固定）</div>
     <div class="wage-item">
       <div><div class="job">🚃 交通費</div><div class="from">適用 ${s.commuteFrom} 〜</div></div>
-      <div class="rate">${yen(s.commute)}<span class="muted" style="font-size:11px;"> /日</span></div>
+      <div class="rate">${yen(s.commute)}<span class="muted" style="font-size:clamp(12px, 11.2px + 0.21vw, 14px);"> /日</span></div>
     </div>
     <p class="muted">
       <strong>出勤日数 × 日額</strong>で給与に自動反映されます。
@@ -2186,16 +2186,12 @@ function buildCal(targetId, mode, me, m){
           <span>${b.short}</span><span class="t">${ss.length}コマ</span></div>`;
       }).join('');
     } else {
-      /* 従業員: 自分の担当コマごとに1チップ（一緒に入る講師 + 生徒数）。
-         どちらの教室かは本人が知っているので教室名は出さない。自分の名前も出さない
-         （全部のマスに同じ名前が並ぶだけで、読むものが増えない）。
-         1マスは画面幅の1/7しかないので姓だけにする。 */
-      inner += slots.map(s => {
-        const mates = s.emps.filter(e => e !== me);
-        return `<div class="ev ${s.ok ? s.b.key : 'draft'}">
-        <span>${mates.join('・')}</span>
-        <span class="t">${s.studs.length}名</span></div>`;
-      }).join('');
+      /* 従業員: 自分の担当コマごとに1チップ（生徒数だけ）。
+         どちらの教室かは本人が知っているので教室名は出さない。講師名も出さない
+         ―― 1マスは画面幅の1/7しかなく、姓を詰め込むと、それが相方なのか自分なのか
+         読み取れないまま数字の意味まで曇る。誰と組むかは押して開く詳細にある。 */
+      inner += slots.map(s => `<div class="ev ${s.ok ? s.b.key : 'draft'}">
+        <span class="t">${s.studs.length}名</span></div>`).join('');
     }
     push(`<button class="${cls}" ${has || st === 'off'
       ? `onclick="openDay(${m},${d},'${mode}','${me || ''}')"` : 'disabled'}>${inner}</button>`);
@@ -2496,7 +2492,7 @@ function recordItem(r){
         <span style="flex:1"></span>${attBadge(r.status)}
       </div>
       ${r.body
-        ? `<div style="color:var(--body);font-size:13.5px;margin:5px 0 4px;line-height:1.6;">${r.body}</div>
+        ? `<div style="color:var(--body);font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin:5px 0 4px;line-height:1.6;">${r.body}</div>
            <div class="m">記録: ${r.by}</div>`
         : '<div class="m" style="margin-top:5px;">欠席のため授業記録はありません。</div>'}
     </div>
@@ -2695,7 +2691,6 @@ function renderKids(){
 
   renderAttendSummary();
 
-  pickMax.textContent = k.sess;
   pickHint.textContent = `2026年9月 の候補日（${k.b.short}／${k.b.key==='prog'?'日曜のみ':'土日'}）`;
   renderPicks();
 
@@ -2705,7 +2700,7 @@ function renderKids(){
   ).map(([d,t]) => `
     <div class="card" style="padding:14px;margin-bottom:9px;display:flex;gap:12px;align-items:center;">
       <span class="dot ${k.b.key}"></span>
-      <div style="flex:1"><div style="color:var(--ink);font-size:14px;">${d}</div>
+      <div style="flex:1"><div style="color:var(--ink);font-size:clamp(15px, 14.2px + 0.21vw, 17px);">${d}</div>
       <div class="muted" style="margin-top:2px;">${t}</div></div>
       <button class="btn btn-secondary btn-sm" onclick="openAbs('${d}','${t}')">欠席連絡</button>
     </div>`).join('');
@@ -2739,25 +2734,23 @@ function kidSessions(m){
 function renderFeeCard(){
   const k = kids[kid], f = feeOf(students.indexOf(k), kidMonth);
   const unpaid = !f.unbilled && !f.paid;
+  const label = f.unbilled ? '請求前' : f.paid ? '支払い済み' : '未払い';
   document.getElementById('feeCard').innerHTML = `
     <div class="card" style="padding:18px;margin-bottom:16px;
         ${unpaid ? 'border-color:var(--coral);background:#f7e8e8;' : ''}">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="muted" style="letter-spacing:.06em;">${MONTHS[kidMonth].label}の月謝</span>
-        <span style="flex:1"></span>
-        ${f.unbilled ? '<span class="badge draft">請求前</span>'
-          : f.paid ? '<span class="badge paid">支払済</span>'
-                   : '<span class="badge unpaid">未払い</span>'}
+      <div class="muted" style="letter-spacing:.06em;">${MONTHS[kidMonth].label}の月謝</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <span style="font-size:clamp(21px, 19.4px + 0.43vw, 25px);">${unpaid ? '⚠️' : f.paid ? '✅' : '💴'}</span>
+        <span style="font-size:clamp(26px, 23.9px + 0.56vw, 31px);font-weight:500;line-height:1.2;
+              color:var(--${unpaid ? 'coral' : 'ink'});">${label}</span>
       </div>
-      ${f.unbilled
-        ? '<div style="font-size:15px;color:var(--ink);margin-top:6px;">まだ請求されていません。</div>'
-        : `<div style="font-size:30px;font-weight:500;line-height:1.15;color:var(--ink);
-             margin-top:4px;font-variant-numeric:tabular-nums;">${yen(f.amount)}</div>
-           <div class="muted" style="margin-top:4px;">${f.date ? f.date + ' 入金' : 'お支払いをお待ちしています'}</div>
-           ${f.note ? `<div style="color:var(--body);font-size:12px;margin-top:10px;
-             border-left:2px solid var(--hairline);padding-left:10px;">${f.note}</div>` : ''}
-           <p class="muted" style="margin-top:10px;">
-             <strong>固定月額</strong>です。お休みされても金額は変わりません。</p>`}
+      ${f.unbilled ? '' : `
+        ${f.date ? `<div class="muted" style="margin-top:4px;">${f.date} 入金</div>` : ''}
+        ${f.note ? `<div style="color:var(--body);margin-top:10px;
+          border-left:2px solid var(--hairline);padding-left:10px;">${f.note}</div>` : ''}`}
+      <p class="muted" style="margin-top:10px;">
+        ${f.unbilled ? '請求されると、ここに支払い状況が出ます。'
+                     : '月謝は<strong>固定月額</strong>です。お休みされても変わりません。'}</p>
     </div>`;
 }
 
@@ -2782,7 +2775,7 @@ function renderAttendSummary(){
         <div class="m">${x.sl.time} ・ 担当 ${x.sl.emps.join('・') || '未定'}</div>
         ${x.rec
           ? (x.rec.body
-              ? `<div style="color:var(--body);font-size:13.5px;margin:7px 0 3px;line-height:1.6;
+              ? `<div style="color:var(--body);font-size:clamp(15px, 14.2px + 0.21vw, 17px);margin:7px 0 3px;line-height:1.6;
                    border-left:2px solid var(--hairline);padding-left:10px;">📝 ${x.rec.body}</div>
                  <div class="m">記録: ${x.rec.by}</div>`
               : '<div class="m" style="margin-top:6px;">欠席のため授業記録はありません。</div>')
@@ -2907,33 +2900,30 @@ function candidates(){
   days.forEach(d => { out.push([d,1,'13:00〜14:30']); out.push([d,2,'15:00〜16:30']); });
   return out;
 }
+/* 受講希望は**予約ではなく候補**。通える日をいくつでも（0件でも）出してよく、
+   そのうちコースの回数ぶんを管理者が確定で選ぶ。同じ日の別の時間も選べる。 */
 function renderPicks(){
   const k = kids[kid], cands = candidates();
-  if(!picks[kid]) picks[kid] = [0, 2];           // 既定で2つ選択済み（別々の日）
-  const sel = picks[kid], full = sel.length >= k.sess;
-  const takenDays = sel.map(j => cands[j][0]);   // 既に選んだ日
+  if(!picks[kid]) picks[kid] = [0, 2];
+  const sel = picks[kid];
   pickCount.textContent = sel.length;
+  pickMax.textContent = cands.length;
   pickList.innerHTML = cands.map(([d,no,t],i) => {
     const on = sel.includes(i);
-    const sameDay = !on && takenDays.includes(d);   // 同じ日は1コマまで
-    const off = !on && (full || sameDay);
-    return `<button class="pick ${on?'on':''} ${k.b.key==='illust'?'illust':''} ${off?'off':''}"
-              onclick="togglePick(${i})" ${off?'disabled':''}>
+    return `<button class="pick ${on?'on':''} ${k.b.key==='illust'?'illust':''}"
+              onclick="togglePick(${i})">
       <span class="box">${on?'✓':''}</span>
       <!-- 保護者にコマ番号は出さない。選ぶときに見ているのは時刻（下の行） -->
       <span style="flex:1"><span class="d">${d}</span>
-      <div class="tm">${sameDay ? 'この日は選択済み（1日1コマまで）' : t}</div></span>
+      <div class="tm">${t}</div></span>
     </button>`;
-  }).join('') + (full ? `<p class="muted" style="margin-top:8px;">
-      上限（月${k.sess}コマ）に達しました。変更するには選択を外してください。</p>` : '');
+  }).join('') + `<p class="muted" style="margin-top:8px;">
+      このうち<strong>月${k.sess}コマ</strong>を教室が決めます。多めに出していただくほど組みやすくなります。</p>`;
 }
 function togglePick(i){
-  const k = kids[kid], sel = picks[kid], cands = candidates();
+  const sel = picks[kid];
   const at = sel.indexOf(i);
   if(at >= 0){ sel.splice(at,1); renderPicks(); return; }
-  if(sel.some(j => cands[j][0] === cands[i][0])){
-    toast('同じ日に2コマは受講できません（1日1コマまで）'); return;
-  }
   if(sel.length >= k.sess){ toast('コースの上限は月'+k.sess+'コマです'); return; }
   sel.push(i); renderPicks();
 }
@@ -3050,33 +3040,32 @@ buildCal('empCal', 'employee', '中村', empMonth);
    終わった回とこれからの回を分ける ―― 混ぜて日付順に並べると、開いた瞬間に目に入るのが
    もう終わった回になり、いちばん確かめたい「次はいつか」を毎回探すことになる。 */
 const EMP_SHIFTS = [
-  ['8月2日（日）', PROG, '13:00〜14:30', 3, '',     true],
-  ['8月2日（日）', PROG, '15:00〜16:30', 2, '',     true],
-  ['8月2日（日）', ILLU, '15:00〜16:30', 2, '小林', true],
-  ['9月6日（日）', PROG, '13:00〜14:30', 3, '',     false],
-  ['9月6日（日）', PROG, '15:00〜16:30', 2, '',     false],
-  ['9月6日（日）', ILLU, '15:00〜16:30', 2, '小林', false],
+  ['8月2日（日）', PROG, '13:00〜14:30', 3, true],
+  ['8月2日（日）', PROG, '15:00〜16:30', 2, true],
+  ['8月2日（日）', ILLU, '15:00〜16:30', 2, true],
+  ['9月6日（日）', PROG, '13:00〜14:30', 3, false],
+  ['9月6日（日）', PROG, '15:00〜16:30', 2, false],
+  ['9月6日（日）', ILLU, '15:00〜16:30', 2, false],
 ];
-const shiftRow = ([d,b,t,n,mate,done]) => `
+const shiftRow = ([d,b,t,n,done]) => `
   <button class="card" style="width:100%;padding:12px 14px;margin-bottom:7px;display:flex;
       gap:9px;align-items:center;text-align:left;cursor:pointer;"
       onclick="toast('${d} ${t} の詳細を開きます')">
     <span class="dot ${b.key}" style="${done ? 'opacity:.45' : ''}"></span>
-    <span style="font-size:14px;color:var(--${done ? 'muted' : 'ink'});white-space:nowrap;">${d}</span>
+    <span style="font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--${done ? 'muted' : 'ink'});white-space:nowrap;">${d}</span>
     <span class="muted" style="white-space:nowrap;">${t}</span>
     <span style="flex:1"></span>
     <!-- 教室名は掛け持ちの人にだけ。中村は日曜にイラストにも入るので出している -->
     <span class="muted" style="white-space:nowrap;">${b.short}</span>
     <span class="muted" style="white-space:nowrap;">生徒${n}名</span>
-    <span class="muted" style="white-space:nowrap;">${mate}</span>
     <span class="muted">›</span>
   </button>`;
-const upcoming = EMP_SHIFTS.filter(x => !x[5]);
-const finished = EMP_SHIFTS.filter(x => x[5]);
+const upcoming = EMP_SHIFTS.filter(x => !x[4]);
+const finished = EMP_SHIFTS.filter(x => x[4]);
 empSched.innerHTML =
-  (upcoming.length ? `<div class="lbl">これから ${upcoming.length}件</div>`
+  (upcoming.length ? `<div class="lbl">予定 ${upcoming.length}件</div>`
     + upcoming.map(shiftRow).join('') : '')
-  + (finished.length ? `<div class="lbl" style="margin-top:18px;">終わった ${finished.length}件</div>`
+  + (finished.length ? `<div class="lbl" style="margin-top:18px;">終了 ${finished.length}件</div>`
     + finished.map(shiftRow).join('') : '');
 
 /* ========== 画面遷移 ========== */
@@ -3164,7 +3153,7 @@ buildCal('adminCal', 'admin', '', adminMonth);
       <div class="card" style="padding:16px;margin-bottom:11px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
         <div>
           <div class="muted">${past ? diff + '日前' : diff + '日後'}</div>
-          <div style="font-size:19px;color:var(--ink);font-weight:500;">${dayLabel(TODAY_M, d)}</div>
+          <div style="font-size:clamp(21px, 19.4px + 0.43vw, 25px);color:var(--ink);font-weight:500;">${dayLabel(TODAY_M, d)}</div>
         </div>
         <div style="flex:1;min-width:180px;">
           <div class="muted">${past ? '実施' : '開催'}</div>
@@ -3403,11 +3392,11 @@ function renderEmpPay(){
     s.wages.filter(w => w.cur).map(w => `
       <div class="wage-item">
         <div><div class="job">${jobDot(w.j)} ${w.j}</div><div class="from">適用 ${w.from} 〜</div></div>
-        <div class="rate">${yen(w.r)}<span class="muted" style="font-size:11px;"> /時</span></div>
+        <div class="rate">${yen(w.r)}<span class="muted" style="font-size:clamp(12px, 11.2px + 0.21vw, 14px);"> /時</span></div>
       </div>`).join('') +
     `<div class="wage-item">
        <div><div class="job">🚃 交通費</div><div class="from">適用 ${s.commuteFrom} 〜</div></div>
-       <div class="rate">${yen(s.commute)}<span class="muted" style="font-size:11px;"> /日</span></div>
+       <div class="rate">${yen(s.commute)}<span class="muted" style="font-size:clamp(12px, 11.2px + 0.21vw, 14px);"> /日</span></div>
      </div>
      <p class="muted" style="margin-top:12px;">時給は<strong>業務ごと</strong>に決まっています。
        変更は管理者が行い、<strong>適用開始日より前の給与はさかのぼって変わりません</strong>。</p>`;
@@ -3651,7 +3640,7 @@ function renderTodos(){
     <div style="display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;
                 ${i < rows.length - 1 ? 'border-bottom:1px solid var(--hairline);' : ''}">
       <span class="muted">${k}</span>
-      <span style="color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums;">${v}</span>
+      <span style="color:var(--ink);font-size:clamp(17px, 15.8px + 0.32vw, 19px);font-variant-numeric:tabular-nums;">${v}</span>
     </div>`).join('');
 })();
 

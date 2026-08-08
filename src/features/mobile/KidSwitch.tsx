@@ -42,7 +42,7 @@ export function KidSwitch({ students, businesses, selectedId, onSelect }: Props)
               className={`shrink-0 rounded-md border p-[10px] text-left
                 ${on ? 'border-primary bg-surface-soft' : 'border-hairline bg-canvas'}`}
             >
-              <span className="flex items-center gap-[6px] text-[14px] font-medium text-ink">
+              <span className="flex items-center gap-[6px] text-ui-md font-medium text-ink">
                 <span
                   aria-hidden
                   className={`h-[9px] w-[9px] shrink-0 rounded-pill
@@ -50,7 +50,7 @@ export function KidSwitch({ students, businesses, selectedId, onSelect }: Props)
                 />
                 <span className="whitespace-nowrap">{s.name}</span>
               </span>
-              <span className="mt-[2px] block whitespace-nowrap text-[11px] text-muted">
+              <span className="mt-[2px] block whitespace-nowrap text-ui-xs text-muted">
                 {s.gradeLabel} ・ 月{s.sessionsPerMonth}回
               </span>
             </button>

@@ -137,8 +137,8 @@ export function ParentHomePage() {
                 key={a.id}
                 className={`px-md py-sm ${i < Math.min(d.announcements.length, 3) - 1 ? 'border-b border-hairline' : ''}`}
               >
-                <div className="text-[14px] text-ink">{a.title}</div>
-                <div className="mt-[3px] text-[12px] text-muted">
+                <div className="text-ui-md text-ink">{a.title}</div>
+                <div className="mt-[3px] text-ui-sm text-muted">
                   {sinceLabel(a.sentAt ?? a.createdAt)}
                 </div>
               </li>

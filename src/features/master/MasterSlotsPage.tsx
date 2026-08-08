@@ -75,7 +75,7 @@ export function MasterSlotsPage() {
 
       <DataTable columns={columns} rows={rows} rowKey={(s) => s.id} empty="開催枠がありません。" />
 
-      <p className="mt-md text-[12px] leading-relaxed text-muted">
+      <p className="mt-md text-ui-sm leading-relaxed text-muted">
         ここでの編集はまだ作っていません。曜日や時間を変えると
         <strong className="text-ink">過去の勤務実績の計算まで変わる</strong>ため、
         どこまで遡って影響させるかを決めてから実装します。

@@ -18,32 +18,35 @@ export function MobileLayout({ title }: { title: string }) {
   const { user, role, signOut } = useAuth();
   const tabs = tabsFor(role ?? 'parent');
 
+  /* 画面が広いときは横幅も広げる。文字だけ大きくして枠を 520px に留めると、
+     1行に入る文字が減って行数がかえって増える */
   return (
-    <div className="mx-auto flex min-h-full max-w-[520px] flex-col bg-surface-soft">
+    <div className="mx-auto flex min-h-full max-w-[520px] flex-col bg-surface-soft app:max-w-[680px]">
       <header className="sticky top-0 z-30 flex items-center gap-sm border-b border-hairline bg-canvas px-md py-sm">
         {/* 画面名は決まった短い語なので折らない。氏名は長さが読めないので、
             入りきらないときは**省略記号ではなく折り返す**（読めなくなるより読める方がまし）。 */}
         <div className="min-w-0 flex-1">
           <h1 className="whitespace-nowrap text-title-sm">{title}</h1>
-          <p className="text-[12px] leading-snug text-muted">
+          <p className="text-ui-sm leading-snug text-muted">
             {user?.name ?? '—'}（{ROLE_LABEL[role ?? 'parent']}）
           </p>
         </div>
         <button
           type="button"
           onClick={() => void signOut()}
-          className="shrink-0 whitespace-nowrap text-[12px] text-link underline"
+          className="shrink-0 whitespace-nowrap text-ui-sm text-link underline"
         >
           ログアウト
         </button>
       </header>
 
-      <main className="flex-1 px-md py-md pb-[84px]">
+      {/* タブバーの高さぶん。文字を大きくしたぶんタブも高くなるので余白も増やす */}
+      <main className="flex-1 px-md py-md pb-[100px]">
         <Outlet />
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[520px] border-t border-hairline bg-canvas"
+        className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[520px] border-t border-hairline bg-canvas app:max-w-[680px]"
         aria-label="メインメニュー"
       >
         {tabs.map((t) => (
@@ -52,7 +55,7 @@ export function MobileLayout({ title }: { title: string }) {
             to={t.to}
             end={t.to === '/'}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-[2px] py-[9px] text-[10px]
+              `flex flex-1 flex-col items-center gap-[2px] py-[9px] text-ui-2xs
                ${isActive ? 'text-ink' : 'text-muted'}`
             }
           >

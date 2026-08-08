@@ -4,7 +4,7 @@ import { Icon, type IconName } from './Icon';
 /** 読み込み中。高さを持たせて、出たり消えたりで表がガタつかないようにする */
 export function Loading({ label = '読み込んでいます…' }: { label?: string }) {
   return (
-    <div className="flex min-h-[160px] items-center justify-center gap-sm text-[13px] text-muted">
+    <div className="flex min-h-[160px] items-center justify-center gap-sm text-ui-base text-muted">
       <span
         aria-hidden
         className="h-4 w-4 animate-spin rounded-pill border-2 border-hairline border-t-primary"
@@ -21,8 +21,8 @@ export function Loading({ label = '読み込んでいます…' }: { label?: str
 export function Empty({ title, hint, action }: { title: string; hint?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex min-h-[160px] flex-col items-center justify-center gap-xs px-lg py-xl text-center">
-      <p className="text-[14px] text-ink">{title}</p>
-      {hint ? <p className="max-w-[420px] text-[13px] text-muted">{hint}</p> : null}
+      <p className="text-ui-md text-ink">{title}</p>
+      {hint ? <p className="max-w-[420px] text-ui-base text-muted">{hint}</p> : null}
       {action ? <div className="mt-xs">{action}</div> : null}
     </div>
   );
@@ -30,7 +30,7 @@ export function Empty({ title, hint, action }: { title: string; hint?: ReactNode
 
 export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="flex items-start gap-sm rounded-md border border-[#e8d9bb] bg-cream px-md py-sm text-[13px]">
+    <div className="flex items-start gap-sm rounded-md border border-[#e8d9bb] bg-cream px-md py-sm text-ui-base">
       <Icon name="warning" className="mt-[1px] text-coral" />
       <div className="flex-1">
         <p className="text-ink">{message}</p>
@@ -47,7 +47,7 @@ export function ErrorNote({ message, onRetry }: { message: string; onRetry?: () 
 /** 補足の帯。クリーム色は「読んでほしいが警告ではない」もの */
 export function Note({ icon = 'info', children }: { icon?: IconName; children: ReactNode }) {
   return (
-    <div className="mb-md flex items-start gap-sm rounded-md border border-[#e8d9bb] bg-cream px-md py-sm text-[13px] leading-relaxed">
+    <div className="mb-md flex items-start gap-sm rounded-md border border-[#e8d9bb] bg-cream px-md py-sm text-ui-base leading-relaxed">
       <Icon name={icon} className="mt-[1px] text-muted" />
       <div className="flex-1">{children}</div>
     </div>

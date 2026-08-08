@@ -1,17 +1,17 @@
-import { surname } from '@/lib/format';
 import type { Business, ScheduleSlot } from '@/types/domain';
 
 /**
  * カレンダーのマスの中に何を出すか。
  *
  * - `business` … 事業ごとのコマ数（管理者）。どの教室が何コマ動くかを俯瞰する
- * - `assignment` … 一緒に入る講師 ・ 生徒数（講師の予定）。**自分がどちらの教室かは
- *   本人が知っている**ので、教室名を出しても情報が増えない。知りたいのは
- *   「誰と組むか」「何人来るか」
+ * - `assignment` … 生徒数だけ（講師の予定）。**自分がどちらの教室かは本人が
+ *   知っている**ので教室名は出さない。講師名も出さない ―― 70px のマスに姓を
+ *   詰め込んでも、それが相方なのか自分なのか読み取れず、数字の意味まで曇る。
+ *   誰と組むかは押して開く詳細と下の一覧にある
  */
 export type CellMode =
   | { kind: 'business' }
-  | { kind: 'assignment'; meId: string | null };
+  | { kind: 'assignment' };
 
 interface Props {
   slots: ScheduleSlot[];
@@ -38,9 +38,8 @@ export function DayCellChips({ slots, businesses, mode }: Props) {
             confirmed={s.status === 'confirmed'}
             title={`${bizMap.get(s.businessId)?.name ?? ''} 第${s.slotNo}コマ`
               + ` 生徒${s.students.length}名`
-              + mates(s, mode.meId).map((m) => ` ${m}`).join('')}
+              + s.employees.map((e) => ` ${e.name}`).join('')}
           >
-            <Mates slot={s} meId={mode.meId} />
             <span className="tnum">{s.students.length}</span>
             <span>名</span>
           </Chip>
@@ -71,22 +70,6 @@ export function DayCellChips({ slots, businesses, mode }: Props) {
   );
 }
 
-/** 一緒に入る講師の姓。自分は出さない（毎マスに自分の名前が並んでも読むものが無い） */
-function Mates({ slot, meId }: { slot: ScheduleSlot; meId: string | null }) {
-  const names = mates(slot, meId);
-  if (names.length === 0) return null;
-  return (
-    <span>
-      {surname(names[0]!)}
-      {names.length > 1 ? `+${names.length - 1}` : ''}
-    </span>
-  );
-}
-
-function mates(slot: ScheduleSlot, meId: string | null): string[] {
-  return slot.employees.filter((e) => e.id !== meId).map((e) => e.name);
-}
-
 function Chip({ colorKey, confirmed, title, children }: {
   colorKey: 'forest' | 'coral';
   confirmed: boolean;
@@ -98,7 +81,7 @@ function Chip({ colorKey, confirmed, title, children }: {
     <span
       title={title}
       className={`flex items-center gap-[3px] whitespace-nowrap rounded-sm
-        px-[5px] py-[2px] text-[10px] leading-tight
+        px-[5px] py-[2px] text-ui-2xs leading-tight
         ${confirmed
           ? isProg ? 'bg-forest text-on-dark' : 'bg-coral text-on-dark'
           : `border border-dashed ${isProg ? 'border-forest text-forest' : 'border-coral text-coral'}`}`}

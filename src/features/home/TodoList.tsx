@@ -58,10 +58,10 @@ export function TodoList({ overtime, absences, promotions, unconfirmedDays, mont
         >
           <Icon name={it.icon} className={`mt-[2px] ${it.warn ? 'text-coral' : 'text-muted'}`} />
           <span className="min-w-0 flex-1">
-            <span className={`block text-[14px] ${it.warn ? 'text-coral' : 'text-ink'}`}>
+            <span className={`block text-ui-md ${it.warn ? 'text-coral' : 'text-ink'}`}>
               {it.title}
             </span>
-            <span className="mt-[3px] block text-[12px] text-muted">{it.detail}</span>
+            <span className="mt-[3px] block text-ui-sm text-muted">{it.detail}</span>
           </span>
           <Icon name="chevron-right" size={16} className="mt-[2px] text-border-strong" />
         </button>

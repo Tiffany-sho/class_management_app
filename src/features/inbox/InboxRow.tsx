@@ -28,13 +28,13 @@ export function InboxRow({ item, last }: { item: InboxItem; last: boolean }) {
       />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-xs">
-          <span className="text-[14px] text-ink">{item.title}</span>
+          <span className="text-ui-md text-ink">{item.title}</span>
           {item.needsAction ? <Badge tone="warn">要対応</Badge> : null}
         </div>
-        <div className="mt-[3px] text-[12px] leading-relaxed text-muted">{item.detail}</div>
+        <div className="mt-[3px] text-ui-sm leading-relaxed text-muted">{item.detail}</div>
       </div>
       <div className="flex shrink-0 items-center gap-xs">
-        <span className="text-[11px] text-muted">{sinceLabel(item.at)}</span>
+        <span className="text-ui-xs text-muted">{sinceLabel(item.at)}</span>
         {item.actions}
       </div>
     </li>

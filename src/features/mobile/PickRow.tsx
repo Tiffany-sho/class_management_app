@@ -52,7 +52,7 @@ export function PickRow({
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-[6px] text-[14px] text-ink">
+        <span className="flex items-center gap-[6px] text-ui-md text-ink">
           {showDot ? (
             <span
               aria-hidden
@@ -61,7 +61,7 @@ export function PickRow({
           ) : null}
           {title}
         </span>
-        <span className="mt-[2px] block text-[12px] text-muted tnum">{sub}</span>
+        <span className="mt-[2px] block text-ui-sm text-muted tnum">{sub}</span>
       </span>
     </button>
   );

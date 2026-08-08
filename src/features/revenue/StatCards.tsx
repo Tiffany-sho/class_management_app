@@ -20,11 +20,11 @@ export function StatCards({ stats }: { stats: Stat[] }) {
     <div className="mb-lg grid gap-md sm:grid-cols-2 app:grid-cols-4">
       {stats.map((s) => (
         <Card key={s.label} className="px-md py-sm">
-          <div className="text-[12px] text-muted">{s.label}</div>
-          <div className={`mt-[4px] text-[20px] font-medium tnum ${TONE[s.tone ?? 'ink']}`}>
+          <div className="text-ui-sm text-muted">{s.label}</div>
+          <div className={`mt-[4px] text-ui-xl font-medium tnum ${TONE[s.tone ?? 'ink']}`}>
             {s.value}
           </div>
-          {s.hint ? <div className="mt-[2px] text-[12px] text-muted">{s.hint}</div> : null}
+          {s.hint ? <div className="mt-[2px] text-ui-sm text-muted">{s.hint}</div> : null}
         </Card>
       ))}
     </div>

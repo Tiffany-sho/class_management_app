@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { useId } from 'react';
 
 const BASE =
-  'w-full rounded-md border border-hairline bg-canvas px-sm py-[10px] text-[14px] text-ink ' +
+  'w-full rounded-md border border-hairline bg-canvas px-sm py-[10px] text-ui-md text-ink ' +
   'placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export function Field({ label, hint, children }: {
@@ -13,9 +13,9 @@ export function Field({ label, hint, children }: {
 }) {
   return (
     <label className="mb-md block">
-      <span className="mb-[6px] block text-[13px] font-medium text-ink">{label}</span>
+      <span className="mb-[6px] block text-ui-base font-medium text-ink">{label}</span>
       {children}
-      {hint ? <span className="mt-[6px] block text-[12px] text-muted">{hint}</span> : null}
+      {hint ? <span className="mt-[6px] block text-ui-sm text-muted">{hint}</span> : null}
     </label>
   );
 }
@@ -59,7 +59,7 @@ export function Segmented<T extends string>({
           aria-checked={value === o.value}
           disabled={disabled}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-sm px-sm py-[7px] text-[13px] transition-colors
+          className={`flex-1 rounded-sm px-sm py-[7px] text-ui-base transition-colors
             disabled:opacity-45
             ${value === o.value ? 'bg-canvas font-medium text-ink shadow-card' : 'text-muted hover:text-ink'}`}
         >

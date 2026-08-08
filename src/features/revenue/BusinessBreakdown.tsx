@@ -25,7 +25,7 @@ export function BusinessBreakdown({ businesses, students, fees, costByBusiness }
       <Panel className="overflow-x-auto p-0">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-hairline text-[12px] text-muted">
+            <tr className="border-b border-hairline text-ui-sm text-muted">
               <th className="px-md py-sm text-left font-medium">事業</th>
               <th className="px-md py-sm text-right font-medium">生徒</th>
               <th className="px-md py-sm text-right font-medium">月謝収入</th>
@@ -59,7 +59,7 @@ export function BusinessBreakdown({ businesses, students, fees, costByBusiness }
           </tbody>
         </table>
       </Panel>
-      <p className="mt-sm text-[12px] leading-relaxed text-muted">
+      <p className="mt-sm text-ui-sm leading-relaxed text-muted">
         事業別の人件費は<strong className="text-ink">コマから計算した基本給だけ</strong>です。
         交通費は出勤「日」に対する日額（日曜に2教室を掛け持ちしても1日ぶん）、
         時間外はシフト外の作業なので、<strong className="text-ink">どちらも事業に割り振っていません</strong>。

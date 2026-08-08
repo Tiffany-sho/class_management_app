@@ -55,10 +55,10 @@ export function DayDetailSheet({
                 aria-hidden
                 className={`h-[9px] w-[9px] rounded-pill ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
               />
-              <span className="text-[14px] text-ink">
+              <span className="text-ui-md text-ink">
                 {showBusinessName ? `${b?.name ?? '—'} ` : ''}第{s.slotNo}コマ
               </span>
-              <span className="text-[12px] text-muted tnum">
+              <span className="text-ui-sm text-muted tnum">
                 {formatTimeRange(s.startTime, s.endTime)}
               </span>
               <span className="flex-1" />
@@ -75,36 +75,36 @@ export function DayDetailSheet({
             </header>
 
             <div className="px-md py-sm">
-              <div className="mb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+              <div className="mb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
                 担当講師（{s.employees.length}名 ／ 定員 {s.capacity}名）
               </div>
               <div className="mb-md flex flex-wrap gap-xs">
                 {s.employees.length ? (
                   s.employees.map((e) => (onOpenStaff ? (
-                    <span key={e.id} className="text-[12px]">
+                    <span key={e.id} className="text-ui-sm">
                       <NameLink onClick={() => onOpenStaff(e.id)}>{e.name}</NameLink>
                     </span>
                   ) : (
-                    <span key={e.id} className="rounded-pill bg-surface-dark px-sm py-[3px] text-[12px] text-on-dark">
+                    <span key={e.id} className="rounded-pill bg-surface-dark px-sm py-[3px] text-ui-sm text-on-dark">
                       {e.name}
                     </span>
                   )))
                 ) : (
-                  <span className="text-[13px] text-coral">担当が決まっていません</span>
+                  <span className="text-ui-base text-coral">担当が決まっていません</span>
                 )}
               </div>
 
-              <div className="mb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+              <div className="mb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
                 受講生徒（{s.students.length}名）
               </div>
               {s.students.length === 0 ? (
-                <p className="text-[13px] text-muted">受講生徒がまだ割り当てられていません。</p>
+                <p className="text-ui-base text-muted">受講生徒がまだ割り当てられていません。</p>
               ) : (
                 <ul className="flex flex-col gap-xs">
                   {s.students.map((st) => (
                     <li key={st.studentId} className="rounded-md border border-hairline px-sm py-xs">
                       <div className="flex items-center gap-xs">
-                        <span className="flex-1 text-[13px] text-ink">
+                        <span className="flex-1 text-ui-base text-ink">
                           {onOpenStudent
                             ? <NameLink onClick={() => onOpenStudent(st.studentId)}>{st.studentName}</NameLink>
                             : st.studentName}
@@ -120,7 +120,7 @@ export function DayDetailSheet({
                         ) : null}
                       </div>
                       {past ? (
-                        <div className="mt-[5px] text-[12px] leading-relaxed text-muted">
+                        <div className="mt-[5px] text-ui-sm leading-relaxed text-muted">
                           {st.attendanceStatus === 'absent'
                             ? '欠席のため授業記録はありません。'
                             : st.note

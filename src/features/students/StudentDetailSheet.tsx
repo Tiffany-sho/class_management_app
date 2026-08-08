@@ -82,7 +82,7 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
           <Section title="前回の受講">
             {last ? (
               <div className="flex flex-wrap items-center gap-sm rounded-md border border-hairline px-sm py-xs">
-                <span className="text-[14px] text-ink">
+                <span className="text-ui-md text-ink">
                   {formatDayJa(last.sessionDate)} 第{last.slotNo}コマ
                 </span>
                 <span className="flex-1" />
@@ -91,7 +91,7 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
                 </Badge>
               </div>
             ) : (
-              <p className="text-[13px] text-muted">まだ受講記録がありません。</p>
+              <p className="text-ui-base text-muted">まだ受講記録がありません。</p>
             )}
           </Section>
 
@@ -101,12 +101,12 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
                 {([['受講', counts.total], ['出席', counts.present],
                    ['遅刻', counts.late], ['欠席', counts.absent]] as const).map(([k, v]) => (
                   <div key={k} className="rounded-md border border-hairline px-xs py-sm">
-                    <div className="text-[12px] text-muted">{k}</div>
+                    <div className="text-ui-sm text-muted">{k}</div>
                     <div className="text-title-sm text-ink tnum">{v}</div>
                   </div>
                 ))}
               </div>
-              <p className="mt-sm text-[12px] leading-relaxed text-muted">
+              <p className="mt-sm text-ui-sm leading-relaxed text-muted">
                 月謝は固定月額です。<strong className="text-ink">欠席が多くても請求額は変わりません。</strong>
                 月2〜3回のため出席率は出していません。
               </p>
@@ -115,13 +115,13 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
 
           <Section title="受講と授業記録">
             {d.history.length === 0 ? (
-              <p className="text-[13px] text-muted">まだ受講記録がありません。</p>
+              <p className="text-ui-base text-muted">まだ受講記録がありません。</p>
             ) : (
               <ul className="flex flex-col gap-xs">
                 {d.history.slice(0, 12).map((r) => (
                   <li key={r.scheduleId} className="rounded-md border border-hairline px-sm py-xs">
                     <div className="flex items-center gap-xs">
-                      <span className="flex-1 text-[13px] text-ink">
+                      <span className="flex-1 text-ui-base text-ink">
                         {formatDayJa(r.sessionDate)} 第{r.slotNo}コマ
                       </span>
                       {r.attendanceStatus ? (
@@ -132,7 +132,7 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
                         <Badge tone="neutral">予定</Badge>
                       )}
                     </div>
-                    <div className="mt-[5px] text-[12px] leading-relaxed text-muted">
+                    <div className="mt-[5px] text-ui-sm leading-relaxed text-muted">
                       {r.attendanceStatus === 'absent'
                         ? '欠席のため授業記録はありません。'
                         : r.note
@@ -156,16 +156,16 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
           {mode === 'admin' ? (
             <Section title={`月謝の支払い（支払累計 ${yen(paidTotal)}）`}>
               {d.fees.length === 0 ? (
-                <p className="text-[13px] text-muted">まだ請求がありません。</p>
+                <p className="text-ui-base text-muted">まだ請求がありません。</p>
               ) : (
                 <ul className="flex flex-col gap-xs">
                   {d.fees.map((f) => (
                     <li key={f.yearMonth} className="flex flex-wrap items-center gap-xs rounded-md border border-hairline px-sm py-xs">
-                      <span className="text-[13px] text-ink tnum">{f.yearMonth}</span>
-                      <span className="text-[13px] text-ink tnum">{yen(f.amount)}</span>
+                      <span className="text-ui-base text-ink tnum">{f.yearMonth}</span>
+                      <span className="text-ui-base text-ink tnum">{yen(f.amount)}</span>
                       <span className="flex-1" />
                       {f.paidDate ? (
-                        <span className="text-[12px] text-muted tnum">入金 {f.paidDate}</span>
+                        <span className="text-ui-sm text-muted tnum">入金 {f.paidDate}</span>
                       ) : null}
                       <Badge tone={f.status === 'paid' ? 'success' : 'danger'}>
                         {FEE_LABEL[f.status]}
@@ -190,7 +190,7 @@ export function StudentDetailSheet({ studentId, mode, onClose, onEdit }: Props) 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-lg">
-      <h4 className="mb-xs border-b border-hairline pb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+      <h4 className="mb-xs border-b border-hairline pb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
         {title}
       </h4>
       {children}
@@ -201,8 +201,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function KV({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[12px] text-muted">{k}</dt>
-      <dd className="mt-[3px] text-[14px] text-ink">{v}</dd>
+      <dt className="text-ui-sm text-muted">{k}</dt>
+      <dd className="mt-[3px] text-ui-md text-ink">{v}</dd>
     </div>
   );
 }

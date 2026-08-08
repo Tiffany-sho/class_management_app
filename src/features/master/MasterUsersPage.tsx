@@ -61,9 +61,9 @@ export function MasterUsersPage() {
       <div>
         <div className="text-ink">
           {u.name}
-          {u.id === user?.id ? <span className="ml-xs text-[11px] text-muted">（自分）</span> : null}
+          {u.id === user?.id ? <span className="ml-xs text-ui-xs text-muted">（自分）</span> : null}
         </div>
-        <div className="text-[12px] text-muted">{u.email}</div>
+        <div className="text-ui-sm text-muted">{u.email}</div>
       </div>
     ) },
     { key: 'role', header: '役割', render: (u) => (
@@ -123,7 +123,7 @@ export function MasterUsersPage() {
         empty="該当するユーザーがいません。"
       />
 
-      <p className="mt-md text-[12px] leading-relaxed text-muted">
+      <p className="mt-md text-ui-sm leading-relaxed text-muted">
         行を押すと詳細が開き、そこで<strong className="text-ink">在籍中 / 無効</strong>を切り替えられます。
         「無効にする」は<strong className="text-ink">論理削除</strong>なので、行は残り、
         過去の担当コマ・給与・請求の記録は消えません。

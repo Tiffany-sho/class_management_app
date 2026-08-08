@@ -50,7 +50,7 @@ export function AnnouncementForm({ businesses, onCreated }: {
 
   return (
     <Panel>
-      <h3 className="mb-md text-[14px] font-medium text-ink">新規投稿</h3>
+      <h3 className="mb-md text-ui-md font-medium text-ink">新規投稿</h3>
 
       <Field label="タイトル">
         <TextInput

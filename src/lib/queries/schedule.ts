@@ -199,7 +199,8 @@ export async function confirmMonth(yearMonth: string): Promise<number> {
  *
  * 締め切りを過ぎているか、その月の締め切り行が無ければ **RLS が弾く**。
  * ここで日付を判定しない（画面と DB で判定が二重になり、必ずどちらかがずれる）。
- * 受講回数の上限と「1日1コマ」も DB のトリガーと一意制約が見ている。
+ * 件数の上限は無い（希望は候補で、回数は確定が決める ―― ドメインルール2）。
+ * 同じコマの二重登録だけを一意制約が弾く。
  */
 export async function addPreference(
   studentId: string, yearMonth: string, sessionDate: string, slotNo: number,

@@ -64,7 +64,7 @@ export function UserSheet({ user, isSelf, onClose, onSaved, onError }: Props) {
         </>
       }
     >
-      <dl className="mb-lg grid grid-cols-[88px_1fr] gap-y-sm text-[13px]">
+      <dl className="mb-lg grid grid-cols-[88px_1fr] gap-y-sm text-ui-base">
         <dt className="text-muted">役割</dt>
         <dd className="text-ink">{user ? ROLE_LABEL[user.role] ?? user.role : '—'}</dd>
         <dt className="text-muted">状態</dt>
@@ -83,7 +83,7 @@ export function UserSheet({ user, isSelf, onClose, onSaved, onError }: Props) {
         </Note>
       ) : null}
 
-      <p className="text-[12px] leading-relaxed text-muted">
+      <p className="text-ui-sm leading-relaxed text-muted">
         「無効にする」は<strong className="text-ink">論理削除</strong>です。行は残るので、
         過去の担当コマ・給与・請求の記録は消えません。
         ただし<strong className="text-ink">本人はログインしても何も見えなくなります</strong>。

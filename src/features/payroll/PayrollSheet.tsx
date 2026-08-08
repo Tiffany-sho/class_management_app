@@ -85,8 +85,8 @@ export function PayrollSheet({ target, month, businesses, onClose, onSaved, onEr
               { label: '勤務時間', value: `${Math.round(target.workHours * 10) / 10}時間` },
             ].map((x) => (
               <div key={x.label} className="rounded-md border border-hairline px-sm py-xs">
-                <div className="text-[11px] text-muted">{x.label}</div>
-                <div className="text-[16px] text-ink tnum">{x.value}</div>
+                <div className="text-ui-xs text-muted">{x.label}</div>
+                <div className="text-ui-lg text-ink tnum">{x.value}</div>
               </div>
             ))}
           </div>
@@ -98,18 +98,18 @@ export function PayrollSheet({ target, month, businesses, onClose, onSaved, onEr
               { label: `交通費（${days.length}日ぶん）`, value: target.commute },
             ].map((x) => (
               <div key={x.label} className="flex items-center gap-sm border-b border-hairline px-md py-xs">
-                <dt className="flex-1 text-[13px] text-muted">{x.label}</dt>
-                <dd className="text-[14px] text-ink tnum">{yen(x.value)}</dd>
+                <dt className="flex-1 text-ui-base text-muted">{x.label}</dt>
+                <dd className="text-ui-md text-ink tnum">{yen(x.value)}</dd>
               </div>
             ))}
             <div className="flex items-center gap-sm px-md py-sm">
-              <dt className="flex-1 text-[13px] text-ink">支給額</dt>
-              <dd className="text-[18px] font-medium text-ink tnum">{yen(target.total)}</dd>
+              <dt className="flex-1 text-ui-base text-ink">支給額</dt>
+              <dd className="text-ui-xl font-medium text-ink tnum">{yen(target.total)}</dd>
             </div>
           </dl>
 
           <div className="mb-xs flex items-center gap-xs">
-            <h4 className="text-[13px] font-medium text-ink">出勤したコマ</h4>
+            <h4 className="text-ui-base font-medium text-ink">出勤したコマ</h4>
             <span className="flex-1" />
             {confirmed ? (
               <Badge tone="success">確定済み</Badge>
@@ -141,15 +141,15 @@ export function PayrollSheet({ target, month, businesses, onClose, onSaved, onEr
                       aria-hidden
                       className={`h-[9px] w-[9px] rounded-pill ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
                     />
-                    <span className="text-[13px] text-ink">{formatDayJa(s.sessionDate)}</span>
-                    <span className="text-[12px] text-muted">
+                    <span className="text-ui-base text-ink">{formatDayJa(s.sessionDate)}</span>
+                    <span className="text-ui-sm text-muted">
                       {b?.name?.replace('教室', '') ?? '—'} 第{s.slotNo}コマ
                     </span>
                     <span className="flex-1" />
-                    <span className="text-[12px] text-muted tnum">
+                    <span className="text-ui-sm text-muted tnum">
                       {s.hours}時間 × {yen(s.hourlyRate)}
                     </span>
-                    <span className="w-[72px] text-right text-[13px] text-ink tnum">
+                    <span className="w-[72px] text-right text-ui-base text-ink tnum">
                       {yen(s.amount)}
                     </span>
                   </li>

@@ -74,7 +74,7 @@ export function EmployeePlan() {
         byDate={byDate}
         businesses={d.businesses}
         onSelect={(date) => setDetail({ date, ids: null })}
-        cell={{ kind: 'assignment', meId }}
+        cell={{ kind: 'assignment' }}
       />
 
       {/* 掛け持ちしていない人には色の凡例が要らない（1色しか出ない） */}
@@ -84,15 +84,14 @@ export function EmployeePlan() {
         </div>
       ) : null}
 
-      <p className="mb-lg mt-sm text-[12px] leading-relaxed text-muted">
-        マスと一覧の名前は<strong className="text-ink">一緒に入る講師</strong>です。
-        押すと生徒と出欠が見られます。
+      <p className="mb-lg mt-sm text-ui-sm leading-relaxed text-muted">
+        数字は<strong className="text-ink">その回に来る生徒の人数</strong>です。
+        押すと生徒・出欠・一緒に入る講師が見られます。
       </p>
 
       <EmployeeShiftList
         slots={d.slots}
         businesses={d.businesses}
-        meId={meId}
         showBusiness={showBusiness}
         onOpen={(s) => setDetail({ date: s.sessionDate, ids: [s.id] })}
       />

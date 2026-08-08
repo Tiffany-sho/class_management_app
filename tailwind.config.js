@@ -1,9 +1,13 @@
 import tokens from './design-tokens.js';
+import { uiFontSize } from './app-tokens.js';
 
 /**
  * デザイントークンは design-tokens.js から読む（DESIGN.md が正本）。
  * iOS 側の tailwind.config.js も同じファイルを同じ形で読むので、
  * ここに色や余白を直接書かないこと。書くと2つのアプリでずれる。
+ *
+ * `ui-*` の文字サイズだけは app-tokens.js から読む。DESIGN.md は
+ * アプリシェル（サイドバー・表・チップ）の文字サイズを規定していないため。
  */
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -22,7 +26,7 @@ export default {
         'danger-tint': tokens.stateSurfaces.dangerTint,
       },
       fontFamily: tokens.fontFamily,
-      fontSize: tokens.fontSize,
+      fontSize: { ...tokens.fontSize, ...uiFontSize },
       borderRadius: tokens.borderRadius,
       spacing: tokens.spacing,
       boxShadow: tokens.boxShadow,

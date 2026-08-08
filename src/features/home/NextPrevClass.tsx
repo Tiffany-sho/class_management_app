@@ -36,7 +36,7 @@ export function NextPrevClass({ slots, businesses, onOpen }: Props) {
             onOpen={onOpen}
           />
         ) : (
-          <Card><p className="p-md text-[13px] text-muted">この月はもう開催がありません。</p></Card>
+          <Card><p className="p-md text-ui-base text-muted">この月はもう開催がありません。</p></Card>
         )}
       </div>
 
@@ -50,7 +50,7 @@ export function NextPrevClass({ slots, businesses, onOpen }: Props) {
           onOpen={onOpen}
         />
       ) : (
-        <Card><p className="p-md text-[13px] text-muted">この月はまだ開催がありません。</p></Card>
+        <Card><p className="p-md text-ui-base text-muted">この月はまだ開催がありません。</p></Card>
       )}
     </>
   );
@@ -70,8 +70,8 @@ function DayCard({
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-sm border-b border-hairline px-md py-sm">
-        <div className="text-[15px] text-ink">{formatDayJa(date)}</div>
-        <div className="text-[12px] text-muted">{slots.length}コマ</div>
+        <div className="text-ui-lg text-ink">{formatDayJa(date)}</div>
+        <div className="text-ui-sm text-muted">{slots.length}コマ</div>
         <div className="flex-1" />
         <Button size="sm" onClick={() => onOpen(date)}>詳細を見る</Button>
       </div>
@@ -90,10 +90,10 @@ function DayCard({
               className={`h-[9px] w-[9px] shrink-0 rounded-pill ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
             />
             <div className="min-w-0 flex-1">
-              <div className="text-[14px] text-ink">
+              <div className="text-ui-md text-ink">
                 {b?.name ?? '—'} 第{s.slotNo}コマ
               </div>
-              <div className="mt-[2px] text-[12px] text-muted tnum">
+              <div className="mt-[2px] text-ui-sm text-muted tnum">
                 {formatTimeRange(s.startTime, s.endTime)} ・ 生徒{s.students.length}名 ・ 担当{' '}
                 {s.employees.length ? s.employees.map((e) => e.name).join('・') : '未定'}
               </div>
@@ -102,7 +102,7 @@ function DayCard({
                   <Badge tone="success">{ATTENDANCE_LABEL.present} {present}</Badge>
                   <Badge tone="neutral">{ATTENDANCE_LABEL.late} {late}</Badge>
                   <Badge tone="danger">{ATTENDANCE_LABEL.absent} {absent}</Badge>
-                  <span className="text-[12px] text-muted">記録 {noted}/{s.students.length}</span>
+                  <span className="text-ui-sm text-muted">記録 {noted}/{s.students.length}</span>
                 </div>
               ) : null}
             </div>

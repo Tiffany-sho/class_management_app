@@ -50,12 +50,12 @@ export function FeeTable({ businesses, students, fees }: Props) {
     { key: 'name', header: '生徒', render: (s) => (
       <div>
         <div className="text-ink">{s.name}</div>
-        <div className="text-[12px] text-muted">{s.parentName ?? '—'}</div>
+        <div className="text-ui-sm text-muted">{s.parentName ?? '—'}</div>
       </div>
     ) },
     { key: 'business', header: '教室', render: (s) => s.businessName },
     { key: 'course', header: 'コース', render: (s) => (
-      <span className="text-[12px] text-muted">{s.gradeLabel} 月{s.sessionsPerMonth}回</span>
+      <span className="text-ui-sm text-muted">{s.gradeLabel} 月{s.sessionsPerMonth}回</span>
     ) },
     { key: 'amount', header: '請求額', numeric: true, render: (s) => (
       s.fee ? <span className="tnum">{yen(s.fee.amount)}</span> : <span className="text-muted">—</span>
@@ -66,7 +66,7 @@ export function FeeTable({ businesses, students, fees }: Props) {
             <Badge tone={s.fee.status === 'paid' ? 'success' : 'danger'}>
               {FEE_LABEL[s.fee.status]}
             </Badge>
-            <div className="mt-[3px] text-[12px] text-muted tnum">
+            <div className="mt-[3px] text-ui-sm text-muted tnum">
               {s.fee.paidDate ? `入金 ${s.fee.paidDate.slice(5)}` : '入金待ち'}
             </div>
           </div>

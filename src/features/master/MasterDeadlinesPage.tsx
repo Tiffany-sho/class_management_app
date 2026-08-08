@@ -50,11 +50,11 @@ export function MasterDeadlinesPage() {
           const typeLabel = TYPE_LABEL[r.type] ?? r.type;
           return (
             <Panel key={r.id}>
-              <h3 className="mb-xs text-[14px] font-medium text-ink">{typeLabel}</h3>
-              <p className="mb-md text-[20px] text-ink tnum">
+              <h3 className="mb-xs text-ui-md font-medium text-ink">{typeLabel}</h3>
+              <p className="mb-md text-ui-xl text-ink tnum">
                 前月 {r.dayOfMonth}日 {r.timeOfDay.slice(0, 5)}
               </p>
-              <p className="mb-md text-[12px] text-muted">
+              <p className="mb-md text-ui-sm text-muted">
                 例）9月ぶんの提出は{' '}
                 <strong className="text-ink">8月{r.dayOfMonth}日 {r.timeOfDay.slice(0, 5)}</strong> まで
               </p>
@@ -66,7 +66,7 @@ export function MasterDeadlinesPage() {
         })}
       </div>
 
-      <p className="mt-lg text-[12px] leading-relaxed text-muted">
+      <p className="mt-lg text-ui-sm leading-relaxed text-muted">
         ここを変えても<strong className="text-ink">すでに作られた月の締め切りは動きません</strong>。
         締めたはずの月の日付が後から変わると、締め切りを過ぎた提出が通ってしまうためです。
         特定の月だけ変えたい・その月の受付を止めたいときは、

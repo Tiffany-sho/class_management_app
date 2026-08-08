@@ -143,8 +143,8 @@ export function EmployeeHomePage() {
                   aria-hidden
                   className={`h-[9px] w-[9px] rounded-pill ${x.business?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
                 />
-                <span className="text-[14px] text-ink">{formatDayJa(x.slot.sessionDate)}</span>
-                <span className="text-[12px] text-muted">第{x.slot.slotNo}コマ</span>
+                <span className="text-ui-md text-ink">{formatDayJa(x.slot.sessionDate)}</span>
+                <span className="text-ui-sm text-muted">第{x.slot.slotNo}コマ</span>
               </div>
               <AttendanceList
                 slot={x.slot}

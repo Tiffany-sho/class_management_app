@@ -26,7 +26,7 @@ interface Props {
  */
 export function AttendanceList({ slot, busy, onMark, onOpenNote, onOpenStudent }: Props) {
   if (slot.students.length === 0) {
-    return <p className="text-[13px] text-muted">受講生徒はいません。</p>;
+    return <p className="text-ui-base text-muted">受講生徒はいません。</p>;
   }
 
   return (
@@ -35,7 +35,7 @@ export function AttendanceList({ slot, busy, onMark, onOpenNote, onOpenStudent }
         const key = `${slot.id}-${st.studentId}`;
         return (
           <li key={st.studentId} className="flex flex-wrap items-center gap-xs">
-            <span className="min-w-0 flex-1 text-[14px]">
+            <span className="min-w-0 flex-1 text-ui-md">
               <NameLink onClick={() => onOpenStudent(st.studentId)}>{st.studentName}</NameLink>
             </span>
             <Segmented

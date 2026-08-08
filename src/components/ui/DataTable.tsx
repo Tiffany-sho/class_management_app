@@ -49,7 +49,7 @@ export function DataTable<T>({
                 aria-sort={
                   sortKey === c.key ? (sortAsc ? 'ascending' : 'descending') : undefined
                 }
-                className={`whitespace-nowrap px-md py-sm text-[12px] font-medium text-muted
+                className={`whitespace-nowrap px-md py-sm text-ui-sm font-medium text-muted
                   ${c.numeric ? 'text-right' : 'text-left'}`}
               >
                 {c.sortable && onSort ? (
@@ -59,7 +59,7 @@ export function DataTable<T>({
                     className="inline-flex items-center gap-[4px] hover:text-ink"
                   >
                     {c.header}
-                    <span aria-hidden className="text-[10px]">
+                    <span aria-hidden className="text-ui-2xs">
                       {sortKey === c.key ? (sortAsc ? '▲' : '▼') : ''}
                     </span>
                   </button>
@@ -73,7 +73,7 @@ export function DataTable<T>({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-md py-xl text-center text-[13px] text-muted">
+              <td colSpan={columns.length} className="px-md py-xl text-center text-ui-base text-muted">
                 {empty}
               </td>
             </tr>
@@ -94,7 +94,7 @@ export function DataTable<T>({
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={`px-md py-sm align-middle text-[13px]
+                    className={`px-md py-sm align-middle text-ui-base
                       ${c.numeric ? 'text-right tnum' : 'text-left'}
                       ${c.wrap ? 'min-w-[240px] max-w-[420px]' : 'whitespace-nowrap'}`}
                   >

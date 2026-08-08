@@ -25,9 +25,9 @@ export function Panel({
 }) {
   return (
     <div className={`mb-md rounded-md border border-hairline bg-canvas p-lg shadow-card ${className}`}>
-      {title ? <h3 className="text-[14px] font-medium text-ink">{title}</h3> : null}
+      {title ? <h3 className="text-ui-md font-medium text-ink">{title}</h3> : null}
       {description ? (
-        <div className="mb-sm mt-[2px] text-[12px] text-muted">{description}</div>
+        <div className="mb-sm mt-[2px] text-ui-sm text-muted">{description}</div>
       ) : title ? <div className="mb-sm" /> : null}
       {children}
     </div>
@@ -37,7 +37,7 @@ export function Panel({
 /** セクション見出し。パネルの上に置く小さいラベル */
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-xs text-[11px] font-medium uppercase tracking-[0.08em] text-muted">
+    <div className="mb-xs text-ui-xs font-medium uppercase tracking-[0.08em] text-muted">
       {children}
     </div>
   );

@@ -13,7 +13,7 @@ export function Chip({ active = false, onClick, children }: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex items-center gap-[6px] rounded-pill border px-sm py-[5px] text-[13px]
+      className={`inline-flex items-center gap-[6px] rounded-pill border px-sm py-[5px] text-ui-base
         transition-colors
         ${active
           ? 'bg-primary text-on-primary border-primary'

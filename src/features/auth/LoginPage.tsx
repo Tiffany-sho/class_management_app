@@ -37,7 +37,7 @@ export function LoginPage() {
           </div>
           <div>
             <h1 className="text-title-sm">R-Tech 管理システム</h1>
-            <p className="text-[12px] text-muted">プログラミング教室・イラスト教室</p>
+            <p className="text-ui-sm text-muted">プログラミング教室・イラスト教室</p>
           </div>
         </div>
 
@@ -67,7 +67,7 @@ export function LoginPage() {
           {busy ? 'ログインしています…' : 'ログイン'}
         </Button>
 
-        <p className="mt-md text-[12px] leading-relaxed text-muted">
+        <p className="mt-md text-ui-sm leading-relaxed text-muted">
           アカウントは<strong className="text-ink">管理者の招待</strong>で作られます。
           ご自身での新規登録はできません。招待メールが届いていない場合は管理者にご連絡ください。
         </p>

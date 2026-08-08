@@ -19,6 +19,12 @@ import type { Student } from '@/types/domain';
 /**
  * 受講希望の提出（保護者）。
  *
+ * **希望は予約ではなく候補。** 通える日をいくつでも出してよく（0件でもよい）、
+ * その中からコースの回数ぶんを管理者がスケジュール確定で選ぶ。
+ * 以前は「コースの回数ちょうどを選ばないと出せない」だったが、それだと
+ * 保護者が通う日まで決めることになり、**管理者に動かせる余地が残らない**
+ * （定員が埋まっていても差し替えられない）。同じ日の別コマも候補に出せる。
+ *
  * **選択は画面の中だけで持ち、「提出する」で1回だけ書き込む。**
  * 1タップごとに書くと、候補の数だけ通信が走り、途中で切れたときに
  * 「どこまで出したか」が本人にも分からなくなる。
@@ -26,9 +32,6 @@ import type { Student } from '@/types/domain';
  * 締め切りの判定は DB に任せる。締め切りを過ぎていたり、その月の締め切り行が
  * まだ無ければ RLS が書き込みを弾く。画面でも日付を判定すると判定が二重になり、
  * 必ずどちらかがずれる。ここでは「押せるか」ではなく「なぜ押せなかったか」を出す。
- *
- * 受講回数の上限と「1日1コマ」も DB のトリガーと一意制約が見ている。
- * 画面側の制限は**先回りして分かるようにするため**のもので、これが最後の砦ではない。
  */
 export function ParentSubmit() {
   const { toast } = useToast();
@@ -79,7 +82,6 @@ export function ParentSubmit() {
   const pickedOf = (s: Student) => draft[s.id] ?? serverOf(s).map((p) => p.key);
 
   const picked = pickedOf(kid);
-  const pickedDays = new Set(picked.map((k) => k.split('|')[1]));
 
   const toggle = (key: string) => {
     setDraft((prev) => {
@@ -101,15 +103,6 @@ export function ParentSubmit() {
     };
   }).filter((c) => c.remove.length > 0 || c.add.length > 0);
 
-  /* 提出できる条件は「変更があるか」ではなく **「選択が揃っているか」**。
-     差分で判定すると、上限まで選び終えた（＝出せる状態になった）ときに限って
-     ボタンが「変更はありません」になり、押せなくなる。
-     触っていない子の元からの不足までは咎めない（その子を直しに来たとは限らない）。 */
-  const incomplete = d.students
-    .map((s) => ({ student: s, left: s.sessionsPerMonth - pickedOf(s).length }))
-    .filter((x) => x.left !== 0)
-    .filter((x) => x.student.id === kid.id || draft[x.student.id] !== undefined);
-
   const submit = async () => {
     if (changes.length === 0) {
       toast('すでにこの内容で提出済みです。');
@@ -117,9 +110,8 @@ export function ParentSubmit() {
     }
     setBusy(true);
     try {
-      /* **消してから足す。** 上限チェックは行ごとの after トリガー、
-         「1日1コマ」は一意制約なので、上限いっぱいの状態で日を差し替えると
-         足す側が先に走った時点で弾かれる。 */
+      /* **消してから足す。** 同じコマの二重登録は一意制約が見ているので、
+         入れ替えのときに足す側が先に走ると自分自身とぶつかる。 */
       for (const c of changes) {
         for (const p of c.remove) await removePreference(p.id);
       }
@@ -143,7 +135,6 @@ export function ParentSubmit() {
   };
 
   const list = openings.filter((o) => o.businessId === kid.businessId);
-  const left = kid.sessionsPerMonth - picked.length;
 
   return (
     <div>
@@ -156,7 +147,9 @@ export function ParentSubmit() {
         onSelect={setKidId}
       />
 
-      <SubmitCounter count={picked.length} max={kid.sessionsPerMonth} deadline={d.deadline} />
+      {/* 上限は候補の数そのもの。コースの回数は「このうち何コマ決まるか」であって、
+          出せる希望の数ではない */}
+      <SubmitCounter count={picked.length} max={list.length} deadline={d.deadline} />
 
       {closed ? (
         <Note icon="warning">
@@ -173,57 +166,44 @@ export function ParentSubmit() {
       ) : (
         list.map((o) => {
           const key = openingKey({ businessId: o.businessId, date: o.date, slotNo: o.slotNo });
-          const on = picked.includes(key);
-          const sameDay = !on && pickedDays.has(o.date);
-          const full = !on && left <= 0;
           return (
             <PickRow
               key={key}
-              selected={on}
-              disabled={closed || sameDay || full}
+              selected={picked.includes(key)}
+              disabled={closed}
               colorKey={d.businesses.find((b) => b.id === o.businessId)?.colorKey ?? 'forest'}
               /* コマ番号は出さない。同じ日に2コマある教室でも、保護者が選ぶときに
                  見ているのは時刻（下の sub）で、番号では何時からか分からない */
               title={formatDayJa(o.date)}
-              sub={sameDay
-                ? 'この日は選択済み（1日1コマまで）'
-                : full
-                  ? `上限（月${kid.sessionsPerMonth}コマ）に達しています`
-                  : formatTimeRange(o.startTime, o.endTime)}
+              sub={formatTimeRange(o.startTime, o.endTime)}
               onToggle={() => toggle(key)}
             />
           );
         })
       )}
 
+      {/* **選んだ数では止めない。** 0件でも出せる（「今月は通えない」も伝える内容）。
+          止めるのは締め切りだけ */}
       <Button
         variant="primary"
         block
         className="mt-sm"
-        disabled={closed || busy || incomplete.length > 0}
+        disabled={closed || busy}
         onClick={() => void submit()}
       >
-        {incomplete.length === 0
-          ? changes.length > 1
+        {picked.length === 0
+          ? '希望なしで提出する'
+          : changes.length > 1
             ? `この内容で提出する（${changes.length}名ぶん）`
-            : 'この内容で提出する'
-          : incomplete[0]!.student.id === kid.id
-            ? incomplete[0]!.left > 0
-              ? `あと${incomplete[0]!.left}コマ選んでください`
-              : `${-incomplete[0]!.left}コマ多く選ばれています`
-            : `${incomplete[0]!.student.name}さんの選択が揃っていません`}
+            : 'この内容で提出する'}
       </Button>
 
-      {incomplete.length > 0 && incomplete[0]!.student.id !== kid.id ? (
-        <p className="mt-xs text-center text-[12px] text-coral">
-          お子さまを切り替えて、{incomplete[0]!.student.name}さんの選択を揃えてください。
-        </p>
-      ) : null}
-
       <Note>
-        受講回数はコースで決まっていて、<strong className="text-ink">同じ日に2コマは選べません</strong>。
-        <strong className="text-ink">コースの回数ぶんを選び終えてから提出してください。</strong>
-        提出した内容がそのまま確定するわけではなく、教室が調整して確定します。
+        通える日を<strong className="text-ink">いくつでも</strong>選べます。
+        同じ日の別の時間も選べます。
+        このうち<strong className="text-ink">月{kid.sessionsPerMonth}コマ</strong>を教室が決めます
+        （{kid.name}さんのコースの回数です）。
+        <strong className="text-ink">多めに出していただくほど組みやすくなります。</strong>
         {d.students.length > 1
           ? 'お子さまを切り替えて選んだぶんも、まとめて提出されます。'
           : null}

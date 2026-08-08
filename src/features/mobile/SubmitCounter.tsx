@@ -23,15 +23,15 @@ export function SubmitCounter({ count, max, deadline }: Props) {
     <div className="mb-sm flex items-center gap-sm rounded-md border border-hairline
       bg-surface-soft px-[14px] py-sm">
       <div>
-        <div className="text-[12px] text-muted">選択中</div>
-        <div className="text-[19px] font-medium text-ink tnum">
+        <div className="text-ui-sm text-muted">選択中</div>
+        <div className="text-ui-xl font-medium text-ink tnum">
           {count}{max === undefined ? '' : ` / ${max}`} コマ
         </div>
       </div>
       <div className="flex-1" />
       <div className="text-right">
-        <div className="text-[12px] text-muted">締切</div>
-        <div className="text-[13px] text-ink tnum">
+        <div className="text-ui-sm text-muted">締切</div>
+        <div className="text-ui-base text-ink tnum">
           {!deadline ? (
             <span className="text-coral">未定</span>
           ) : !deadline.active ? (

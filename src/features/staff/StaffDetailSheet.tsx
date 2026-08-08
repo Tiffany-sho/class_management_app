@@ -74,7 +74,7 @@ export function StaffDetailSheet({ employeeId, meId, mode, month, onClose }: Pro
             ? `${formatMonthJa(month)}の担当（${d.slots.length}コマ）`
             : '一緒に入るコマ'}>
             {slots.length === 0 ? (
-              <p className="text-[13px] text-muted">
+              <p className="text-ui-base text-muted">
                 {mode === 'admin'
                   ? 'この月の担当はありません。'
                   : '同じコマに入る予定はありません。'}
@@ -83,12 +83,12 @@ export function StaffDetailSheet({ employeeId, meId, mode, month, onClose }: Pro
               <ul className="flex flex-col gap-xs">
                 {slots.slice(0, 12).map((s) => (
                   <li key={s.scheduleId} className="flex flex-wrap items-center gap-xs rounded-md border border-hairline px-sm py-xs">
-                    <span className="text-[13px] text-ink">
+                    <span className="text-ui-base text-ink">
                       {formatDayJa(s.sessionDate)} 第{s.slotNo}コマ
                     </span>
                     <span className="flex-1" />
                     {s.withNames.length > 0 ? (
-                      <span className="text-[12px] text-muted">
+                      <span className="text-ui-sm text-muted">
                         {s.withNames.join('・')} と{s.withNames.length + 1}名体制
                       </span>
                     ) : null}
@@ -118,7 +118,7 @@ export function StaffDetailSheet({ employeeId, meId, mode, month, onClose }: Pro
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-lg">
-      <h4 className="mb-xs border-b border-hairline pb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+      <h4 className="mb-xs border-b border-hairline pb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
         {title}
       </h4>
       {children}
@@ -129,8 +129,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function KV({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[12px] text-muted">{k}</dt>
-      <dd className="mt-[3px] text-[14px] text-ink">{v}</dd>
+      <dt className="text-ui-sm text-muted">{k}</dt>
+      <dd className="mt-[3px] text-ui-md text-ink">{v}</dd>
     </div>
   );
 }

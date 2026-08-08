@@ -35,7 +35,7 @@ export function SetPasswordPage({ onDone }: { onDone: () => void }) {
         className="w-full max-w-[400px] rounded-md border border-hairline bg-canvas p-xl shadow-card"
       >
         <h1 className="mb-xs text-title-sm">パスワードの設定</h1>
-        <p className="mb-lg text-[13px] text-muted">
+        <p className="mb-lg text-ui-base text-muted">
           {user?.name ? `${user.name} さん、` : ''}はじめてのログインです。
           パスワードを決めてください。
         </p>

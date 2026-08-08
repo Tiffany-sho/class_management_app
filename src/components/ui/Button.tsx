@@ -19,7 +19,7 @@ const VARIANT: Record<Variant, string> = {
 
 const SIZE: Record<Size, string> = {
   md: 'px-lg py-md text-button rounded-lg',
-  sm: 'px-sm py-xs text-[13px] rounded-md',
+  sm: 'px-sm py-xs text-ui-base rounded-md',
 };
 
 export function Button({

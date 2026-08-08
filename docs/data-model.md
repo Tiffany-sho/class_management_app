@@ -82,7 +82,7 @@
 
 | ルール | 実装 |
 |--------|------|
-| 受講回数の上限 | `preferences` の AFTER トリガー |
+| 同じコマを二重に希望できない | `preferences_no_duplicate`（一意制約）。**件数の上限は無い** ―― 希望は候補で、回数は確定が決める（[domain.md](domain.md) ルール2） |
 | 開催していない曜日・コマは選べない | `preferences` / `work_preferences` / `schedules` のトリガー |
 | 事業をまたぐ割り当ての禁止 | 複合外部キー |
 | 締め切り後は保護者・従業員が編集不可 | RLS（`is_submission_open()`） |

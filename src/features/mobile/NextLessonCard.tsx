@@ -30,8 +30,8 @@ export function NextLessonCard({ label, lesson, emptyText }: Props) {
   if (!lesson) {
     return (
       <div className="mb-md rounded-md border border-hairline bg-canvas p-lg shadow-card">
-        <div className="mb-[6px] text-[11px] tracking-[0.06em] text-muted">{label}</div>
-        <div className="text-[15px] text-ink">{emptyText}</div>
+        <div className="mb-[6px] text-ui-xs tracking-[0.06em] text-muted">{label}</div>
+        <div className="text-ui-lg text-ink">{emptyText}</div>
       </div>
     );
   }
@@ -47,12 +47,12 @@ export function NextLessonCard({ label, lesson, emptyText }: Props) {
       className={`mb-md rounded-md p-lg text-on-dark
         ${lesson.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
     >
-      <div className="mb-[6px] text-[11px] tracking-[0.06em] opacity-85">{label}</div>
-      <div className="text-[22px] font-medium leading-[1.25]">
+      <div className="mb-[6px] text-ui-xs tracking-[0.06em] opacity-85">{label}</div>
+      <div className="text-ui-2xl font-medium leading-[1.25]">
         {formatDayJa(lesson.sessionDate)}
         {lesson.slotNo ? ` 第${lesson.slotNo}コマ` : ''}
       </div>
-      <div className="mt-[6px] text-[13px] opacity-90 tnum">{sub}</div>
+      <div className="mt-[6px] text-ui-base opacity-90 tnum">{sub}</div>
     </div>
   );
 }

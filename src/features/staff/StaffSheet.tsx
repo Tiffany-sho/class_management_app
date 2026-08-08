@@ -35,7 +35,7 @@ export function StaffSheet({ staff, businesses, onClose, onSaved }: {
       render: (p) => (
         <div className="tnum">
           <div>{p.workDays}日</div>
-          <div className="text-[12px] text-muted">{p.slots}コマ / {p.workHours}時間</div>
+          <div className="text-ui-sm text-muted">{p.slots}コマ / {p.workHours}時間</div>
         </div>
       ),
     },
@@ -46,7 +46,7 @@ export function StaffSheet({ staff, businesses, onClose, onSaved }: {
       key: 'total',
       header: '支給額',
       numeric: true,
-      render: (p) => <span className="tnum text-[14px] text-ink">{yen(p.total)}</span>,
+      render: (p) => <span className="tnum text-ui-md text-ink">{yen(p.total)}</span>,
     },
     {
       key: 'status',
@@ -85,10 +85,10 @@ export function StaffSheet({ staff, businesses, onClose, onSaved }: {
       {staff && !editing ? (
         <div className="space-y-lg">
           <section>
-            <h4 className="mb-sm text-[13px] font-medium text-ink">現在の条件</h4>
-            <dl className="grid grid-cols-2 gap-sm text-[13px]">
+            <h4 className="mb-sm text-ui-base font-medium text-ink">現在の条件</h4>
+            <dl className="grid grid-cols-2 gap-sm text-ui-base">
               <div>
-                <dt className="text-[12px] text-muted">時給</dt>
+                <dt className="text-ui-sm text-muted">時給</dt>
                 <dd className="mt-[2px] text-ink">
                   {staff.wages.length === 0
                     ? '未設定'
@@ -96,13 +96,13 @@ export function StaffSheet({ staff, businesses, onClose, onSaved }: {
                 </dd>
               </div>
               <div>
-                <dt className="text-[12px] text-muted">交通費（日額）</dt>
+                <dt className="text-ui-sm text-muted">交通費（日額）</dt>
                 <dd className="mt-[2px] text-ink tnum">
                   {staff.commuteDaily ? yen(staff.commuteDaily) : '未設定'}
                 </dd>
               </div>
               <div>
-                <dt className="text-[12px] text-muted">在籍</dt>
+                <dt className="text-ui-sm text-muted">在籍</dt>
                 <dd className="mt-[2px]">
                   {staff.active ? <Badge tone="success">在籍</Badge> : <Badge tone="neutral">退職</Badge>}
                 </dd>
@@ -111,7 +111,7 @@ export function StaffSheet({ staff, businesses, onClose, onSaved }: {
           </section>
 
           <section>
-            <h4 className="mb-sm text-[13px] font-medium text-ink">月ごとの出勤と給与</h4>
+            <h4 className="mb-sm text-ui-base font-medium text-ink">月ごとの出勤と給与</h4>
             {state.loading && !state.data ? <Loading /> : null}
             {state.error ? <ErrorNote message={state.error} onRetry={state.reload} /> : null}
             {state.data ? (
@@ -122,7 +122,7 @@ export function StaffSheet({ staff, businesses, onClose, onSaved }: {
                 empty="担当したコマがまだありません。スケジュールを確定すると実績になります。"
               />
             ) : null}
-            <p className="mt-sm text-[12px] leading-relaxed text-muted">
+            <p className="mt-sm text-ui-sm leading-relaxed text-muted">
               金額は保存されていません。<strong className="text-ink">確定するまでは確定済みのコマから毎回計算した値</strong>で、
               確定するとその時点の金額が記録され、以後は時給を変えても動きません。
             </p>

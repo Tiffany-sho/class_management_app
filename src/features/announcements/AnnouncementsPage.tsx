@@ -68,15 +68,15 @@ export function AnnouncementsPage() {
                       className={`px-md py-sm ${i < d.announcements.length - 1 ? 'border-b border-hairline' : ''}`}
                     >
                       <div className="flex flex-wrap items-center gap-xs">
-                        <span className="text-[14px] text-ink">{a.title}</span>
+                        <span className="text-ui-md text-ink">{a.title}</span>
                         {scheduled ? <Badge tone="warn">予約中</Badge> : <Badge tone="success">送信済み</Badge>}
                         {a.targetRole ? <Badge tone="info">{TARGET_LABEL[a.targetRole]}</Badge> : null}
                         {a.businessId ? <Badge tone="neutral">{bizMap.get(a.businessId) ?? '—'}</Badge> : null}
                       </div>
-                      <p className="mt-[4px] whitespace-pre-wrap text-[13px] leading-relaxed text-body">
+                      <p className="mt-[4px] whitespace-pre-wrap text-ui-base leading-relaxed text-body">
                         {a.body}
                       </p>
-                      <div className="mt-[6px] flex items-center gap-sm text-[11px] text-muted">
+                      <div className="mt-[6px] flex items-center gap-sm text-ui-xs text-muted">
                         <span>{a.authorName}</span>
                         <span>
                           {scheduled

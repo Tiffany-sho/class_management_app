@@ -54,12 +54,12 @@ export function RemovePickSheet({ target, busy, onCancel, onConfirm }: Props) {
             保護者・講師の画面にもう出ているので、外すと相手の予定からも消えます。
           </Note>
 
-          <p className="mb-md text-[15px] text-ink">
+          <p className="mb-md text-ui-lg text-ink">
             <strong>{t.name}</strong> をこのコマから外します。
           </p>
 
           {isEmployee ? (
-            <ul className="mb-md flex flex-col gap-sm text-[13px] text-body">
+            <ul className="mb-md flex flex-col gap-sm text-ui-base text-body">
               <li>
                 <strong className="text-ink">この回は勤務実績から消え、給与もそのぶん下がります。</strong>
                 確定したコマが、そのまま出勤日・勤務時間になるためです。
@@ -75,7 +75,7 @@ export function RemovePickSheet({ target, busy, onCancel, onConfirm }: Props) {
               ) : null}
             </ul>
           ) : (
-            <ul className="mb-md flex flex-col gap-sm text-[13px] text-body">
+            <ul className="mb-md flex flex-col gap-sm text-ui-base text-body">
               <li>
                 <strong className="text-ink">「この日に来る予定だった」ことごと消えます。</strong>
                 保護者のマイページからも無くなります。
@@ -94,7 +94,7 @@ export function RemovePickSheet({ target, busy, onCancel, onConfirm }: Props) {
             </ul>
           )}
 
-          <p className="text-[12px] text-muted">
+          <p className="text-ui-sm text-muted">
             希望は提出されたまま残るので、外してももう一度押せば入れ直せます。
           </p>
         </>

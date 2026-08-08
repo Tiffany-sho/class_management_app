@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         className="pointer-events-none fixed inset-x-0 bottom-lg z-[70] flex justify-center px-md"
       >
         {message ? (
-          <div className="max-w-[520px] rounded-md bg-surface-dark px-lg py-sm text-[13px] text-on-dark shadow-raised">
+          <div className="max-w-[520px] rounded-md bg-surface-dark px-lg py-sm text-ui-base text-on-dark shadow-raised">
             {message}
           </div>
         ) : null}

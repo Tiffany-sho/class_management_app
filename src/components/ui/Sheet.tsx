@@ -54,7 +54,7 @@ export function Sheet({ open, title, subtitle, onClose, footer, children }: Prop
         <div className="flex items-start gap-sm border-b border-hairline px-lg py-md">
           <div className="min-w-0 flex-1">
             <h3 className="text-title-sm">{title}</h3>
-            {subtitle ? <div className="mt-[3px] text-[13px] text-muted">{subtitle}</div> : null}
+            {subtitle ? <div className="mt-[3px] text-ui-base text-muted">{subtitle}</div> : null}
           </div>
           <button
             type="button"

@@ -44,7 +44,7 @@ const ACCOUNTS: { role: string; name: string; email: string }[] = [
 export function DemoAccounts({ onPick }: { onPick: (email: string, password: string) => void }) {
   return (
     <details className="mt-lg rounded-md border border-[#e8d9bb] bg-cream">
-      <summary className="cursor-pointer list-none px-md py-sm text-[13px] text-ink">
+      <summary className="cursor-pointer list-none px-md py-sm text-ui-base text-ink">
         <span className="flex items-center gap-xs">
           <Icon name="warning" size={14} className="text-coral" />
           動作確認用アカウント（本番データを入れる前に消すこと）
@@ -52,7 +52,7 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
       </summary>
 
       <div className="border-t border-[#e8d9bb] px-md py-sm">
-        <p className="mb-sm text-[12px] leading-relaxed text-muted">
+        <p className="mb-sm text-ui-sm leading-relaxed text-muted">
           パスワードはすべて <code className="text-ink">{DEMO_PASSWORD}</code> です。
           押すと入力欄に入ります。
           <strong className="text-ink">これらは公開リポジトリに載っているので、誰でも入れます。</strong>
@@ -65,7 +65,7 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
                 type="button"
                 onClick={() => onPick(a.email, DEMO_PASSWORD)}
                 className="flex w-full items-center gap-sm rounded-sm px-xs py-[5px] text-left
-                  text-[12px] hover:bg-[#f3e6cd]"
+                  text-ui-sm hover:bg-[#f3e6cd]"
               >
                 {/* 3つを横に並べると、固定幅の取り合いでメールが必ず切れる。
                     押して入力欄に入る値なので、**切れてはいけないのはメール**。2行に分ける */}
@@ -81,7 +81,7 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
           ))}
         </ul>
 
-        <p className="mt-sm text-[12px] leading-relaxed text-muted">
+        <p className="mt-sm text-ui-sm leading-relaxed text-muted">
           管理者は自分のアカウントでログインしてください（ここには載せていません）。
         </p>
       </div>

@@ -90,7 +90,7 @@ export function StudentsPage() {
     { key: 'name', header: '生徒', sortable: true, render: (s) => (
       <div>
         <div className="text-ink">{s.name}</div>
-        <div className="text-[12px] text-muted">{s.parentName ?? '—'}</div>
+        <div className="text-ui-sm text-muted">{s.parentName ?? '—'}</div>
       </div>
     ) },
     { key: 'business', header: '教室', sortable: true, render: (s) => (
@@ -102,7 +102,7 @@ export function StudentsPage() {
     { key: 'course', header: 'コース', render: (s) => (
       <div>
         <div>{s.gradeLabel}</div>
-        <div className="text-[12px] text-muted">月{s.sessionsPerMonth}回</div>
+        <div className="text-ui-sm text-muted">月{s.sessionsPerMonth}回</div>
       </div>
     ) },
     { key: 'fee', header: '今月の月謝', sortable: true, render: (s) => {
@@ -111,7 +111,7 @@ export function StudentsPage() {
       return (
         <div className="whitespace-nowrap">
           <Badge tone={paid ? 'success' : 'danger'}>{FEE_LABEL[s.fee.status]}</Badge>
-          <div className="mt-[3px] text-[12px] text-muted tnum">
+          <div className="mt-[3px] text-ui-sm text-muted tnum">
             {paid && s.fee.paidDate ? `入金 ${s.fee.paidDate.slice(5)}` : '入金待ち'}
           </div>
         </div>
@@ -190,7 +190,7 @@ export function StudentsPage() {
         empty="該当する生徒がいません"
       />
 
-      <p className="mt-sm text-[12px] leading-relaxed text-muted">
+      <p className="mt-sm text-ui-sm leading-relaxed text-muted">
         学年は保存していません。<strong className="text-ink">入学年度から毎回計算</strong>しています
         （毎年4月の一括更新が不要になり、更新漏れによる料金誤りが起きません）。
       </p>

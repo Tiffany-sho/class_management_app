@@ -38,19 +38,19 @@ export function AdminLayout() {
           ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center gap-sm border-b border-hairline px-md py-md">
-          <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-[16px] font-medium text-on-primary">
+          <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-ui-lg font-medium text-on-primary">
             R
           </div>
           <div className="min-w-0">
-            <div className="whitespace-nowrap text-[14px] font-medium text-ink">R-Tech 管理</div>
-            <div className="text-[10px] tracking-[0.08em] text-muted">ADMIN CONSOLE</div>
+            <div className="whitespace-nowrap text-ui-md font-medium text-ink">R-Tech 管理</div>
+            <div className="text-ui-2xs tracking-[0.08em] text-muted">ADMIN CONSOLE</div>
           </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-xs py-sm">
           {ADMIN_NAV.map((g) => (
             <div key={g.group} className="mb-sm">
-              <div className="px-sm py-[6px] text-[10px] font-medium tracking-[0.08em] text-muted">
+              <div className="px-sm py-[6px] text-ui-2xs font-medium tracking-[0.08em] text-muted">
                 {g.group}
               </div>
               {g.items.map((item) => (
@@ -59,7 +59,7 @@ export function AdminLayout() {
                   to={item.to}
                   end={item.to === '/'}
                   className={({ isActive }) =>
-                    `flex items-center gap-sm rounded-md px-sm py-[9px] text-[13px] transition-colors
+                    `flex items-center gap-sm rounded-md px-sm py-[9px] text-ui-base transition-colors
                      ${isActive
                        ? 'bg-primary text-on-primary'
                        : 'text-body hover:bg-surface-soft hover:text-ink'}`
@@ -78,18 +78,18 @@ export function AdminLayout() {
             名前に1行まるごと与えて、ログアウトは下へ落とす。 */}
         <div className="border-t border-hairline px-md py-sm">
           <div className="flex items-center gap-sm">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-pill bg-surface-strong text-[13px] text-ink">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-pill bg-surface-strong text-ui-base text-ink">
               {user?.name?.[0] ?? '—'}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] leading-snug text-ink">{user?.name ?? '—'}</div>
-              <div className="text-[11px] text-muted">管理者</div>
+              <div className="text-ui-base leading-snug text-ink">{user?.name ?? '—'}</div>
+              <div className="text-ui-xs text-muted">管理者</div>
             </div>
           </div>
           <button
             type="button"
             onClick={() => void signOut()}
-            className="mt-xs w-full rounded-md border border-hairline py-[5px] text-[12px]
+            className="mt-xs w-full rounded-md border border-hairline py-[5px] text-ui-sm
               text-ink hover:border-border-strong"
           >
             ログアウト
@@ -102,7 +102,7 @@ export function AdminLayout() {
           type="button"
           onClick={() => setOpen(true)}
           className="flex shrink-0 items-center gap-sm border-b border-hairline bg-canvas
-            px-md py-sm text-[14px] text-ink app:hidden"
+            px-md py-sm text-ui-md text-ink app:hidden"
           aria-label="メニューを開く"
         >
           <Icon name="menu" /> メニュー
@@ -125,7 +125,7 @@ export function PageHeader({
       <div className="min-w-0 flex-1">
         <h1 className="text-title-md">{title}</h1>
         {description ? (
-          <p className="mt-[4px] text-[13px] leading-relaxed text-muted">{description}</p>
+          <p className="mt-[4px] text-ui-base leading-relaxed text-muted">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-xs">{actions}</div> : null}

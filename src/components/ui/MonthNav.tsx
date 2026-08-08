@@ -32,7 +32,7 @@ export function MonthNav({ value, onChange, min, max, className = '' }: Props) {
       >
         <Icon name="chevron-left" size={16} />
       </button>
-      <div className="min-w-[120px] text-center text-[15px] font-medium text-ink tnum">
+      <div className="min-w-[120px] text-center text-ui-lg font-medium text-ink tnum">
         {formatMonthJa(value)}
       </div>
       <button

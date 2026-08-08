@@ -85,7 +85,7 @@ export function AdminHomePage() {
           showStatus
         />
 
-        <p className="mt-sm text-[12px] leading-relaxed text-muted">
+        <p className="mt-sm text-ui-sm leading-relaxed text-muted">
           チップは<strong className="text-ink">教室ごとの開催コマ数</strong>です。
           教室のある日をクリックすると、その日の<strong className="text-ink">講師と生徒</strong>が見られます。
           <strong className="text-ink">両方の教室が確定して初めて「確定した日」</strong>になり、

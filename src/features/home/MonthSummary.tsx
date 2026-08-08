@@ -50,8 +50,8 @@ export function MonthSummary({ students, fees, slots, heldDays, pastSlots }: Pro
           className={`flex items-baseline justify-between py-sm
             ${i < rows.length - 1 ? 'border-b border-hairline' : ''}`}
         >
-          <span className="text-[13px] text-muted">{k}</span>
-          <span className="text-[15px] text-ink tnum">{v}</span>
+          <span className="text-ui-base text-muted">{k}</span>
+          <span className="text-ui-lg text-ink tnum">{v}</span>
         </div>
       ))}
     </div>

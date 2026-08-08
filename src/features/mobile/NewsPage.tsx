@@ -98,15 +98,15 @@ export function NewsPage() {
                   />
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-xs">
-                      <span className="text-[14px] text-ink">{n.title}</span>
+                      <span className="text-ui-md text-ink">{n.title}</span>
                       {n.readAt ? null : <Badge tone="info">未読</Badge>}
                     </span>
                     {n.body ? (
-                      <span className="mt-[3px] block text-[12px] leading-relaxed text-muted">
+                      <span className="mt-[3px] block text-ui-sm leading-relaxed text-muted">
                         {n.body}
                       </span>
                     ) : null}
-                    <span className="mt-[3px] block text-[11px] text-muted">
+                    <span className="mt-[3px] block text-ui-xs text-muted">
                       {sinceLabel(n.createdAt)}
                     </span>
                   </span>
@@ -129,13 +129,13 @@ export function NewsPage() {
                 className={`px-md py-sm ${i < d.announcements.length - 1 ? 'border-b border-hairline' : ''}`}
               >
                 <div className="flex flex-wrap items-center gap-xs">
-                  <span className="text-[14px] text-ink">{a.title}</span>
+                  <span className="text-ui-md text-ink">{a.title}</span>
                   {a.businessId ? <Badge tone="neutral">{bizMap.get(a.businessId) ?? '—'}</Badge> : null}
                 </div>
-                <p className="mt-[4px] whitespace-pre-wrap text-[13px] leading-relaxed text-body">
+                <p className="mt-[4px] whitespace-pre-wrap text-ui-base leading-relaxed text-body">
                   {a.body}
                 </p>
-                <div className="mt-[6px] text-[11px] text-muted">
+                <div className="mt-[6px] text-ui-xs text-muted">
                   {sinceLabel(a.sentAt ?? a.createdAt)}
                 </div>
               </li>

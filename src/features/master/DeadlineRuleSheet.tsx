@@ -79,11 +79,11 @@ export function DeadlineRuleSheet({ rule, onClose, onSaved, onError }: Props) {
         </Field>
       </div>
 
-      <p className="mb-md text-[13px] text-muted">
+      <p className="mb-md text-ui-base text-muted">
         例）9月ぶんの提出は <strong className="text-ink">8月{day}日 {time}</strong> まで
       </p>
 
-      <p className="text-[12px] leading-relaxed text-muted">
+      <p className="text-ui-sm leading-relaxed text-muted">
         ここを変えても<strong className="text-ink">すでに作られた月の締め切りは動きません</strong>。
         締めたはずの月の日付が後から変わると、締め切りを過ぎた提出が通ってしまうためです。
         月末を超える指定（31日など）は、その月の末日に丸められます。

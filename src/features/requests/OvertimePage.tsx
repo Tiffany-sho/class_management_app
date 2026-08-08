@@ -75,7 +75,7 @@ export function OvertimePage() {
       render: (o) => (
         <div>
           <div className="text-ink">{o.description}</div>
-          <div className="text-[12px] text-muted">{o.businessName}</div>
+          <div className="text-ui-sm text-muted">{o.businessName}</div>
         </div>
       ),
     },
@@ -87,7 +87,7 @@ export function OvertimePage() {
       render: (o) => (
         o.hourlyRate
           ? <span className="tnum">{yen(o.hourlyRate)}</span>
-          : <span className="text-[12px] text-coral">時給未設定</span>
+          : <span className="text-ui-sm text-coral">時給未設定</span>
       ),
     },
     {
@@ -105,7 +105,7 @@ export function OvertimePage() {
             {STATUS_LABEL[o.status]}
           </Badge>
           {o.decidedByName ? (
-            <div className="mt-[3px] text-[11px] text-muted">{o.decidedByName}</div>
+            <div className="mt-[3px] text-ui-xs text-muted">{o.decidedByName}</div>
           ) : null}
         </div>
       ),

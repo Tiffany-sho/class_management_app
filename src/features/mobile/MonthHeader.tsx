@@ -26,7 +26,7 @@ export function MonthHeader({ month, onChange, children }: {
           >
             <Icon name="chevron-left" size={16} />
           </button>
-          <div className="text-[16px] font-medium text-ink tnum">{formatMonthJa(month)}</div>
+          <div className="text-ui-lg font-medium text-ink tnum">{formatMonthJa(month)}</div>
           <button
             type="button"
             aria-label="次の月"

@@ -19,7 +19,7 @@ export function DayNav({ value, onChange }: { value: string; onChange: (d: strin
       >
         <Icon name="chevron-left" size={16} />
       </button>
-      <div className="min-w-[140px] text-center text-[15px] font-medium text-ink tnum">
+      <div className="min-w-[140px] text-center text-ui-lg font-medium text-ink tnum">
         {formatDayJa(value)}
       </div>
       <button

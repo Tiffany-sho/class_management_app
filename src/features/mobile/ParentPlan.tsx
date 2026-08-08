@@ -83,7 +83,7 @@ export function ParentPlan() {
                 note={r.student.note}
                 notedByName={r.student.notedByName}
                 extra={
-                  <div className="text-[12px] text-ink">
+                  <div className="text-ui-sm text-ink">
                     {r.student.studentName}
                     {r.slot.employees.length ? (
                       <span className="text-muted">
@@ -139,7 +139,7 @@ export function ParentPlan() {
             placeholder="例）発熱のためお休みします"
           />
         </Field>
-        <p className="text-[12px] leading-relaxed text-muted">
+        <p className="text-ui-sm leading-relaxed text-muted">
           月謝は<strong className="text-ink">固定月額</strong>のため、お休みされても請求額は変わりません。
           振替の可否は教室にご確認ください。
         </p>

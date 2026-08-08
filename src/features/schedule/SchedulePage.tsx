@@ -145,7 +145,7 @@ export function SchedulePage() {
 
           {picked ? (
             <section>
-              <h2 className="mb-xs text-[14px] font-medium text-ink">{formatDayJa(picked)}</h2>
+              <h2 className="mb-xs text-ui-md font-medium text-ink">{formatDayJa(picked)}</h2>
               <div className="grid gap-sm md:grid-cols-2">
                 {shown.map((g) => {
                   const biz = d.businesses.find((b) => b.id === g.businessId);

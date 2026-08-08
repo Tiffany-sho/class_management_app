@@ -53,8 +53,8 @@ export function DaySlotCard({
           aria-hidden
           className={`h-[9px] w-[9px] rounded-pill ${business?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
         />
-        <span className="text-[14px] text-ink">{business?.name ?? '—'} 第{slot.slotNo}コマ</span>
-        <span className="text-[12px] text-muted tnum">
+        <span className="text-ui-md text-ink">{business?.name ?? '—'} 第{slot.slotNo}コマ</span>
+        <span className="text-ui-sm text-muted tnum">
           {formatTimeRange(slot.startTime, slot.endTime)}
         </span>
         <span className="flex-1" />
@@ -69,19 +69,19 @@ export function DaySlotCard({
       </header>
 
       <section className="border-b border-hairline px-md py-sm">
-        <div className="mb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+        <div className="mb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
           担当講師（{slot.employees.length}名 ／ 定員 {slot.capacity}名）
         </div>
 
         {slot.employees.length === 0 ? (
-          <p className="mb-xs text-[13px] text-coral">
+          <p className="mb-xs text-ui-base text-coral">
             担当がいません。このままでは開催できません。
           </p>
         ) : (
           <ul className="mb-xs flex flex-col gap-xs">
             {slot.employees.map((e) => (
               <li key={e.id} className="flex items-center gap-sm rounded-md border border-hairline px-sm py-xs">
-                <span className="flex-1 text-[13px]">
+                <span className="flex-1 text-ui-base">
                   <NameLink onClick={() => onOpenStaff(e.id)}>{e.name}</NameLink>
                 </span>
                 <Button
@@ -100,7 +100,7 @@ export function DaySlotCard({
         {/* 「代わりに入れる」ではなく「追加」。外した人の代役としてしか入れられないと
             読めると、**単に1名増やしたいとき**に押す場所が無いように見える */}
         <div className="mt-sm border-t border-hairline pt-sm">
-          <div className="mb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+          <div className="mb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
             講師を追加
           </div>
           {spare.length > 0 ? (
@@ -117,12 +117,12 @@ export function DaySlotCard({
                   </Button>
                 ))}
               </div>
-              <p className="text-[12px] text-muted">
+              <p className="text-ui-sm text-muted">
                 押すとその場でこのコマの担当に入り、この回ぶんの給与が付きます。定員も伸びます。
               </p>
             </>
           ) : (
-            <p className="text-[12px] text-muted">
+            <p className="text-ui-sm text-muted">
               この教室を担当できる講師{candidates.length}名は、全員このコマに入っています。
               足せる人を増やすには、<strong className="text-ink">「講師」ページで担当教室を設定</strong>してください
               （時給が教室ごとに決まるので、担当教室が未設定の講師はここに出せません）。
@@ -132,17 +132,17 @@ export function DaySlotCard({
       </section>
 
       <section className="px-md py-sm">
-        <div className="mb-xs text-[11px] font-medium tracking-[0.08em] text-muted">
+        <div className="mb-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
           受講生徒（{slot.students.length}名）
         </div>
 
         {slot.students.length === 0 ? (
-          <p className="text-[13px] text-muted">受講生徒がいません。</p>
+          <p className="text-ui-base text-muted">受講生徒がいません。</p>
         ) : (
           <ul className="flex flex-col gap-xs">
             {slot.students.map((st) => (
               <li key={st.studentId} className="flex flex-wrap items-center gap-sm">
-                <span className="min-w-0 flex-1 text-[13px]">
+                <span className="min-w-0 flex-1 text-ui-base">
                   <NameLink onClick={() => onOpenStudent(st.studentId)}>{st.studentName}</NameLink>
                   {reportedStudentIds.has(st.studentId) ? (
                     <span className="ml-xs"><Badge tone="warn">欠席連絡あり</Badge></span>

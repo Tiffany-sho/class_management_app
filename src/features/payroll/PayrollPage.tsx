@@ -81,7 +81,7 @@ export function PayrollPage() {
     { key: 'days', header: '出勤', numeric: true, render: (p) => (
       <div className="tnum">
         <div>{p.workDays}日</div>
-        <div className="text-[12px] text-muted">{p.slots}コマ / {p.workHours}時間</div>
+        <div className="text-ui-sm text-muted">{p.slots}コマ / {p.workHours}時間</div>
       </div>
     ) },
     { key: 'base', header: '基本', numeric: true, render: (p) => <span className="tnum">{yen(p.baseAmount)}</span> },
@@ -92,14 +92,14 @@ export function PayrollPage() {
     ) },
     { key: 'commute', header: '交通費', numeric: true, render: (p) => <span className="tnum">{yen(p.commute)}</span> },
     { key: 'total', header: '支給額', numeric: true, render: (p) => (
-      <span className="tnum text-[15px] text-ink">{yen(p.total)}</span>
+      <span className="tnum text-ui-lg text-ink">{yen(p.total)}</span>
     ) },
     { key: 'status', header: '状態', render: (p) => (
       p.status === 'confirmed'
         ? <div>
             <Badge tone="success">確定</Badge>
             {p.confirmedAt ? (
-              <div className="mt-[3px] text-[11px] text-muted tnum">{p.confirmedAt.slice(0, 10)}</div>
+              <div className="mt-[3px] text-ui-xs text-muted tnum">{p.confirmedAt.slice(0, 10)}</div>
             ) : null}
           </div>
         : <Badge tone="warn">未確定</Badge>

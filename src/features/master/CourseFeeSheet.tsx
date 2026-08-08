@@ -105,7 +105,7 @@ export function CourseFeeSheet({ target, onClose, onSaved, onError }: Props) {
           </Field>
         ))}
 
-      <p className="text-[12px] leading-relaxed text-muted">
+      <p className="text-ui-sm leading-relaxed text-muted">
         ここを変えても<strong className="text-ink">すでに発行した月謝は変わりません</strong>。
         請求額は発行した時点でコピーして保存しているためです。変わるのは次に発行する月からです。
       </p>

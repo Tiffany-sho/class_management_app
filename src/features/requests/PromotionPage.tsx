@@ -68,7 +68,7 @@ export function PromotionPage() {
       render: (p) => (
         <div>
           <div className="text-ink">{p.currentGradeLabel}</div>
-          <div className="text-[12px] text-muted tnum">
+          <div className="text-ui-sm text-muted tnum">
             月{p.sessionsPerMonth}回 / {yen(p.currentFee)}
           </div>
         </div>
@@ -81,12 +81,12 @@ export function PromotionPage() {
         p.suggestedCourseId ? (
           <div>
             <div className="text-ink">{p.suggestedGradeLabel}</div>
-            <div className="text-[12px] text-muted tnum">
+            <div className="text-ui-sm text-muted tnum">
               月{p.sessionsPerMonth}回 / {yen(p.suggestedFee ?? 0)}
             </div>
           </div>
         ) : (
-          <span className="text-[12px] text-coral">該当するコースがありません</span>
+          <span className="text-ui-sm text-coral">該当するコースがありません</span>
         )
       ),
     },
@@ -147,7 +147,7 @@ export function PromotionPage() {
         </Note>
       ) : null}
 
-      <p className="mt-md text-[12px] leading-relaxed text-muted">
+      <p className="mt-md text-ui-sm leading-relaxed text-muted">
         すでに発行済みの月謝は変わりません（<strong className="text-ink">請求額は発行時にコピーして保存している</strong>ため）。
         変わるのは次に生成される月からです。
       </p>

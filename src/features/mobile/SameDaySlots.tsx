@@ -19,7 +19,7 @@ interface Props {
  */
 export function SameDaySlots({ slots, meId, onOpenStaff }: Props) {
   if (slots.length === 0) {
-    return <p className="text-[13px] text-muted">この日の担当はこのコマだけです。</p>;
+    return <p className="text-ui-base text-muted">この日の担当はこのコマだけです。</p>;
   }
 
   return (
@@ -34,8 +34,8 @@ export function SameDaySlots({ slots, meId, onOpenStaff }: Props) {
                 ${business?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
             />
             <div className="min-w-0 flex-1">
-              <div className="text-[14px] text-ink">第{slot.slotNo}コマ</div>
-              <div className="mt-[2px] flex flex-wrap items-center gap-x-xs text-[12px] text-muted">
+              <div className="text-ui-md text-ink">第{slot.slotNo}コマ</div>
+              <div className="mt-[2px] flex flex-wrap items-center gap-x-xs text-ui-sm text-muted">
                 <span className="tnum">{formatTimeRange(slot.startTime, slot.endTime)}</span>
                 <span>・ 生徒{slot.students.length}名</span>
                 {mates.length > 0 ? (

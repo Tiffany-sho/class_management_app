@@ -53,7 +53,7 @@ export function EmployeePayPage() {
       <MonthHeader month={month} onChange={setMonth}>
         {mine ? (
           <div className="mt-sm text-center">
-            <div className="text-[28px] font-medium text-ink tnum">{yen(mine.total)}</div>
+            <div className="text-ui-3xl font-medium text-ink tnum">{yen(mine.total)}</div>
             <div className="mt-[2px]">
               {mine.status === 'confirmed'
                 ? <Badge tone="success">確定</Badge>
@@ -61,9 +61,9 @@ export function EmployeePayPage() {
             </div>
           </div>
         ) : (
-          <div className="mt-sm text-center text-[13px] text-muted">この月の勤務はありません</div>
+          <div className="mt-sm text-center text-ui-base text-muted">この月の勤務はありません</div>
         )}
-        <p className="mt-xs text-center text-[11px] text-muted">左右に払うと月を移せます</p>
+        <p className="mt-xs text-center text-ui-xs text-muted">左右に払うと月を移せます</p>
       </MonthHeader>
 
       <SectionLabel>今月の内訳</SectionLabel>
@@ -84,13 +84,13 @@ export function EmployeePayPage() {
               ['交通費', yen(mine.commute)],
             ] as [string, string][]).map(([k, v]) => (
               <div key={k} className="flex items-center justify-between px-md py-sm">
-                <dt className="text-[13px] text-muted">{k}</dt>
-                <dd className="text-[14px] text-ink tnum">{v}</dd>
+                <dt className="text-ui-base text-muted">{k}</dt>
+                <dd className="text-ui-md text-ink tnum">{v}</dd>
               </div>
             ))}
             <div className="flex items-center justify-between px-md py-sm">
-              <dt className="text-[14px] font-medium text-ink">支給額</dt>
-              <dd className="text-[16px] font-medium text-ink tnum">{yen(mine.total)}</dd>
+              <dt className="text-ui-md font-medium text-ink">支給額</dt>
+              <dd className="text-ui-lg font-medium text-ink tnum">{yen(mine.total)}</dd>
             </div>
           </dl>
         )}
@@ -104,18 +104,18 @@ export function EmployeePayPage() {
           <dl className="divide-y divide-hairline">
             {me.wages.map((w) => (
               <div key={`${w.businessId}${w.jobLabel}`} className="flex items-center justify-between px-md py-sm">
-                <dt className="text-[13px] text-muted">
+                <dt className="text-ui-base text-muted">
                   {w.jobLabel}
                   {showBusiness ? (
-                    <span className="ml-xs text-[11px]">（{bizMap.get(w.businessId) ?? '—'}）</span>
+                    <span className="ml-xs text-ui-xs">（{bizMap.get(w.businessId) ?? '—'}）</span>
                   ) : null}
                 </dt>
-                <dd className="text-[14px] text-ink tnum">{yen(w.hourlyRate)} / 時</dd>
+                <dd className="text-ui-md text-ink tnum">{yen(w.hourlyRate)} / 時</dd>
               </div>
             ))}
             <div className="flex items-center justify-between px-md py-sm">
-              <dt className="text-[13px] text-muted">交通費（1日）</dt>
-              <dd className="text-[14px] text-ink tnum">{yen(me.commuteDaily)}</dd>
+              <dt className="text-ui-base text-muted">交通費（1日）</dt>
+              <dd className="text-ui-md text-ink tnum">{yen(me.commuteDaily)}</dd>
             </div>
           </dl>
         )}
@@ -133,8 +133,8 @@ export function EmployeePayPage() {
                 className={`flex items-start gap-sm px-md py-sm ${i < Math.min(d.overtime.length, 8) - 1 ? 'border-b border-hairline' : ''}`}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[14px] text-ink">{o.description}</span>
-                  <span className="block text-[12px] text-muted tnum">
+                  <span className="block text-ui-md text-ink">{o.description}</span>
+                  <span className="block text-ui-sm text-muted tnum">
                     {formatDayJa(o.workDate)}・{o.hours.toFixed(1)}時間・{yen(o.amount)}
                   </span>
                 </span>
