@@ -12,9 +12,11 @@
 -- public.users を生成させる）。招待の経路と同じにしておかないと、
 -- 本番で招待したときだけ壊れる、という事故になる。
 --
--- ★ パスワードは設定しない（encrypted_password = null）。
---   このリポジトリは公開されているため、ログインできるアカウントを置くと
---   誰でもそのロールで入れてしまう。メールも example.com（受信できない予約ドメイン）。
+-- ★★ パスワードは 'rtech-demo-2026'（全アカウント共通）。動作確認のために設定している。
+--   **このリポジトリは公開されているので、誰でもこのアカウントで入れる。**
+--   本物の生徒・保護者のデータを入れる前に、必ず dummy_data_cleanup.sql を実行して
+--   このアカウント群を消すこと。ログイン画面の「動作確認用アカウント」も一緒に消す。
+--   メールは example.com（受信できない予約ドメイン）なので、パスワード再設定はできない。
 --
 -- 何度実行しても増えない（id 固定 + on conflict do nothing）。
 -- =============================================================================
@@ -51,6 +53,30 @@ begin
     raise exception 'マスタデータが入っていません。先に 20260806100300_seed_master_data.sql を流してください。';
   end if;
 
+  /* ---------------------------------------------------------------- 作り直し
+     先に既存のダミーを消す。id だけを on conflict で見ていると、講師の人数や
+     番号を振り直したときに「旧番号の行が別人として残る」ことが起きる
+     （一意制約は employee_id + 日付なので、id が違っても衝突する）。
+     **id ではなく関係でたどって消す。** 月謝は generate_fees が作るので id が
+     'dddddddd-' で始まらず、id で消すと取り残されて外部キーに引っかかる。
+     消す順番も大事で、schedule_employees を先に消さないと、
+     employee_businesses を on delete restrict で掴んだままになる。
+     auth.users は残す（id を固定したいため。パスワードは下で当て直す）。 */
+  delete from public.schedule_students   where student_id::text  like 'dddddddd-%';
+  delete from public.schedule_employees  where employee_id::text like 'dddddddd-%';
+  delete from public.absence_reports     where student_id::text  like 'dddddddd-%';
+  delete from public.schedules           where id::text          like 'dddddddd-%';
+  delete from public.preferences         where student_id::text  like 'dddddddd-%';
+  delete from public.work_preferences    where employee_id::text like 'dddddddd-%';
+  delete from public.fees                where student_id::text  like 'dddddddd-%';
+  delete from public.overtime_requests   where employee_id::text like 'dddddddd-%';
+  delete from public.announcements       where id::text          like 'dddddddd-%';
+  delete from public.notifications       where user_id::text     like 'dddddddd-%';
+  delete from public.students            where id::text          like 'dddddddd-%';
+  delete from public.wage_rates          where employee_id::text like 'dddddddd-%';
+  delete from public.commute_allowances  where employee_id::text like 'dddddddd-%';
+  delete from public.employee_businesses where employee_id::text like 'dddddddd-%';
+
   -- ---------------------------------------------------------------- 講師・保護者
   -- raw_user_meta_data の name / role を handle_new_user が読んで public.users を作る
   insert into auth.users (
@@ -61,8 +87,8 @@ begin
   select
     '00000000-0000-0000-0000-000000000000', v.id, 'authenticated', 'authenticated',
     v.email,
-    null,                       -- パスワード無し = ログインできない
-    now(),                      -- 確認済みにしておく（未確認だと一覧で紛らわしい）
+    extensions.crypt('rtech-demo-2026', extensions.gen_salt('bf')),
+    now(),                      -- 確認済みにしておく（未確認だとログインできない）
     '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('name', v.name, 'role', v.role),
     now(), now(), '', '', '', ''
@@ -79,6 +105,25 @@ begin
     (v_par_suzuki,    'suzuki@example.com',    '鈴木 なおき',   'parent')
   ) as v(id, email, name, role)
   on conflict (id) do nothing;
+
+  /* 既に作られている行にもパスワードを当てる（上の insert は on conflict で素通りする）。
+     メール未確認だとログインできないので、そこも埋める。 */
+  update auth.users
+     set encrypted_password = extensions.crypt('rtech-demo-2026', extensions.gen_salt('bf')),
+         email_confirmed_at = coalesce(email_confirmed_at, now())
+   where id::text like 'dddddddd-%';
+
+  /* パスワードでのログインには auth.identities の行が要る。
+     これが無いと、パスワードが合っていても「Invalid login credentials」になる。 */
+  insert into auth.identities (provider_id, user_id, identity_data, provider, created_at, updated_at)
+  select u.id::text, u.id,
+         jsonb_build_object('sub', u.id::text, 'email', u.email,
+                            'email_verified', true, 'phone_verified', false),
+         'email', now(), now()
+    from auth.users u
+   where u.id::text like 'dddddddd-%'
+     and not exists (select 1 from auth.identities i
+                      where i.user_id = u.id and i.provider = 'email');
 
   -- 担当できる事業。兼任は作らない（1人1事業）
   insert into public.employee_businesses (employee_id, business_id)
@@ -137,13 +182,14 @@ begin
       (select count(*) from public.students where id::text like 'dddddddd-%');
   end if;
 
-  -- ---------------------------------------------------------------- コマ（今月）
-  --   今日より前 = 確定（勤務実績になる）／今日以降 = 未確定
+  -- ---------------------------------------------------------------- コマ（今月・来月）
+  --   今月 = すべて確定（保護者・講師に見えている状態。勤務実績にもなる）
+  --   来月 = すべて未確定（希望は出そろっていて、これから確定する状態）
   --   プログラミングは日曜のみ、イラストは土曜・日曜。
   for v_day in
     select d::date from generate_series(
       date_trunc('month', current_date),
-      date_trunc('month', current_date) + interval '1 month - 1 day',
+      date_trunc('month', current_date) + interval '2 month - 1 day',
       interval '1 day') d
   loop
     for r in
@@ -159,7 +205,8 @@ begin
          暗黙のキャストは無いので、分岐ごとに明示的にキャストする。 */
       insert into public.schedules (id, business_id, session_date, slot_no, status)
       values (v_sched, r.business_id, v_day, r.slot_no,
-              case when v_day < current_date then 'confirmed'::public.schedule_status
+              case when to_char(v_day, 'YYYY-MM') = v_this_month
+                   then 'confirmed'::public.schedule_status
                    else 'draft'::public.schedule_status end)
       on conflict (business_id, session_date, slot_no) do nothing;
 
@@ -195,7 +242,9 @@ begin
     end loop;
   end loop;
 
-  -- 済んだコマに出欠と授業記録を入れる。欠席の回に記録は付けない（トリガーが落とす）
+  /* 済んだコマに出欠と授業記録を入れる。欠席の回に記録は付けない（トリガーが落とす）。
+     絞り込みは status ではなく日付で行う。今月は月末まで確定済みなので、
+     status で絞るとまだ開催していない回にまで出欠が付いてしまう。 */
   for r in
     select ss.schedule_id, ss.student_id, sc.session_date,
            /* 記録者はそのコマの担当講師。事業を兼任する講師はいないので、
@@ -206,7 +255,7 @@ begin
            row_number() over (order by sc.session_date, ss.student_id) as rn
       from public.schedule_students ss
       join public.schedules sc on sc.id = ss.schedule_id
-     where sc.status = 'confirmed'
+     where sc.session_date < current_date
        and sc.id::text like 'dddddddd-%'
   loop
     v_note := case (r.rn % 4)
@@ -371,8 +420,19 @@ union all select '保護者', count(*) from public.users where role = 'parent'
 union all select '生徒',   count(*) from public.students
 union all select 'コマ（今月）', count(*) from public.schedules
          where to_char(session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM')
-union all select '  うち確定', count(*) from public.schedules
-         where to_char(session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM') and status = 'confirmed'
+union all select '  うち確定（全部であること）', count(*) from public.schedules
+         where to_char(session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM')
+           and status = 'confirmed'
+union all select '  うち出欠マーク済み', count(*)
+         from public.schedule_students ss
+         join public.schedules sc on sc.id = ss.schedule_id
+        where to_char(sc.session_date, 'YYYY-MM') = to_char(current_date, 'YYYY-MM')
+          and ss.attendance_status is not null
+union all select 'コマ（来月）', count(*) from public.schedules
+         where to_char(session_date, 'YYYY-MM') = to_char(current_date + interval '1 month', 'YYYY-MM')
+union all select '  うち未確定（全部であること）', count(*) from public.schedules
+         where to_char(session_date, 'YYYY-MM') = to_char(current_date + interval '1 month', 'YYYY-MM')
+           and status = 'draft'
 union all select '受講希望（来月）', count(*) from public.preferences
          where year_month = to_char(current_date + interval '1 month', 'YYYY-MM')
 union all select '月謝（今月）', count(*) from public.fees

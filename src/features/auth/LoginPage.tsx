@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Field, TextInput, ErrorNote } from '@/components/ui';
 import { useAuth } from './AuthProvider';
+import { DemoAccounts } from './DemoAccounts';
 
 /**
  * ログイン。
@@ -28,7 +29,7 @@ export function LoginPage() {
     <div className="flex min-h-full items-center justify-center bg-surface-soft px-md py-xl">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-[400px] rounded-md border border-hairline bg-canvas p-xl shadow-card"
+        className="w-full max-w-[440px] rounded-md border border-hairline bg-canvas p-xl shadow-card"
       >
         <div className="mb-lg flex items-center gap-sm">
           <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-title-sm text-on-primary">
@@ -70,6 +71,11 @@ export function LoginPage() {
           アカウントは<strong className="text-ink">管理者の招待</strong>で作られます。
           ご自身での新規登録はできません。招待メールが届いていない場合は管理者にご連絡ください。
         </p>
+
+        {/* ★ 本番データを入れる前に、この行と DemoAccounts.tsx を消すこと */}
+        <DemoAccounts
+          onPick={(mail, pw) => { setEmail(mail); setPassword(pw); setError(null); }}
+        />
       </form>
     </div>
   );
