@@ -176,6 +176,16 @@ npm run gen:types         # supabase link 済みであること
 
 Vercel の環境変数に入れるのは **`VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` の2つだけ**。
 
+**環境変数を入れ忘れても、ビルドは成功してデプロイまで通ってしまう。** `isConfigured` が
+ビルド時に `false` に畳まれ、アプリの画面が到達不能として落とされるので、「設定してください」
+の画面だけが配信される。**失敗として現れないのが厄介なところ。** 疑わしいときは配信されている
+JS を取って `localhost:54321`（未設定時のフォールバック）を探す。**1件でも出たら環境変数が
+効いていない。**
+
+```bash
+curl -s https://<本番ドメイン>/assets/index-*.js | grep -c localhost:54321   # 0 であること
+```
+
 - **`SUPABASE_DB_PASSWORD` は絶対に入れない。** アプリは読まないうえ、これは RLS を全部素通りする鍵。
 - anon key はバンドルに出る前提のもの。**守っているのは鍵ではなく RLS**なので、ポリシーを変えたら `supabase/dev/tests/F_rls.sql` を流し直す。
 
