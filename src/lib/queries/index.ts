@@ -11,6 +11,7 @@
  *   schedule.ts コマ・希望・出席・授業記録
  *   staff.ts    講師・担当できる事業・時給・交通費
  *   payroll.ts  月の支給額・出勤コマ・締め処理
+ *   detail.ts   生徒詳細・講師詳細（id ひとつで引く。どの画面からでも開けるように）
  *   requests.ts 時間外勤務・欠席連絡・進級
  *   announcements.ts お知らせ
  *   notifications.ts 通知（読むだけ。作るのは DB のトリガー）
@@ -21,6 +22,7 @@ export * from './students';
 export * from './schedule';
 export * from './staff';
 export * from './payroll';
+export * from './detail';
 export * from './requests';
 export * from './announcements';
 export * from './notifications';
