@@ -10,6 +10,7 @@ import { MobileLayout } from './components/layout/MobileLayout';
 import { Loading, ErrorNote } from './components/ui';
 import { AdminHomePage } from './features/home/AdminHomePage';
 import { SchedulePage } from './features/schedule/SchedulePage';
+import { DayChangePage } from './features/daychange/DayChangePage';
 import { StudentsPage } from './features/students/StudentsPage';
 import { StaffPage } from './features/staff/StaffPage';
 import { OvertimePage } from './features/requests/OvertimePage';
@@ -74,6 +75,7 @@ export function App() {
         <Route element={<AdminLayout />}>
           <Route index element={<AdminHomePage />} />
           <Route path="schedule" element={<SchedulePage />} />
+          <Route path="day" element={<DayChangePage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="overtime" element={<OvertimePage />} />

@@ -9,7 +9,7 @@ import {
   countPendingOvertime, countUnhandledAbsences, countPromotionCandidates,
 } from '@/lib/queries';
 import { currentMonthKey, isPast } from '@/lib/date';
-import { DayDetailSheet } from './DayDetailSheet';
+import { DayDetailSheet } from '@/components/calendar/DayDetailSheet';
 import { TodoList } from './TodoList';
 import { NextPrevClass } from './NextPrevClass';
 import { MonthSummary } from './MonthSummary';

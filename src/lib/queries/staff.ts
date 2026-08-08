@@ -1,16 +1,24 @@
 import { supabase } from '../supabase';
 import { todayIso } from '../date';
-import type { MonthlyPay, StaffMember, WageRate } from '@/types/domain';
+import type { StaffMember, WageRate } from '@/types/domain';
 
 /**
- * 講師まわり。
+ * 講師まわり。担当できる事業・時給・交通費と、月の担当実績。
  *
- * 金額はどこにも保存されていない（ドメインルール11）。
- * 締める前は確定したコマから毎回計算され、締めた後は payrolls の値が正になる。
- * その切り替えは DB のビュー employee_monthly_pay が行うので、ここでは足し算をしない。
+ * **給与の金額そのものは payroll.ts。** ここで扱うのは単価と、そのもとになる回数まで。
+ * 金額はどこにも保存されていない（ドメインルール11）ので、足し算をこちら側に持たない。
  */
 
-/** ビューの列は生成される型で nullable になるが、実体は必ず入っている */
+/**
+ * ビューの行。
+ *
+ * 生成される型ではビューの列がすべて nullable になる（PostgreSQL がビューの列に
+ * NOT NULL を保証できないため）。実際に null が来るという意味ではない。
+ * employee_work_slots は schedule_employees → schedules → business_slots の
+ * **内部結合**で、時給と金額は `coalesce(..., 0)` を通っているので必ず値が入る。
+ *
+ * ビュー定義の join を left join に変えるとこの前提が崩れる。変えるときは必ずここも直す。
+ */
 type WorkSlotRow = {
   employee_id: string;
   business_id: string;
@@ -18,20 +26,6 @@ type WorkSlotRow = {
   year_month: string;
   hours: number;
   amount: number;
-};
-
-type MonthlyPayRow = {
-  employee_id: string;
-  year_month: string;
-  status: 'draft' | 'confirmed';
-  work_days: number;
-  work_hours: number;
-  slots: number;
-  base_amount: number;
-  commute: number;
-  overtime: number;
-  total: number;
-  confirmed_at: string | null;
 };
 
 export async function fetchEmployees() {
@@ -129,27 +123,6 @@ export async function fetchStaff(yearMonth: string): Promise<StaffMember[]> {
   });
 }
 
-/** 月ごとの支給額。締め前は計算値、確定後は payrolls の値（切り替えはビューの中） */
-export async function fetchMonthlyPay(yearMonth: string): Promise<MonthlyPay[]> {
-  const { data, error } = await supabase
-    .from('employee_monthly_pay')
-    .select('employee_id, year_month, status, work_days, work_hours, slots, base_amount, commute, overtime, total, confirmed_at')
-    .eq('year_month', yearMonth);
-  if (error) throw error;
-  return ((data ?? []) as MonthlyPayRow[]).map(toMonthlyPay);
-}
-
-/** ある講師の全期間。講師の詳細で「今までの出勤数と給与」を出すのに使う */
-export async function fetchEmployeePayHistory(employeeId: string): Promise<MonthlyPay[]> {
-  const { data, error } = await supabase
-    .from('employee_monthly_pay')
-    .select('employee_id, year_month, status, work_days, work_hours, slots, base_amount, commute, overtime, total, confirmed_at')
-    .eq('employee_id', employeeId)
-    .order('year_month', { ascending: false });
-  if (error) throw error;
-  return ((data ?? []) as MonthlyPayRow[]).map(toMonthlyPay);
-}
-
 /**
  * 時給を設定する。
  *
@@ -205,76 +178,4 @@ export async function setEmployeeBusinesses(
       { onConflict: 'employee_id,business_id', ignoreDuplicates: true },
     );
   if (error) throw error;
-}
-
-/** 事業ごとのコマ人件費。交通費と時間外は事業に割り振らないので、ここには含めない */
-export async function fetchWorkSlotSummary(
-  yearMonth: string,
-): Promise<Map<string, { slots: number; hours: number; amount: number }>> {
-  const { data, error } = await supabase
-    .from('employee_work_slots')
-    .select('business_id, hours, amount')
-    .eq('year_month', yearMonth);
-  if (error) throw error;
-  const out = new Map<string, { slots: number; hours: number; amount: number }>();
-  for (const r of (data ?? []) as { business_id: string; hours: number; amount: number }[]) {
-    const cur = out.get(r.business_id) ?? { slots: 0, hours: 0, amount: 0 };
-    cur.slots += 1;
-    cur.hours += Number(r.hours);
-    cur.amount += r.amount;
-    out.set(r.business_id, cur);
-  }
-  return out;
-}
-
-/**
- * 月を締める。計算値を payrolls にコピーして confirmed にする。
- *
- * **締めた後は時給を変えても金額が動かない**（ビューが payrolls の値を返すようになる）。
- * 確定済みの行は DB のトリガーが更新・削除を拒むので、ここで上書きはできない。
- */
-export async function confirmPayroll(yearMonth: string): Promise<number> {
-  const { data: session } = await supabase.auth.getSession();
-  const adminId = session.session?.user.id ?? null;
-
-  const pays = await fetchMonthlyPay(yearMonth);
-  const draft = pays.filter((p) => p.status === 'draft');
-  if (draft.length === 0) return 0;
-
-  /* 既に draft の行があれば上書きする。確定済みの行は DB のトリガーが
-     更新を拒むので、締め直しはここではなく例外として現れる。 */
-  const { error } = await supabase.from('payrolls').upsert(
-    draft.map((p) => ({
-      employee_id: p.employeeId,
-      year_month: p.yearMonth,
-      work_days: p.workDays,
-      work_hours: p.workHours,
-      base_amount: p.baseAmount,
-      commute: p.commute,
-      overtime: p.overtime,
-      total: p.total,
-      status: 'confirmed' as const,
-      confirmed_at: new Date().toISOString(),
-      confirmed_by: adminId,
-    })),
-    { onConflict: 'employee_id,year_month' },
-  );
-  if (error) throw error;
-  return draft.length;
-}
-
-function toMonthlyPay(p: MonthlyPayRow): MonthlyPay {
-  return {
-    employeeId: p.employee_id,
-    yearMonth: p.year_month,
-    status: p.status,
-    workDays: p.work_days,
-    workHours: Number(p.work_hours),
-    slots: p.slots,
-    baseAmount: p.base_amount,
-    commute: p.commute,
-    overtime: p.overtime,
-    total: p.total,
-    confirmedAt: p.confirmed_at,
-  };
 }

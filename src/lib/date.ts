@@ -105,6 +105,13 @@ export function isPast(iso: string, today = new Date()): boolean {
   return iso < todayIso(today);
 }
 
+/** 'YYYY-MM-DD' を日単位で動かす。月をまたぐ計算は Date に任せる（末日の判定を自前で書かない） */
+export function shiftDay(iso: string, delta: number): string {
+  const [y, m, d] = splitDate(iso);
+  const at = new Date(y, m - 1, d + delta);
+  return toISODate(at.getFullYear(), at.getMonth() + 1, at.getDate());
+}
+
 export function isToday(iso: string, today = new Date()): boolean {
   return iso === todayIso(today);
 }

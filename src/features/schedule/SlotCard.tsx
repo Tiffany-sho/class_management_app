@@ -1,23 +1,9 @@
 import { Badge, Card } from '@/components/ui';
 import type { Business } from '@/types/domain';
-
-interface Group {
-  key: string;
-  businessId: string;
-  sessionDate: string;
-  slotNo: number;
-  scheduleId: string | null;
-  status: 'draft' | 'confirmed';
-  wantStudents: { id: string; name: string }[];
-  wantEmployees: { id: string; name: string }[];
-  pickedStudents: string[];
-  pickedEmployees: string[];
-  capacity: number;
-  isOverCapacity: boolean;
-}
+import type { SlotGroup } from './useScheduleBoard';
 
 interface Props {
-  group: Group;
+  group: SlotGroup;
   business?: Business;
   busy: boolean;
   onToggleStudent: (id: string) => void;
@@ -28,6 +14,13 @@ interface Props {
  * 1コマぶんのカード。
  * 希望＝点線、仮確定＝塗りつぶし。クリックで行き来する。
  * 定員は DB のビューが返した値をそのまま出す（ここで再計算しない）。
+ *
+ * **チップに出すのは提出された希望だけ。** ここは希望を確定に変える画面なので、
+ * 希望を出していない人を混ぜると「誰が出したのか」が読めなくなる。
+ * ただし人数と定員は実際の割り当てから来るので、出さないぶんは数だけ添える。
+ *
+ * **確定済みのコマから外すときだけ、ページ側が確認をはさむ。**
+ * 下書きは押した時点で入る／外れる。
  */
 export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEmployee }: Props) {
   const isProg = business?.colorKey === 'forest';
@@ -63,21 +56,24 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
           {g.pickedEmployees.length}名 ／ 定員 {g.capacity}名
         </span>
       </div>
-      <div className="mb-md flex flex-wrap gap-xs">
-        {g.wantEmployees.length === 0 ? (
-          <span className="text-[12px] text-muted">勤務希望が出ていません</span>
-        ) : (
-          g.wantEmployees.map((e) => (
-            <PickChip
-              key={e.id}
-              label={e.name}
-              picked={g.pickedEmployees.includes(e.id)}
-              tone={isProg ? 'forest' : 'coral'}
-              disabled={busy}
-              onClick={() => onToggleEmployee(e.id)}
-            />
-          ))
-        )}
+      <div className="mb-md">
+        <div className="flex flex-wrap gap-xs">
+          {g.wantEmployees.length === 0 ? (
+            <span className="text-[12px] text-muted">勤務希望が出ていません</span>
+          ) : (
+            g.wantEmployees.map((e) => (
+              <PickChip
+                key={e.id}
+                label={e.name}
+                picked={g.pickedEmployees.includes(e.id)}
+                tone={isProg ? 'forest' : 'coral'}
+                disabled={busy}
+                onClick={() => onToggleEmployee(e.id)}
+              />
+            ))
+          )}
+        </div>
+        <HiddenNote count={g.hiddenEmployees} what="担当" />
       </div>
 
       <div className="mb-xs flex items-baseline gap-xs text-[11px] font-medium tracking-[0.08em] text-muted">
@@ -102,6 +98,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
           ))
         )}
       </div>
+      <HiddenNote count={g.hiddenStudents} what="受講" />
 
       {g.isOverCapacity ? (
         <p className="mt-sm text-[12px] text-coral">
@@ -109,6 +106,20 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
         </p>
       ) : null}
     </Card>
+  );
+}
+
+/**
+ * 希望を出していないのに割り当てられている人数。
+ * 出さないまま黙っていると「2名と書いてあるのにチップが1つ」になって、
+ * 数え違いなのか表示漏れなのか分からなくなる。
+ */
+function HiddenNote({ count, what }: { count: number; what: '担当' | '受講' }) {
+  if (count === 0) return null;
+  return (
+    <p className="mt-xs text-[12px] text-muted">
+      希望を出していない{count}名が{what}に入っています（当日の変更から直せます）。
+    </p>
   );
 }
 
@@ -128,6 +139,9 @@ function PickChip({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={picked}
+      /* 押したときに何が起きるかを、色だけでなく言葉でも出す。
+         塗りつぶし＝外れる、点線＝入る、は色を見分けられないと伝わらない */
+      title={picked ? `${label} を外す` : `${label} を仮確定する`}
       className={`rounded-pill border px-sm py-[3px] text-[12px] transition-colors
         disabled:opacity-50 ${picked ? solid : dashed}`}
     >

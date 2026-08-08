@@ -5,7 +5,12 @@ const BASE =
   'w-full rounded-md border border-hairline bg-canvas px-sm py-[10px] text-[14px] text-ink ' +
   'placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
 
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+export function Field({ label, hint, children }: {
+  /** バッジを添えたいことがあるので ReactNode。文字列だけを渡す前提にしない */
+  label: ReactNode;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <label className="mb-md block">
       <span className="mb-[6px] block text-[13px] font-medium text-ink">{label}</span>

@@ -25,6 +25,10 @@ export const ADMIN_NAV: NavGroup[] = [
     group: '教室運用',
     items: [
       { to: '/schedule', label: 'スケジュール確定', icon: 'calendar' },
+      /* 「これからの月を作る」スケジュール確定と、「もう決まった日を直す」当日の変更は
+         別の画面にする。同じ画面にすると、月を組んでいる途中で今日の回を触ってしまい、
+         確定済みの勤務実績が意図せず動く。 */
+      { to: '/day', label: '当日の変更', icon: 'user-x' },
       { to: '/students', label: '生徒', icon: 'user' },
       { to: '/staff', label: '講師', icon: 'presentation' },
     ],

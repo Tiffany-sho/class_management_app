@@ -46,7 +46,7 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
         <div key={week} className="grid grid-cols-7 border-b border-hairline last:border-0">
           {cells.slice(week * 7, week * 7 + 7).map((date, i) => {
             if (!date) {
-              return <div key={`${week}-${i}`} className="min-h-[92px] border-r border-hairline bg-surface-soft last:border-0" />;
+              return <div key={`${week}-${i}`} className="min-h-[88px] app:min-h-[92px] border-r border-hairline bg-surface-soft last:border-0" />;
             }
             const state = byDate.get(date);
             const has = Boolean(state && state.slots.length > 0);
@@ -65,7 +65,7 @@ export function MonthCalendar({ monthKey, byDate, businesses, onSelect, showStat
                 type="button"
                 disabled={!has}
                 onClick={() => onSelect(date)}
-                className={`flex min-h-[92px] flex-col gap-[3px] border-r border-hairline p-[6px]
+                className={`flex min-h-[88px] app:min-h-[92px] flex-col gap-[3px] border-r border-hairline p-[6px]
                   text-left last:border-0 ${tone}
                   ${has ? 'cursor-pointer hover:brightness-[.98]' : 'cursor-default'}`}
               >
@@ -124,8 +124,16 @@ function groupByBusiness(slots: ScheduleSlot[]): [string, ScheduleSlot[]][] {
   return [...m.entries()];
 }
 
-/** 凡例。色の意味は必ず書く（色だけでは伝わらない） */
-export function CalendarLegend({ businesses }: { businesses: Business[] }) {
+/**
+ * 凡例。色の意味は必ず書く（色だけでは伝わらない）。
+ *
+ * `showStatus` は管理者だけ true。保護者・講師には確定したコマしか届かないので、
+ * 「未確定」の説明を出すと、存在しない状態を探させることになる。
+ */
+export function CalendarLegend({ businesses, showStatus = true }: {
+  businesses: Business[];
+  showStatus?: boolean;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-md text-[11px] text-muted">
       {businesses.map((b) => (
@@ -134,18 +142,22 @@ export function CalendarLegend({ businesses }: { businesses: Business[] }) {
           {b.name}
         </span>
       ))}
-      <span className="inline-flex items-center gap-[5px]">
-        <i className="h-[11px] w-[14px] rounded-sm border border-dashed border-border-strong" />
-        未確定のコマ
-      </span>
-      <span className="inline-flex items-center gap-[5px]">
-        <i className="h-[11px] w-[14px] rounded-sm bg-state-confirmed shadow-[inset_4px_0_0_theme(colors.forest)]" />
-        確定した日
-      </span>
-      <span className="inline-flex items-center gap-[5px]">
-        <i className="h-[11px] w-[14px] rounded-sm bg-state-pending shadow-[inset_4px_0_0_theme(colors.coral)]" />
-        未確定を含む日
-      </span>
+      {showStatus ? (
+        <>
+          <span className="inline-flex items-center gap-[5px]">
+            <i className="h-[11px] w-[14px] rounded-sm border border-dashed border-border-strong" />
+            未確定のコマ
+          </span>
+          <span className="inline-flex items-center gap-[5px]">
+            <i className="h-[11px] w-[14px] rounded-sm bg-state-confirmed shadow-[inset_4px_0_0_theme(colors.forest)]" />
+            確定した日
+          </span>
+          <span className="inline-flex items-center gap-[5px]">
+            <i className="h-[11px] w-[14px] rounded-sm bg-state-pending shadow-[inset_4px_0_0_theme(colors.coral)]" />
+            未確定を含む日
+          </span>
+        </>
+      ) : null}
     </div>
   );
 }
