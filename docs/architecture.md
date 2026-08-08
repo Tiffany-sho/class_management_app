@@ -164,6 +164,22 @@ npm run build
 npm run gen:types         # supabase link 済みであること
 ```
 
+### DB に投げるものを検査する（`npm run check:queries`）
+
+**型チェックは `.select()` の中身を一切見ない。** 文字列だからで、綴りを間違えても間違った関係を書いてもビルドは通る。表面化するのは**その画面を開いたときの 400** だけ。
+
+`npm run check:queries` は、ソース中の `.from().select()`・`.eq()` などの列名・`rpc()` を全部集めて、**本物の PostgREST とカタログに突き合わせる**。
+
+| 検査 | 当てる先 | 捕まえるもの |
+|------|---------|------------|
+| 埋め込みの解決 | 本物の PostgREST | `PGRST200`（関係が見つからない） |
+| 列の実在 | `information_schema.columns` | 綴り違い・消えた列 |
+| 関数と引数 | `pg_proc` | `rpc()` の名前と引数名 |
+
+**手書きの fixture ではこの種の間違いは永久に出ない。** 埋め込み結果を人が作り込んでいるので関係の解決を経ず、知らない列でのフィルタも素通りする。**自分で書いた fixture は自分の思い込みをそのまま写すので、思い込みを反証できない。**
+
+> **複合外部キーは列名では引けない。** `schedule_students → schedules` は `(schedule_id, business_id)` の複合キーなので、`schedules:schedule_id` と書くと 400 になる。`schedules!schedule_students_schedule_fk` と**制約名**で指定する。複合キーの一覧は `pg_constraint` を `array_length(conkey,1) > 1` で引けば出る。
+
 **`.env` が無くてもアプリは起動する。** 真っ白ではなく「何を設定すればいいか」の画面が出る。設定漏れと故障を区別できるようにするため。
 
 **service_role キーは絶対に `.env` に置かない。** `VITE_` 接頭辞の値はバンドルに焼き込まれてブラウザに配られるため、RLS を全部素通りする鍵が公開されてしまう。

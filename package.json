@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
+    "check:queries": "node scripts/check-queries.mjs",
     "lint": "eslint src",
     "gen:types": "supabase gen types typescript --linked > src/types/database.ts"
   },
