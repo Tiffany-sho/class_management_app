@@ -1,141 +1,56 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/AdminLayout';
 import {
-  Button, Chip, Loading, ErrorNote, MonthNav, Note, Empty, useToast,
+  Button, Chip, Loading, ErrorNote, MonthNav, Note, Empty, SectionLabel, useToast,
 } from '@/components/ui';
-import { useAsync } from '@/hooks/useAsync';
-import {
-  fetchBusinesses, fetchScheduleMonth, fetchPreferences, fetchWorkPreferences,
-  fetchEmployees, fetchStudents, ensureSchedule, toggleScheduleStudent,
-  toggleScheduleEmployee, confirmMonth,
-} from '@/lib/queries';
+import { confirmMonth } from '@/lib/queries';
 import { currentMonthKey, shiftMonth, formatDayJa } from '@/lib/date';
 import { toMessage } from '@/lib/supabase';
 import { SlotCard } from './SlotCard';
+import { DayCard } from './DayCard';
+import { RemovePickSheet } from './RemovePickSheet';
+import { useScheduleBoard } from './useScheduleBoard';
+import { useSlotPick } from './useSlotPick';
 
 /**
  * スケジュール確定。
  *
+ * **日のカードを並べ、押した日のコマだけを下に出す。** 月ぶんのコマを全部並べると
+ * 縦に数十枚になり、直したい日にたどり着くまでスクロールし続けることになる。
+ * カードには担当未定・定員超過の件数を出して、**開かずに「どの日を直すか」が
+ * 決まるようにしてある**。
+ *
  * 提出された希望をクリックすると仮確定になる。
  * 定員（担当講師数 × 係数）は DB のビューが返すので、画面では計算しない。
  * 定員超過は警告するだけでブロックしない（実運用で必ず例外が出るため）。
+ *
+ * **下書きは押すだけで出し入れできる。確認をはさむのは確定済みのコマから外すときだけ。**
+ * 組み立て中は入れて外してを繰り返すので、そこに確認を挟むと作業にならない。
+ * 確定済みは保護者・講師の画面にもう出ていて、講師なら給与にも効いている。
  */
 export function SchedulePage() {
   // 確定するのは翌月ぶんが基本なので、既定を翌月にする
   const [month, setMonth] = useState(shiftMonth(currentMonthKey(), 1));
   const [bizFilter, setBizFilter] = useState<string>('all');
+  const [picked, setPicked] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
 
-  const state = useAsync(
-    async () => {
-      const [businesses, slots, prefs, workPrefs, employees, students] = await Promise.all([
-        fetchBusinesses(),
-        fetchScheduleMonth(month),
-        fetchPreferences(month),
-        fetchWorkPreferences(month),
-        fetchEmployees(),
-        fetchStudents(),
-      ]);
-      return { businesses, slots, prefs, workPrefs, employees, students };
-    },
-    [month],
-  );
+  const { state, groups, days } = useScheduleBoard(month, bizFilter);
+  const slotPick = useSlotPick(state.reload);
+  const locked = busy || slotPick.busy;
 
-  /** 希望と確定を「日付 × コマ × 事業」で束ねる */
-  const groups = useMemo(() => {
-    const d = state.data;
-    if (!d) return [];
-
-    const map = new Map<string, {
-      key: string; businessId: string; sessionDate: string; slotNo: number;
-      scheduleId: string | null; status: 'draft' | 'confirmed';
-      wantStudents: { id: string; name: string }[];
-      wantEmployees: { id: string; name: string }[];
-      pickedStudents: string[];
-      pickedEmployees: string[];
-      capacity: number; isOverCapacity: boolean;
-    }>();
-
-    const keyOf = (b: string, date: string, no: number) => `${b}|${date}|${no}`;
-
-    for (const p of d.prefs) {
-      const k = keyOf(p.businessId, p.sessionDate, p.slotNo);
-      const g = map.get(k) ?? blank(k, p.businessId, p.sessionDate, p.slotNo);
-      g.wantStudents.push({ id: p.studentId, name: p.studentName });
-      map.set(k, g);
-    }
-    for (const w of d.workPrefs) {
-      const k = keyOf(w.businessId, w.sessionDate, w.slotNo);
-      const g = map.get(k) ?? blank(k, w.businessId, w.sessionDate, w.slotNo);
-      g.wantEmployees.push({ id: w.employeeId, name: w.employeeName ?? '—' });
-      map.set(k, g);
-    }
-    for (const s of d.slots) {
-      const k = keyOf(s.businessId, s.sessionDate, s.slotNo);
-      const g = map.get(k) ?? blank(k, s.businessId, s.sessionDate, s.slotNo);
-      g.scheduleId = s.id;
-      g.status = s.status;
-      g.pickedStudents = s.students.map((x) => x.studentId);
-      g.pickedEmployees = s.employees.map((x) => x.id);
-      g.capacity = s.capacity;
-      g.isOverCapacity = s.isOverCapacity;
-      // 確定済みの人も候補として見えるようにする（外す操作ができなくなるため）
-      for (const st of s.students) {
-        if (!g.wantStudents.some((x) => x.id === st.studentId)) {
-          g.wantStudents.push({ id: st.studentId, name: st.studentName });
-        }
-      }
-      for (const e of s.employees) {
-        if (!g.wantEmployees.some((x) => x.id === e.id)) {
-          g.wantEmployees.push({ id: e.id, name: e.name });
-        }
-      }
-      map.set(k, g);
-    }
-
-    return [...map.values()]
-      .filter((g) => bizFilter === 'all' || g.businessId === bizFilter)
-      .sort((a, b) =>
-        a.sessionDate.localeCompare(b.sessionDate) || a.slotNo - b.slotNo
-        || a.businessId.localeCompare(b.businessId));
-  }, [state.data, bizFilter]);
-
-  const byDate = useMemo(() => {
-    const m = new Map<string, typeof groups>();
-    for (const g of groups) {
-      const list = m.get(g.sessionDate) ?? [];
-      list.push(g);
-      m.set(g.sessionDate, list);
-    }
-    return [...m.entries()];
-  }, [groups]);
-
-  async function togglePick(
-    kind: 'student' | 'employee',
-    g: (typeof groups)[number],
-    id: string,
-  ) {
-    setBusy(true);
-    try {
-      const scheduleId = g.scheduleId
-        ?? (await ensureSchedule(g.businessId, g.sessionDate, g.slotNo));
-      const picked = kind === 'student'
-        ? g.pickedStudents.includes(id)
-        : g.pickedEmployees.includes(id);
-
-      if (kind === 'student') {
-        await toggleScheduleStudent(scheduleId, g.businessId, id, picked);
-      } else {
-        await toggleScheduleEmployee(scheduleId, g.businessId, id, picked);
-      }
-      state.reload();
-    } catch (e) {
-      toast(toMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  /* 選ぶ日は「直すべき日」を既定にする。先頭の日を出しても、そこが済んでいれば
+     結局どこを開くか探すことになる。要対応が無ければ未確定の先頭、それも無ければ先頭。
+     いま選んでいる日がまだ一覧にあるなら動かさない（月やフィルタを変えたときだけ選び直す）。 */
+  useEffect(() => {
+    if (days.length === 0) { setPicked(null); return; }
+    if (picked && days.some((x) => x.date === picked)) return;
+    const next = days.find((x) => x.noEmployee > 0 || x.overCapacity > 0)
+      ?? days.find((x) => x.confirmed < x.total)
+      ?? days[0]!;
+    setPicked(next.date);
+  }, [days, picked]);
 
   async function onConfirm() {
     setBusy(true);
@@ -158,6 +73,8 @@ export function SchedulePage() {
   if (!d) return null;
 
   const draftCount = groups.filter((g) => g.status === 'draft').length;
+  const attention = days.reduce((a, x) => a + x.noEmployee + x.overCapacity, 0);
+  const shown = groups.filter((g) => g.sessionDate === picked);
 
   return (
     <div>
@@ -165,8 +82,8 @@ export function SchedulePage() {
         title="スケジュール確定"
         actions={
           <>
-            <Button size="sm" onClick={state.reload} disabled={busy}>希望を再取得</Button>
-            <Button size="sm" variant="primary" onClick={onConfirm} disabled={busy || draftCount === 0}>
+            <Button size="sm" onClick={state.reload} disabled={locked}>希望を再取得</Button>
+            <Button size="sm" variant="primary" onClick={onConfirm} disabled={locked || draftCount === 0}>
               この月を確定（{draftCount}コマ）
             </Button>
           </>
@@ -190,14 +107,19 @@ export function SchedulePage() {
       </div>
 
       <Note>
+        <strong className="text-ink">日を押すと、その日のコマだけが下に出ます。</strong>
+        カードの赤い数字は<strong className="text-ink">先に直すべきコマの数</strong>です。<br />
         <strong className="text-ink">提出された希望をクリックすると仮確定できます。</strong>
-        点線＝希望のみ、塗りつぶし＝仮確定です。<br />
+        点線＝希望のみ、塗りつぶし＝仮確定です。出るのは<strong className="text-ink">提出された希望だけ</strong>です。<br />
+        下書きのコマは<strong className="text-ink">押すだけで出し入れできます</strong>。
+        <strong className="text-ink">確定済みのコマから外すときだけ確認が出ます</strong>
+        （もう保護者・講師に見えているためです）。<br />
         <strong className="text-ink">定員 = 仮確定した講師の人数 × 事業ごとの係数</strong>。
         講師を足すと定員が伸び、超過警告が消えます。<strong className="text-ink">超過してもブロックはしません。</strong><br />
         ここで仮確定した担当が、そのまま<strong className="text-ink">講師の出勤日・勤務時間</strong>になります（給与計算にも使われます）。
       </Note>
 
-      {byDate.length === 0 ? (
+      {days.length === 0 ? (
         <div className="rounded-md border border-hairline bg-canvas shadow-card">
           <Empty
             title="この月にはまだ希望が出ていません"
@@ -205,38 +127,52 @@ export function SchedulePage() {
           />
         </div>
       ) : (
-        byDate.map(([date, list]) => (
-          <section key={date} className="mb-lg">
-            <h2 className="mb-xs text-[14px] font-medium text-ink">{formatDayJa(date)}</h2>
-            <div className="grid gap-sm md:grid-cols-2">
-              {list.map((g) => (
-                <SlotCard
-                  key={g.key}
-                  group={g}
-                  business={d.businesses.find((b) => b.id === g.businessId)}
-                  busy={busy}
-                  onToggleStudent={(id) => void togglePick('student', g, id)}
-                  onToggleEmployee={(id) => void togglePick('employee', g, id)}
-                />
-              ))}
-            </div>
-          </section>
-        ))
+        <>
+          <SectionLabel>
+            開催日 {days.length}日{attention > 0 ? ` ・ 要対応 ${attention}コマ` : ''}
+          </SectionLabel>
+          <div className="mb-lg grid grid-cols-2 gap-xs sm:grid-cols-4 app:grid-cols-6 lg:grid-cols-8">
+            {days.map((day) => (
+              <DayCard
+                key={day.date}
+                day={day}
+                businesses={d.businesses}
+                selected={day.date === picked}
+                onSelect={() => setPicked(day.date)}
+              />
+            ))}
+          </div>
+
+          {picked ? (
+            <section>
+              <h2 className="mb-xs text-[14px] font-medium text-ink">{formatDayJa(picked)}</h2>
+              <div className="grid gap-sm md:grid-cols-2">
+                {shown.map((g) => {
+                  const biz = d.businesses.find((b) => b.id === g.businessId);
+                  const name = biz?.name ?? '—';
+                  return (
+                    <SlotCard
+                      key={g.key}
+                      group={g}
+                      business={biz}
+                      busy={locked}
+                      onToggleStudent={(id) => slotPick.pick('student', g, id, name)}
+                      onToggleEmployee={(id) => slotPick.pick('employee', g, id, name)}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+        </>
       )}
+
+      <RemovePickSheet
+        target={slotPick.removing}
+        busy={slotPick.busy}
+        onCancel={slotPick.cancelRemove}
+        onConfirm={slotPick.confirmRemove}
+      />
     </div>
   );
-}
-
-function blank(key: string, businessId: string, sessionDate: string, slotNo: number) {
-  return {
-    key, businessId, sessionDate, slotNo,
-    scheduleId: null as string | null,
-    status: 'draft' as const,
-    wantStudents: [] as { id: string; name: string }[],
-    wantEmployees: [] as { id: string; name: string }[],
-    pickedStudents: [] as string[],
-    pickedEmployees: [] as string[],
-    capacity: 0,
-    isOverCapacity: false,
-  };
 }
