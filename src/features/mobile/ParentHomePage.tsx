@@ -1,164 +1,148 @@
 import { useMemo, useState } from 'react';
-import { Badge, Card, Empty, Loading, ErrorNote, Note, SectionLabel } from '@/components/ui';
+import { Card, Empty, Loading, ErrorNote, SectionLabel } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
-import { fetchBusinesses, fetchFees, fetchScheduleMonth, fetchStudents } from '@/lib/queries';
-import { currentMonthKey, formatMonthJa, isPast } from '@/lib/date';
-import { FEE_LABEL } from '@/lib/format';
-import { MonthHeader } from './MonthHeader';
-import { LessonItem } from './LessonItem';
+import {
+  fetchAnnouncements, fetchBusinesses, fetchFees, fetchScheduleMonth, fetchStudents,
+} from '@/lib/queries';
+import { currentMonthKey, isPast, shiftMonth, sinceLabel, todayIso } from '@/lib/date';
+import { KidSwitch } from './KidSwitch';
+import { NextLessonCard } from './NextLessonCard';
+import { KidMonthPanel, type KidSession } from './KidMonthPanel';
 
 /**
- * 保護者のホーム。今月の受講状況。
+ * 保護者のホーム。
  *
- * 済んだ授業には**出欠と授業記録を同じ行に**出す。
- * 出席率は出さない（月2〜3回では1回の欠席で 67% になり実態を表さない）。
- * 月謝は固定月額なので、欠席が多くても請求額は変わらない。
+ * 構成はモックに合わせている: **お子さま切替 → 次回の受講 → 受講状況 → お知らせ**。
+ * 兄弟で教室もコースも違うので、1人ずつに絞って見せる。
+ *
+ * 「次回」は表示中の月に引きずられてはいけない（8月を見ていても次回は9月）。
+ * そのため今月と来月の予定を別に読んで、そこから最初の1件を選んでいる。
  */
 export function ParentHomePage() {
   const [month, setMonth] = useState(currentMonthKey());
+  const [kidId, setKidId] = useState('');
 
-  const state = useAsync(async () => {
-    const [businesses, students, slots, fees] = await Promise.all([
-      fetchBusinesses(), fetchStudents(), fetchScheduleMonth(month), fetchFees(month),
+  /** 月に依らないもの。次回の判定には今月＋来月の予定が要る */
+  const base = useAsync(async () => {
+    const now = currentMonthKey();
+    const [businesses, students, announcements, thisMonth, nextMonth] = await Promise.all([
+      fetchBusinesses(), fetchStudents(), fetchAnnouncements(),
+      fetchScheduleMonth(now), fetchScheduleMonth(shiftMonth(now, 1)),
     ]);
-    return { businesses, students, slots, fees };
+    return { businesses, students, announcements, upcoming: [...thisMonth, ...nextMonth] };
+  }, []);
+
+  /** 表示中の月ぶん */
+  const monthly = useAsync(async () => {
+    const [slots, fees] = await Promise.all([fetchScheduleMonth(month), fetchFees(month)]);
+    return { slots, fees };
   }, [month]);
 
-  const lessons = useMemo(() => {
-    const d = state.data;
-    if (!d) return [];
-    const bizMap = new Map(d.businesses.map((b) => [b.id, b]));
-    // RLS が自分の子だけに絞っているので、ここで親子関係を条件に足さない
-    return d.slots
-      .flatMap((s) => s.students.map((st) => ({ slot: s, student: st })))
-      .map(({ slot, student }) => ({
-        key: `${slot.id}-${student.studentId}`,
-        slot,
-        student,
-        biz: bizMap.get(slot.businessId),
-        past: isPast(slot.sessionDate),
-      }))
-      .sort((a, b) => a.slot.sessionDate.localeCompare(b.slot.sessionDate) || a.slot.slotNo - b.slot.slotNo);
-  }, [state.data]);
+  const students = base.data?.students ?? [];
+  const kid = students.find((s) => s.id === kidId) ?? students[0];
 
-  if (state.loading && !state.data) return <Loading />;
-  if (state.error && !state.data) return <ErrorNote message={state.error} onRetry={state.reload} />;
-  const d = state.data;
+  const sessions = useMemo<KidSession[]>(() => {
+    if (!kid || !monthly.data || !base.data) return [];
+    const bizMap = new Map(base.data.businesses.map((b) => [b.id, b]));
+    return monthly.data.slots
+      .flatMap((slot) => slot.students
+        .filter((st) => st.studentId === kid.id)
+        .map((st) => ({
+          key: `${slot.id}-${st.studentId}`,
+          sessionDate: slot.sessionDate,
+          slotNo: slot.slotNo,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          colorKey: bizMap.get(slot.businessId)?.colorKey ?? 'forest',
+          employeeNames: slot.employees.map((e) => e.name),
+          past: isPast(slot.sessionDate),
+          attendanceStatus: st.attendanceStatus,
+          note: st.note,
+          notedByName: st.notedByName,
+        })))
+      .sort((a, b) => a.sessionDate.localeCompare(b.sessionDate) || a.slotNo - b.slotNo);
+  }, [kid, monthly.data, base.data]);
+
+  const next = useMemo(() => {
+    if (!kid || !base.data) return null;
+    const bizMap = new Map(base.data.businesses.map((b) => [b.id, b]));
+    const today = todayIso();
+    return base.data.upcoming
+      .filter((slot) => slot.sessionDate >= today
+        && slot.students.some((st) => st.studentId === kid.id))
+      .sort((a, b) => a.sessionDate.localeCompare(b.sessionDate) || a.slotNo - b.slotNo)
+      .map((slot) => ({
+        sessionDate: slot.sessionDate,
+        slotNo: slot.slotNo,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        businessName: bizMap.get(slot.businessId)?.name ?? '—',
+        colorKey: bizMap.get(slot.businessId)?.colorKey ?? ('forest' as const),
+        detail: slot.employees.length ? `担当 ${slot.employees.map((e) => e.name).join('・')}` : undefined,
+      }))[0] ?? null;
+  }, [kid, base.data]);
+
+  if (base.loading && !base.data) return <Loading />;
+  if (base.error && !base.data) return <ErrorNote message={base.error} onRetry={base.reload} />;
+  const d = base.data;
   if (!d) return null;
 
-  const done = lessons.filter((l) => l.past);
-  const upcoming = lessons.filter((l) => !l.past);
+  if (!kid) {
+    return (
+      <Card>
+        <Empty title="登録されている生徒がいません。" hint="教室にお問い合わせください。" />
+      </Card>
+    );
+  }
 
   return (
     <div>
-      <MonthHeader month={month} onChange={setMonth}>
-        <div className="mt-sm flex justify-center gap-lg text-center">
-          <div>
-            <div className="text-[11px] text-muted">済んだ授業</div>
-            <div className="text-[18px] font-medium text-ink tnum">{done.length}</div>
-          </div>
-          <div>
-            <div className="text-[11px] text-muted">これから</div>
-            <div className="text-[18px] font-medium text-ink tnum">{upcoming.length}</div>
-          </div>
-        </div>
-        <p className="mt-xs text-center text-[11px] text-muted">左右に払うと月を移せます</p>
-      </MonthHeader>
+      <KidSwitch
+        students={students}
+        businesses={d.businesses}
+        selectedId={kid.id}
+        onSelect={setKidId}
+      />
 
-      <SectionLabel>月謝</SectionLabel>
-      <Card className="mb-md">
-        {d.students.length === 0 ? (
-          <Empty title="登録されている生徒がいません。" hint="教室にお問い合わせください。" />
+      <NextLessonCard
+        label="次回の受講"
+        lesson={next}
+        emptyText="次の予定はまだ確定していません。確定するとここに出ます。"
+      />
+
+      {monthly.error && !monthly.data ? (
+        <ErrorNote message={monthly.error} onRetry={monthly.reload} />
+      ) : (
+        <KidMonthPanel
+          studentName={kid.name}
+          month={month}
+          onMonth={setMonth}
+          sessions={sessions}
+          fee={monthly.data?.fees.get(kid.id) ?? null}
+        />
+      )}
+
+      <SectionLabel>お知らせ</SectionLabel>
+      <Card>
+        {d.announcements.length === 0 ? (
+          <Empty title="お知らせはありません。" />
         ) : (
           <ul>
-            {d.students.map((s, i) => {
-              const fee = d.fees.get(s.id);
-              return (
-                <li
-                  key={s.id}
-                  className={`flex items-center gap-sm px-md py-sm ${i < d.students.length - 1 ? 'border-b border-hairline' : ''}`}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] text-ink">{s.name}</span>
-                    <span className="block text-[12px] text-muted">
-                      {s.gradeLabel} 月{s.sessionsPerMonth}回
-                    </span>
-                  </span>
-                  {!fee ? (
-                    <Badge tone="neutral">請求前</Badge>
-                  ) : (
-                    <span className="text-right">
-                      <Badge tone={fee.status === 'paid' ? 'success' : 'danger'}>
-                        {FEE_LABEL[fee.status]}
-                      </Badge>
-                      <span className="mt-[3px] block text-[11px] text-muted tnum">
-                        {fee.paidDate ? `入金 ${fee.paidDate.slice(5)}` : '入金待ち'}
-                      </span>
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
-
-      <SectionLabel>済んだ授業と記録</SectionLabel>
-      <Card className="mb-md">
-        {done.length === 0 ? (
-          <Empty title={`${formatMonthJa(month)}に済んだ授業はありません。`} />
-        ) : (
-          <ul>
-            {done.map((l) => (
-              <LessonItem
-                key={l.key}
-                sessionDate={l.slot.sessionDate}
-                slotNo={l.slot.slotNo}
-                startTime={l.slot.startTime}
-                endTime={l.slot.endTime}
-                businessName={l.biz?.name ?? '—'}
-                colorKey={l.biz?.colorKey ?? 'forest'}
-                past
-                attendanceStatus={l.student.attendanceStatus}
-                note={l.student.note}
-                notedByName={l.student.notedByName}
-                extra={<div className="text-[12px] text-ink">{l.student.studentName}</div>}
-              />
+            {/* 全部は出さない。続きは「お知らせ」タブにある */}
+            {d.announcements.slice(0, 3).map((a, i) => (
+              <li
+                key={a.id}
+                className={`px-md py-sm ${i < Math.min(d.announcements.length, 3) - 1 ? 'border-b border-hairline' : ''}`}
+              >
+                <div className="text-[14px] text-ink">{a.title}</div>
+                <div className="mt-[3px] text-[12px] text-muted">
+                  {sinceLabel(a.sentAt ?? a.createdAt)}
+                </div>
+              </li>
             ))}
           </ul>
         )}
       </Card>
-
-      <SectionLabel>これからの授業</SectionLabel>
-      <Card className="mb-md">
-        {upcoming.length === 0 ? (
-          <Empty
-            title="予定されている授業はありません。"
-            hint="スケジュールが確定すると、ここに出ます。"
-          />
-        ) : (
-          <ul>
-            {upcoming.map((l) => (
-              <LessonItem
-                key={l.key}
-                sessionDate={l.slot.sessionDate}
-                slotNo={l.slot.slotNo}
-                startTime={l.slot.startTime}
-                endTime={l.slot.endTime}
-                businessName={l.biz?.name ?? '—'}
-                colorKey={l.biz?.colorKey ?? 'forest'}
-                past={false}
-                extra={<div className="text-[12px] text-ink">{l.student.studentName}</div>}
-              />
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Note>
-        月謝は<strong className="text-ink">固定月額</strong>です。お休みされても請求額は変わりません。
-        出席率は出していません（月2〜3回のため、1回のお休みで数字が大きく振れて実態を表さないためです）。
-      </Note>
     </div>
   );
 }
