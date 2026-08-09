@@ -94,8 +94,11 @@ begin
     'insert into public.deadlines(year_month,type,deadline_at) values (''2026-13'',''parent'',now())',
     'deadlines_year_month_check');
 
+  -- base_amount（発行時の額）は not null。**入れずに書くと別の理由で落ちる**ので、
+  -- ここから下の fees の insert には必ず両方入れる
   perform pg_temp.ng('A10b', 'fees の年月の形（202609）', format(
-    'insert into public.fees(student_id,year_month,amount) values (%L,''202609'',1000)', s_id),
+    'insert into public.fees(student_id,year_month,amount,base_amount)'
+    || ' values (%L,''202609'',1000,1000)', s_id),
     'fees_year_month_check');
 
   perform pg_temp.ng('A10c', 'payrolls の年月の形（2026-9）', format(
@@ -131,13 +134,19 @@ begin
 
   ---------------------------------------------------------------- 月謝
   perform pg_temp.ng('A14', '月謝は生徒×年月で一意',
-    'insert into public.fees(student_id,year_month,amount)'
-    || ' select student_id,year_month,1 from public.fees limit 1',
+    'insert into public.fees(student_id,year_month,amount,base_amount)'
+    || ' select student_id,year_month,1,1 from public.fees limit 1',
     'fees_unique');
 
   perform pg_temp.ng('A15', '請求額は0以上', format(
-    'insert into public.fees(student_id,year_month,amount) values (%L,''1999-01'',-1)', s_id),
+    'insert into public.fees(student_id,year_month,amount,base_amount)'
+    || ' values (%L,''1999-01'',-1,0)', s_id),
     'fees_amount_check');
+
+  perform pg_temp.ng('A15b', '発行時の額も0以上', format(
+    'insert into public.fees(student_id,year_month,amount,base_amount)'
+    || ' values (%L,''1999-02'',0,-1)', s_id),
+    'fees_base_amount_check');
 
   ---------------------------------------------------------------- 生徒
   perform pg_temp.ng('A16', '入学年度は2000〜2100', format(
@@ -162,10 +171,18 @@ begin
     'commute_allowances_unique');
 
   ---------------------------------------------------------------- 希望
-  perform pg_temp.ng('A20', '同じ生徒が同じ日に2コマは不可',
+  /* 「同じ日は1コマまで」は**もう無い**（ドメインルール2）。希望は予約ではなく候補で、
+     回数を決めるのは確定のほう。同じ日の別の時間も候補に出せる。
+     残っているのは**同じコマの二重登録**を弾く一意制約だけ。 */
+  perform pg_temp.ok('A20', '同じ生徒が同じ日の別コマにも希望を出せる',
     'insert into public.preferences(student_id,year_month,session_date,slot_no)'
-    || ' select student_id,year_month,session_date,slot_no+1 from public.preferences limit 1',
-    'preferences_one_per_day');
+    || ' select student_id,year_month,session_date,slot_no+1 from public.preferences'
+    || '  where slot_no = 1 limit 1');
+
+  perform pg_temp.ng('A20b', '同じコマへの二重登録は不可',
+    'insert into public.preferences(student_id,year_month,session_date,slot_no)'
+    || ' select student_id,year_month,session_date,slot_no from public.preferences limit 1',
+    'preferences_no_duplicate');
 
   perform pg_temp.ng('A21', '勤務希望は講師×事業×日×コマで一意',
     'insert into public.work_preferences(employee_id,business_id,year_month,session_date,slot_no)'

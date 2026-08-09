@@ -90,6 +90,7 @@ do $$
 declare
   p_id uuid; e_id uuid; a_id uuid; other_p uuid; other_e uuid;
   s_mine uuid; s_other uuid; sch_mine uuid; sch_other uuid;
+  sch_draft uuid; b_draft uuid; d_draft date;
   nm text; d_sun date; ym text; n bigint;
 begin
   -- 子が2人いる保護者
@@ -113,6 +114,22 @@ begin
     date_trunc('month', current_date + interval '2 month') - interval '1 day', interval '1 day') d
    where extract(dow from d) = 0;
 
+  /* 未確定（draft）のコマを**自分で1つ作る**。
+     本番のデータに1つでも draft が残っていることを当てにしていたが、
+     全部確定した瞬間に F03 / F04b / F19b が「0件」を見るだけの検査になった
+     （F03 は 0 を期待しているので**通ってしまう**）。
+     見たい状態は自分で用意する。全部 rollback するので本番には残らない。 */
+  select min(d)::date into d_draft from generate_series(
+    date_trunc('month', current_date + interval '3 month'),
+    date_trunc('month', current_date + interval '4 month') - interval '1 day', interval '1 day') d
+   where extract(dow from d) = 0;
+  select business_id into b_draft from public.students where id = s_mine;
+  insert into public.schedules(business_id, session_date, slot_no, status)
+  values (b_draft, d_draft, 1, 'draft')
+  returning id into sch_draft;
+  insert into public.schedule_students(schedule_id, student_id, business_id)
+  values (sch_draft, s_mine, b_draft);
+
   ---------------------------------------------------------------- 偽装が効いているか
   perform pg_temp.eq('F00', '★偽装そのものが効いているか（全25名が見えたら偽装失敗）',
     (pg_temp.cnt(p_id, 'select count(*) from public.students') <
@@ -127,6 +144,11 @@ begin
     pg_temp.cnt(p_id, 'select count(*) from public.fees')::text,
     (select count(*)::text from public.fees f join public.students s on s.id = f.student_id
       where s.parent_id = p_id));
+
+  /* 「見えない」の検査は、**見えるはずのものが在って初めて意味を持つ**。
+     draft が1件も無ければ 0 件は当たり前で、ポリシーが外れていても通る。 */
+  perform pg_temp.eq('F03a', '★未確定のコマが在る（無いと F03/F04b/F19b は何も検査しない）',
+    (select count(*) > 0 from public.schedules where status = 'draft')::text, 'true');
 
   perform pg_temp.eq('F03', '保護者: 未確定のコマは見えない',
     pg_temp.cnt(p_id, 'select count(*) from public.schedules where status = ''draft''')::text, '0');

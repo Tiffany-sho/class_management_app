@@ -37,17 +37,44 @@ begin
   select id into a_id from public.users where role = 'admin' order by created_at limit 1;
 
   ---------------------------------------------------------------- G1: 文単位トリガー
+  /* 未確定のコマを**自分で用意する**。翌月に draft が残っていることを当てにして
+     いたが、全部確定した瞬間に「0コマ更新 → 通知0件」を見るだけになった。
+
+     **同じ人を複数のコマに割り当てる。** このトリガーの要点は「何コマまとめて
+     確定しても1人1件」なので、1人が1コマにしか入っていないと何も検査しない。
+     全部 rollback するので本番には残らない。 */
+  select s.id, s.business_id, s.parent_id into s_id, b_id, p_id
+    from public.students s where s.active and s.parent_id is not null limit 1;
+  select eb.employee_id into e_id
+    from public.employee_businesses eb where eb.business_id = b_id limit 1;
+  nm := to_char(current_date + interval '5 month', 'YYYY-MM');
+
+  insert into public.schedules(business_id, session_date, slot_no, status)
+  select b_id, d::date, no, 'draft'
+    from generate_series(date_trunc('month', current_date + interval '5 month'),
+                         date_trunc('month', current_date + interval '6 month') - interval '1 day',
+                         interval '1 day') d,
+         generate_series(1, 2) no
+   where extract(dow from d) = 0;
+  insert into public.schedule_students(schedule_id, student_id, business_id)
+  select sc.id, s_id, b_id from public.schedules sc
+   where to_char(sc.session_date, 'YYYY-MM') = nm and sc.status = 'draft';
+  insert into public.schedule_employees(schedule_id, employee_id, business_id)
+  select sc.id, e_id, b_id from public.schedules sc
+   where to_char(sc.session_date, 'YYYY-MM') = nm and sc.status = 'draft';
+
   select count(*) into n0 from public.notifications;
   select count(*) into slots from public.schedules
    where to_char(session_date, 'YYYY-MM') = nm and status = 'draft';
+  perform pg_temp.eq('G00', '★同じ人が2コマ以上に入っている（1コマだと G01 は何も検査しない）',
+    (slots > 1)::text, 'true');
   update public.schedules set status = 'confirmed'
    where to_char(session_date, 'YYYY-MM') = nm and status = 'draft';
   select count(*) into n1 from public.notifications;
+  -- 対象は保護者1名＋講師1名。コマ数がいくつでも合計2件になるのが正しい
   perform pg_temp.eq('G01', format('月まとめて確定（%sコマ）でも通知は対象者ごとに1件', slots),
     format('%sコマ更新 → 通知%s件', slots, n1 - n0),
-    format('%sコマ更新 → 通知%s件', slots,
-      (select count(distinct u.id) from public.users u
-        where u.active and u.role in ('parent','employee'))));
+    format('%sコマ更新 → 通知2件', slots));
 
   ---------------------------------------------------------------- G2: 再確定では出ない
   select count(*) into n0 from public.notifications;

@@ -91,54 +91,56 @@ begin
     date_trunc('month', current_date + interval '1 month')::date),
     '開催されていません');
 
-  -- 上限。いまの希望を全部消してから、上限ちょうど→上限+1 を試す
+  /* 件数の上限は**もう無い**（ドメインルール2 / migration 20260809100000）。
+     希望は予約ではなく候補で、コースの回数ぶんを選ぶのは管理者の確定のほう。
+     上限で止めると保護者が通う日まで決めることになり、定員が埋まっていても
+     差し替えられなくなる。
+
+     ここで見るのは「無くなったこと」。**制限がこっそり戻っていないか**を確かめる
+     ために、コースの回数より多く出せること・同じ日の別コマも出せること・
+     0件にもできることを、それぞれ別に見る。 */
   select c.sessions_per_month into lim
     from public.students s join public.courses c on c.id = s.course_id where s.id = s_prog;
   delete from public.preferences where student_id = s_prog and year_month = nm;
 
+  -- その月の開催日ぜんぶ（プログラミング＝日曜）に、1日2コマずつ出す
   insert into public.preferences(student_id, year_month, session_date, slot_no)
-  select s_prog, nm, d::date, 1
+  select s_prog, nm, d::date, no
     from generate_series(date_trunc('month', current_date + interval '1 month'),
                          date_trunc('month', current_date + interval '2 month') - interval '1 day',
-                         interval '1 day') d
-   where extract(dow from d) = 0 limit lim;
+                         interval '1 day') d,
+         generate_series(1, 2) no
+   where extract(dow from d) = 0;
   select count(*) into cnt from public.preferences where student_id = s_prog and year_month = nm;
-  perform pg_temp.eq('B05', format('受講希望: 上限ちょうど（%s件）は通る', lim), cnt::text, lim::text);
 
-  perform pg_temp.ng('B04', '受講希望: 上限を1件超える', format(
-    'insert into public.preferences(student_id,year_month,session_date,slot_no)'
-    || ' select %L,%L,d::date,1 from generate_series(%L,%L,interval ''1 day'') d'
-    || '  where extract(dow from d)=0'
-    || '    and not exists (select 1 from public.preferences p where p.student_id=%L and p.session_date=d::date)'
-    || '  limit 1',
-    s_prog, nm, date_trunc('month', current_date + interval '1 month'),
-    date_trunc('month', current_date + interval '2 month') - interval '1 day', s_prog),
-    '上限を超えています');
+  perform pg_temp.eq('B04', format('受講希望: %s件出せた（コースは月%s回）', cnt, lim),
+    (cnt > lim)::text, 'true');
+  perform pg_temp.eq('B05', '受講希望: 同じ日の2コマとも候補に残る',
+    (select count(*)::text from (
+       select session_date from public.preferences
+        where student_id = s_prog and year_month = nm
+        group by session_date having count(*) = 2) x),
+    (select count(*)::text
+       from generate_series(date_trunc('month', current_date + interval '1 month'),
+                            date_trunc('month', current_date + interval '2 month') - interval '1 day',
+                            interval '1 day') d
+      where extract(dow from d) = 0));
 
-  -- 差し替え: 先に消す→足す は通る
-  perform pg_temp.ok('B06', '上限のまま「先に消して→足す」は通る', format(
+  /* 同じ文の中で「消して→足し直す」ができること。
+     一意制約に自分自身がぶつかると入れ替えが通らなくなる（アプリは消してから足す）。 */
+  perform pg_temp.ok('B06', '同じ文の中で「消して→足し直す」ができる', format(
     'with gone as (delete from public.preferences where student_id=%L and year_month=%L'
     || '            and session_date=(select min(session_date) from public.preferences'
-    || '                               where student_id=%L and year_month=%L) returning 1)'
+    || '                               where student_id=%L and year_month=%L)'
+    || '            returning session_date)'
     || ' insert into public.preferences(student_id,year_month,session_date,slot_no)'
-    || ' select %L,%L,d::date,1 from gone, generate_series(%L,%L,interval ''1 day'') d'
-    || '  where extract(dow from d)=0'
-    || '    and not exists (select 1 from public.preferences p where p.student_id=%L and p.session_date=d::date)'
-    || '  limit 1',
-    s_prog, nm, s_prog, nm, s_prog, nm,
-    date_trunc('month', current_date + interval '1 month'),
-    date_trunc('month', current_date + interval '2 month') - interval '1 day', s_prog));
+    || ' select %L,%L,g.session_date,1 from (select distinct session_date from gone) g',
+    s_prog, nm, s_prog, nm, s_prog, nm));
 
-  -- 先に足す は弾かれる（B04 と同じ理由。順番に依存することの確認）
-  perform pg_temp.ng('B07', '上限のまま「先に足す」は弾かれる（順番の依存）', format(
-    'insert into public.preferences(student_id,year_month,session_date,slot_no)'
-    || ' select %L,%L,d::date,1 from generate_series(%L,%L,interval ''1 day'') d'
-    || '  where extract(dow from d)=0'
-    || '    and not exists (select 1 from public.preferences p where p.student_id=%L and p.session_date=d::date)'
-    || '  limit 1',
-    s_prog, nm, date_trunc('month', current_date + interval '1 month'),
-    date_trunc('month', current_date + interval '2 month') - interval '1 day', s_prog),
-    '上限を超えています');
+  delete from public.preferences where student_id = s_prog and year_month = nm;
+  select count(*) into cnt from public.preferences where student_id = s_prog and year_month = nm;
+  perform pg_temp.eq('B07', '受講希望: 0件にもできる（「今月は通えない」も内容）',
+    cnt::text, '0');
 
   ---------------------------------------------------------------- validate_work_preference
   perform pg_temp.ng('B08', '勤務希望: 年月と日付の月が違う', format(
