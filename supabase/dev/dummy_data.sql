@@ -374,8 +374,10 @@ begin
      コマの割り当てとまったく同じ規則で作る。こうすると来月は
      「希望どおりに仮確定してあるが、まだ確定していない」状態になり、
      確定画面で希望と仮確定が食い違って見えることがない。
-     受講回数の上限と「1日1コマ」はトリガーと一意制約が見ているので、
-     この規則を崩すとここで落ちる。 */
+     残っている検査は「対象年月と希望日の月が一致すること」と
+     「在籍事業でその曜日・コマが開催されていること」だけ。件数の上限と
+     「1日1コマ」は撤廃済み（migration 20260809100000）。希望は予約ではなく候補なので、
+     **回数ぶんちょうどしか作らないこの規則は、確定画面に選ぶ余地を残さない。** */
   with day_no as (
     select business_id, session_date,
            row_number() over (partition by business_id order by session_date) as day_rn,
@@ -426,14 +428,28 @@ begin
   /* ------------------------------------------------------------ 月謝（今月）
      3人に1人を未納にして、督促の表示を確かめられるようにする。
      1人ぶんは行そのものを作らない = 「請求前」の表示の確認用。
-     生徒名で分岐させない（生徒を入れ替えるたびに直すことになるため）。 */
-  insert into public.fees (id, student_id, year_month, amount, status, paid_date)
+     生徒名で分岐させない（生徒を入れ替えるたびに直すことになるため）。
+
+     **base_amount は発行時の額**（not null）。調整した行でもコースの月額のまま入れ、
+     動かすのは amount だけにする。両方に同じ値を入れると「調整あり」がどこにも
+     出なくなり、保護者の「金額を見直しました（増額／減額）」も管理者の
+     「発行時 ¥◯◯ から調整済み」も確かめられない（migration 20260809120000）。
+     増額・減額を数人ぶん作る。**メモは必ず添える** ―― 保護者にはメモがそのまま
+     出るので、空のままだと画面の確認にならない。 */
+  insert into public.fees (id, student_id, year_month, amount, base_amount, status, paid_date, note)
   select ('dddddddd-0000-0000-0000-' || lpad((800000 + t.rn)::text, 12, '0'))::uuid,
-         t.id, v_this_month, t.monthly_fee,
+         t.id, v_this_month,
+         t.monthly_fee + case when t.rn % 7  = 0 then  1000     -- 増額
+                              when t.rn % 11 = 0 then -1000     -- 減額
+                              else 0 end,
+         t.monthly_fee,
          case when t.rn % 3 = 0 then 'unpaid'::public.fee_status
               else 'paid'::public.fee_status end,
          case when t.rn % 3 = 0 then null
-              else date_trunc('month', current_date)::date + 9 end
+              else date_trunc('month', current_date)::date + 9 end,
+         case when t.rn % 7  = 0 then '教材費（追加分）を含めています。'
+              when t.rn % 11 = 0 then '先月の振替ぶんを差し引いています。'
+              else null end
     from (
       select s.id, c.monthly_fee, row_number() over (order by s.id) as rn
         from public.students s
@@ -547,6 +563,10 @@ union all select '受講希望（来月）', count(*) from public.preferences
          where year_month = to_char(current_date + interval '1 month', 'YYYY-MM')
 union all select '月謝（今月）', count(*) from public.fees
          where year_month = to_char(current_date, 'YYYY-MM')
+-- 0 だと保護者の「金額を見直しました」も管理者の「調整あり」も画面に出ない
+union all select '  うち金額を調整（1以上であること）', count(*) from public.fees
+         where year_month = to_char(current_date, 'YYYY-MM')
+           and amount <> base_amount
 union all select '欠席連絡', count(*) from public.absence_reports
 union all select '時間外勤務', count(*) from public.overtime_requests
 union all select '進級対象', count(*) from public.students_needing_course_change;
