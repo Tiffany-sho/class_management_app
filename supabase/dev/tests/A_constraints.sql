@@ -33,9 +33,18 @@ exception
     insert into pg_temp.t_result values (no, item, 'NG', '★弾かれた: ' || substr(sqlerrm, 1, 60));
 end $f$;
 
+create function pg_temp.eq(no text, item text, actual text, expected text) returns void
+language plpgsql as $f$
+begin
+  insert into pg_temp.t_result values (no, item,
+    case when actual is not distinct from expected then 'OK' else 'NG' end,
+    case when actual is not distinct from expected then coalesce(actual, '(null)')
+         else '★' || coalesce(actual, '(null)') || ' ≠ ' || coalesce(expected, '(null)') end);
+end $f$;
+
 do $$
 declare
-  b_prog uuid; b_illu uuid; s_id uuid; p_id uuid; e_id uuid; c_id uuid;
+  b_prog uuid; b_illu uuid; s_id uuid; p_id uuid; e_id uuid; c_id uuid; n bigint;
 begin
   select id into b_prog from public.businesses where name = 'プログラミング教室';
   select id into b_illu from public.businesses where name = 'イラスト教室';
@@ -174,15 +183,50 @@ begin
   /* 「同じ日は1コマまで」は**もう無い**（ドメインルール2）。希望は予約ではなく候補で、
      回数を決めるのは確定のほう。同じ日の別の時間も候補に出せる。
      残っているのは**同じコマの二重登録**を弾く一意制約だけ。 */
+  /* 隣のコマがまだ空いている行を選ぶ。**どの行が来るかに任せると**、
+     たまたま両コマ埋まっている生徒を引いて一意制約で落ち、
+     「同じ日に2コマは不可」に戻ったように見える（一度これで落ちた）。 */
+  select count(*) into n from public.preferences p
+   where not exists (select 1 from public.preferences q
+                      where q.student_id = p.student_id
+                        and q.session_date = p.session_date
+                        and q.slot_no = p.slot_no + 1);
+  perform pg_temp.eq('A20a', '★隣のコマが空いている希望がある（無いと A20 は何も検査しない）',
+    (n > 0)::text, 'true');
+
   perform pg_temp.ok('A20', '同じ生徒が同じ日の別コマにも希望を出せる',
     'insert into public.preferences(student_id,year_month,session_date,slot_no)'
-    || ' select student_id,year_month,session_date,slot_no+1 from public.preferences'
-    || '  where slot_no = 1 limit 1');
+    || ' select p.student_id,p.year_month,p.session_date,p.slot_no+1 from public.preferences p'
+    || '  where not exists (select 1 from public.preferences q'
+    || '                     where q.student_id=p.student_id and q.session_date=p.session_date'
+    || '                       and q.slot_no=p.slot_no+1) limit 1');
 
   perform pg_temp.ng('A20b', '同じコマへの二重登録は不可',
     'insert into public.preferences(student_id,year_month,session_date,slot_no)'
     || ' select student_id,year_month,session_date,slot_no from public.preferences limit 1',
     'preferences_no_duplicate');
+
+  ---------------------------------------------------------------- 提出（1回きり）
+  perform pg_temp.ng('A20c', '提出は生徒か講師のどちらか一方', format(
+    'insert into public.submissions(year_month,student_id,employee_id)'
+    || ' values (''2030-05'',%L,%L)', s_id, e_id),
+    'submissions_one_subject');
+
+  perform pg_temp.ng('A20d', '対象の無い提出は作れない',
+    'insert into public.submissions(year_month) values (''2030-05'')',
+    'submissions_one_subject');
+
+  perform pg_temp.ng('A20e', '同じ生徒・同じ月に2回は提出できない',
+    'insert into public.submissions(year_month,student_id)'
+    || ' select year_month,student_id from public.submissions'
+    || '  where student_id is not null limit 1',
+    'submissions_student_unique');
+
+  perform pg_temp.ng('A20f', '同じ講師・同じ月に2回は提出できない',
+    'insert into public.submissions(year_month,employee_id)'
+    || ' select year_month,employee_id from public.submissions'
+    || '  where employee_id is not null limit 1',
+    'submissions_employee_unique');
 
   perform pg_temp.ng('A21', '勤務希望は講師×事業×日×コマで一意',
     'insert into public.work_preferences(employee_id,business_id,year_month,session_date,slot_no)'

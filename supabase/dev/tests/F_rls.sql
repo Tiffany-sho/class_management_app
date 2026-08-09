@@ -194,6 +194,52 @@ begin
 
   update public.deadlines set deadline_at = now() + interval '10 days' where year_month = nm;
 
+  /* ---- 提出したら、締切前でも本人はもう直せない（migration 20260809130000） ----
+     **締切のときと同じで、画面ではなく RLS が止めるのが正**。
+     まず「締切前なら直せる」ことを確かめてから鍵をかける。そこを見ないと、
+     次の2つが「締切で弾かれただけ」でも通ってしまう。 */
+  -- **本番のデータがどちらの状態でも同じ結果になるように、まず提出前にする**
+  delete from public.submissions where student_id = s_mine and year_month = nm;
+  perform pg_temp.wr('F06c', '保護者: 提出前なら締切前は受講希望を消せる', p_id, format(
+    'delete from public.preferences where student_id=%L and year_month=%L', s_mine, nm), 'ok');
+
+  /* 検体を作り直す。**wr は必ず巻き戻す**ので上の delete は効いていない。
+     このあと入れる行が既存とぶつかると、RLS ではなく一意制約で落ちて
+     「拒まれた＝合格」と読み違える（prelude の注意書きと同じ罠）。 */
+  delete from public.preferences where student_id = s_mine and year_month = nm;
+  insert into public.preferences(student_id, year_month, session_date, slot_no)
+  values (s_mine, nm, d_sun, 1);
+  insert into public.submissions(year_month, student_id) values (nm, s_mine);
+
+  perform pg_temp.wr('F06d', '保護者: 提出後は受講希望を入れられない', p_id, format(
+    'insert into public.preferences(student_id,year_month,session_date,slot_no)'
+    || ' values (%L,%L,%L,2)', s_mine, nm, d_sun), 'ng');
+  perform pg_temp.wr('F06e', '保護者: 提出後は受講希望を消せない', p_id, format(
+    'delete from public.preferences where student_id=%L and year_month=%L', s_mine, nm), 'ng');
+  perform pg_temp.wr('F06f', '保護者: 二重には提出できない', p_id, format(
+    'insert into public.submissions(year_month,student_id) values (%L,%L)', nm, s_mine), 'ng');
+
+  -- 管理者は提出後も直せる（実運用で必ず例外が出る）
+  perform pg_temp.wr('F06g', '管理者: 提出後でも受講希望を直せる', a_id, format(
+    'delete from public.preferences where student_id=%L and year_month=%L', s_mine, nm), 'ok');
+  perform pg_temp.wr('F06h', '管理者: 提出を取り消せる（唯一の助け口）', a_id, format(
+    'delete from public.submissions where student_id=%L and year_month=%L', s_mine, nm), 'ok');
+  -- 自分の子のぶんでも取り消せない（取り消せると「出し直し」で鍵が意味を失う）
+  perform pg_temp.wr('F06i', '保護者: 自分の子でも提出は取り消せない', p_id, format(
+    'delete from public.submissions where student_id=%L and year_month=%L', s_mine, nm), 'ng');
+
+  -- 講師も同じ
+  delete from public.submissions where employee_id = e_id and year_month = nm;
+  insert into public.submissions(year_month, employee_id) values (nm, e_id);
+  perform pg_temp.wr('F06j', '講師: 提出後は勤務希望を入れられない', e_id, format(
+    'insert into public.work_preferences(employee_id,business_id,year_month,session_date,slot_no)'
+    || ' select %L,business_id,%L,%L,slot_no from public.business_slots'
+    || '  where weekday = extract(dow from %L::date)::smallint and active limit 1',
+    e_id, nm, d_sun, d_sun), 'ng');
+  perform pg_temp.wr('F06k', '講師: 提出後は勤務希望を消せない', e_id, format(
+    'delete from public.work_preferences where employee_id=%L and year_month=%L', e_id, nm), 'ng');
+  delete from public.submissions where employee_id = e_id and year_month = nm;
+
   perform pg_temp.eq('F08a', '保護者: 時給が見えない',
     pg_temp.cnt(p_id, 'select count(*) from public.wage_rates')::text, '0');
   perform pg_temp.eq('F08b', '保護者: 給与が見えない',

@@ -1021,6 +1021,59 @@ export type Database = {
           },
         ]
       }
+      submissions: {
+        Row: {
+          employee_id: string | null
+          id: string
+          student_id: string | null
+          submitted_at: string
+          year_month: string
+        }
+        Insert: {
+          employee_id?: string | null
+          id?: string
+          student_id?: string | null
+          submitted_at?: string
+          year_month: string
+        }
+        Update: {
+          employee_id?: string | null
+          id?: string
+          student_id?: string | null
+          submitted_at?: string
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_needing_course_change"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_with_grade"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           active: boolean
@@ -1295,6 +1348,10 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      employee_submitted: {
+        Args: { p_employee_id: string; p_year_month: string }
+        Returns: boolean
+      }
       generate_deadlines: { Args: { p_year_month?: string }; Returns: number }
       generate_fees: { Args: { p_year_month?: string }; Returns: number }
       is_admin: { Args: never; Returns: boolean }
@@ -1329,6 +1386,10 @@ export type Database = {
       student_grade: {
         Args: { at: string; p_enrollment_year: number }
         Returns: number
+      }
+      student_submitted: {
+        Args: { p_student_id: string; p_year_month: string }
+        Returns: boolean
       }
       teaches_student: { Args: { p_student_id: string }; Returns: boolean }
     }

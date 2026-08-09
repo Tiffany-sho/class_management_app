@@ -82,6 +82,8 @@ begin
   delete from public.schedules           where id::text          like 'dddddddd-%';
   delete from public.preferences         where student_id::text  like 'dddddddd-%';
   delete from public.work_preferences    where employee_id::text like 'dddddddd-%';
+  delete from public.submissions         where student_id::text  like 'dddddddd-%'
+                                            or employee_id::text like 'dddddddd-%';
   delete from public.fees                where student_id::text  like 'dddddddd-%';
   delete from public.overtime_requests   where employee_id::text like 'dddddddd-%';
   delete from public.announcements       where id::text          like 'dddddddd-%';
@@ -425,6 +427,30 @@ begin
    where (e.pos + extract(day from d)::int) % 4 <> 0   -- 4日に1日は希望を出さない
   on conflict do nothing;
 
+  /* ------------------------------------------------------------ 提出済みの記録
+     **提出したかどうかは希望の件数では判定できない**（0件で提出できるため）ので、
+     提出した事実を submissions の行で持つ（migration 20260809130000）。
+     行があるとその月はもう本人が直せない。
+
+     **全員ぶんは作らない。** 全部提出済みにすると、提出の画面そのものが
+     どのアカウントでも出せなくなり、確かめられなくなる。3人に1人・4人に1人を
+     「まだ出していない」ままにして、両方の状態を残す。 */
+  insert into public.submissions (year_month, student_id)
+  select v_next_month, t.id from (
+    select s.id, row_number() over (order by s.id) as rn
+      from public.students s
+     where s.active and s.id::text like 'dddddddd-%') t
+   where t.rn % 3 <> 0
+  on conflict do nothing;
+
+  insert into public.submissions (year_month, employee_id)
+  select v_next_month, t.id from (
+    select u.id, row_number() over (order by u.id) as rn
+      from public.users u
+     where u.role = 'employee' and u.active and u.id::text like 'dddddddd-%') t
+   where t.rn % 4 <> 0
+  on conflict do nothing;
+
   /* ------------------------------------------------------------ 月謝（今月）
      3人に1人を未納にして、督促の表示を確かめられるようにする。
      1人ぶんは行そのものを作らない = 「請求前」の表示の確認用。
@@ -561,6 +587,13 @@ union all select '  うち未確定（全部であること）', count(*) from p
            and status = 'draft'
 union all select '受講希望（来月）', count(*) from public.preferences
          where year_month = to_char(current_date + interval '1 month', 'YYYY-MM')
+-- 提出済みだけ／未提出だけ になると、希望提出の画面が片方の顔しか出せなくなる
+union all select '  提出済みの生徒（全員でないこと）', count(*) from public.submissions
+         where year_month = to_char(current_date + interval '1 month', 'YYYY-MM')
+           and student_id is not null
+union all select '  提出済みの講師（全員でないこと）', count(*) from public.submissions
+         where year_month = to_char(current_date + interval '1 month', 'YYYY-MM')
+           and employee_id is not null
 union all select '月謝（今月）', count(*) from public.fees
          where year_month = to_char(current_date, 'YYYY-MM')
 -- 0 だと保護者の「金額を見直しました」も管理者の「調整あり」も画面に出ない

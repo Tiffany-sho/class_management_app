@@ -231,6 +231,64 @@ export async function removeWorkPreference(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/* ------------------------------------------------------------- 提出したかどうか */
+
+export interface Submitted {
+  /** 提出済みの生徒 id */
+  students: Set<string>;
+  /** 提出済みの講師 id */
+  employees: Set<string>;
+}
+
+/**
+ * その月に希望を提出した人。
+ *
+ * **希望の件数では判定できない。** 0件で提出できる（「今月は通えない」も伝える
+ * 内容 ―― ドメインルール2）ので、0件のとき「まだ出していない」と区別が付かない。
+ * 提出した事実は `submissions` の行で持つ（→ migration 20260809130000）。
+ */
+export async function fetchSubmitted(yearMonth: string): Promise<Submitted> {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('student_id, employee_id')
+    .eq('year_month', yearMonth);
+  if (error) throw error;
+  return {
+    students: new Set((data ?? []).map((s) => s.student_id).filter((x): x is string => Boolean(x))),
+    employees: new Set((data ?? []).map((s) => s.employee_id).filter((x): x is string => Boolean(x))),
+  };
+}
+
+/**
+ * 提出を確定する。**これを書いた時点でその月はもう直せない**（RLS が弾く）。
+ *
+ * 希望の行を書き終えてから最後に呼ぶこと。先に呼ぶと、続く希望の書き込みが
+ * 自分で立てた鍵に弾かれる。
+ */
+export async function markSubmitted(
+  yearMonth: string, subject: { studentIds?: string[]; employeeId?: string },
+): Promise<void> {
+  const rows = [
+    ...(subject.studentIds ?? []).map((id) => ({ year_month: yearMonth, student_id: id })),
+    ...(subject.employeeId ? [{ year_month: yearMonth, employee_id: subject.employeeId }] : []),
+  ];
+  if (rows.length === 0) return;
+  const { error } = await supabase.from('submissions').insert(rows);
+  if (error) throw error;
+}
+
+/** 管理者だけ。取り消すとその月はまた提出できる（間違えて出した人を助ける唯一の口） */
+export async function unlockSubmission(
+  yearMonth: string, subject: { studentId?: string; employeeId?: string },
+): Promise<void> {
+  let q = supabase.from('submissions').delete().eq('year_month', yearMonth);
+  q = subject.studentId
+    ? q.eq('student_id', subject.studentId)
+    : q.eq('employee_id', subject.employeeId ?? '');
+  const { error } = await q;
+  if (error) throw error;
+}
+
 /** 出席の記録。授業記録（note）と同じ行なので、片方だけ直すことにならない */
 export async function setAttendance(
   scheduleId: string, studentId: string, status: 'present' | 'absent' | 'late' | null,

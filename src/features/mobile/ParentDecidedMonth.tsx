@@ -2,7 +2,7 @@ import { Note } from '@/components/ui';
 import { formatMonthJa } from '@/lib/date';
 import { MonthHeader } from './MonthHeader';
 import { KidSwitch } from './KidSwitch';
-import { DecidedDays, type DecidedDay } from './DecidedDays';
+import { DayPickList, type DayPick } from './DayPickList';
 import type { Business, ScheduleSlot, Student } from '@/types/domain';
 
 interface Props {
@@ -27,7 +27,7 @@ export function ParentDecidedMonth({
   month, onMonth, students, businesses, kid, onKid, schedule,
 }: Props) {
   const bizMap = new Map(businesses.map((b) => [b.id, b]));
-  const days: DecidedDay[] = schedule
+  const days: DayPick[] = schedule
     .filter((s) => s.students.some((st) => st.studentId === kid.id))
     .map((s) => ({
       key: s.id,
@@ -48,7 +48,7 @@ export function ParentDecidedMonth({
         onSelect={onKid}
       />
 
-      <DecidedDays
+      <DayPickList
         days={days}
         label={`${formatMonthJa(month)} 決まった日`}
         emptyTitle={`${kid.name}さんの受講日は、この月にはありません。`}

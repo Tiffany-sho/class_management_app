@@ -2,41 +2,41 @@ import { Card, Empty, Icon, SectionLabel } from '@/components/ui';
 import { formatDayJa, formatTimeRange, isPast } from '@/lib/date';
 import type { BusinessColorKey } from '@/types/domain';
 
-export interface DecidedDay {
+export interface DayPick {
   key: string;
   /** YYYY-MM-DD */
   date: string;
   startTime: string;
   endTime: string;
   colorKey: BusinessColorKey;
-  /** 時刻のうしろに足す補足。講師は「生徒3名」、保護者は無し */
+  /** 時刻のうしろに足す補足。講師の担当なら「生徒3名」、希望なら無し */
   meta?: string;
 }
 
 interface Props {
-  days: DecidedDay[];
-  /** 「決まった日 3件」の見出し。ロールで呼び方が違うので渡す */
+  days: DayPick[];
+  /** 「決まった日 3件」「提出した希望 4件」の見出し。呼び方が違うので渡す */
   label: string;
   emptyTitle: string;
   emptyHint?: string;
 }
 
 /**
- * 確定した月に、**決まった日だけ**を並べる。
+ * 日付のカードを並べる。**もう触れない日**を見せるところで使う。
+ *   確定した月 → 決まった日（→ ParentDecidedMonth / EmployeeDecidedMonth）
+ *   提出済みの月 → 提出した希望（→ ParentSubmitted / EmployeeSubmitted）
  *
- * 希望提出の画面は、確定した月でも候補日を全部並べたままだった。出した希望に
- * チェックが付いたきり全部が押せない状態で、**いちばん知りたい「結局どの日に
- * 決まったのか」がどこにも書いていない**。候補6件のうち2件が決まった月でも、
- * 画面には6件にチェックが付いて見える。
+ * どちらも元は候補日を全部並べたままにしていた。チェックが付いたきり全部が
+ * 押せない状態で、**いちばん知りたい「結局どうなったのか」がどこにも書いて
+ * いない**。候補8件のうち4件を出した月でも、画面には8件が並んで見える。
  *
- * 確定した月は候補を出す意味がもう無いので、決まった日のカードだけに差し替える。
  * 締め切りの帯も提出ボタンも出さない ―― 押せないものを並べておくと、
  * 「まだ変えられるのでは」と探させることになる。
  *
  * **終わった回も残す。** 「今月は何回来たか」を確かめるのはたいてい月末で、
  * そのとき消えていると数えられない。済んだことは面の色を落として示す。
  */
-export function DecidedDays({ days, label, emptyTitle, emptyHint }: Props) {
+export function DayPickList({ days, label, emptyTitle, emptyHint }: Props) {
   const sorted = [...days].sort((a, b) =>
     a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
 

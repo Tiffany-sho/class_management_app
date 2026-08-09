@@ -2,7 +2,7 @@ import { Note } from '@/components/ui';
 import { formatMonthJa } from '@/lib/date';
 import { multiBusiness } from '@/lib/format';
 import { MonthHeader } from './MonthHeader';
-import { DecidedDays, type DecidedDay } from './DecidedDays';
+import { DayPickList, type DayPick } from './DayPickList';
 import type { Business, ScheduleSlot } from '@/types/domain';
 
 interface Props {
@@ -28,7 +28,7 @@ export function EmployeeDecidedMonth({
   /* 掛け持ちの人にだけ教室を足す。1教室しか持たない人には同じ名前が全行に並ぶだけ */
   const showBiz = multiBusiness(mine.map((s) => s.businessId));
 
-  const days: DecidedDay[] = mine.map((s) => {
+  const days: DayPick[] = mine.map((s) => {
     const name = bizMap.get(s.businessId)?.name?.replace('教室', '') ?? '—';
     return {
       key: s.id,
@@ -44,7 +44,7 @@ export function EmployeeDecidedMonth({
     <div>
       <MonthHeader month={month} onChange={onMonth} />
 
-      <DecidedDays
+      <DayPickList
         days={days}
         label={`${formatMonthJa(month)} 決まった日`}
         emptyTitle="この月の担当はありません。"

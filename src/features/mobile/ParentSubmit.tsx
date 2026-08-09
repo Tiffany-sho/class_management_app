@@ -4,7 +4,7 @@ import { useAsync } from '@/hooks/useAsync';
 import { toMessage } from '@/lib/supabase';
 import {
   addPreference, fetchBusinessSlots, fetchBusinesses, fetchDeadline, fetchPreferences,
-  fetchScheduleMonth, fetchStudents, removePreference,
+  fetchScheduleMonth, fetchStudents, fetchSubmitted, markSubmitted, removePreference,
 } from '@/lib/queries';
 import {
   currentMonthKey, formatDayJa, formatMonthJa, formatTimeRange, shiftMonth,
@@ -14,6 +14,8 @@ import { KidSwitch } from './KidSwitch';
 import { SubmitCounter } from './SubmitCounter';
 import { PickRow } from './PickRow';
 import { ParentDecidedMonth } from './ParentDecidedMonth';
+import { ParentSubmitted } from './ParentSubmitted';
+import { SubmitConfirmSheet } from './SubmitConfirmSheet';
 import { buildOpenings, openingKey } from './openings';
 import type { Student } from '@/types/domain';
 
@@ -34,8 +36,11 @@ import type { Student } from '@/types/domain';
  * まだ無ければ RLS が書き込みを弾く。画面でも日付を判定すると判定が二重になり、
  * 必ずどちらかがずれる。ここでは「押せるか」ではなく「なぜ押せなかったか」を出す。
  *
- * **確定した月は候補を出さない**（→ DecidedDays）。決まったあとに候補が並んでいると、
- * 出した希望のチェックだけが見えて「結局どの日になったのか」が読み取れない。
+ * **確定した月は候補を出さない**（→ ParentDecidedMonth）。決まったあとに候補が
+ * 並んでいると、出した希望のチェックだけが見えて「結局どの日になったのか」が読み取れない。
+ *
+ * **提出した月も候補を出さない**（→ ParentSubmitted）。提出は1回きりで、
+ * あとから直せない（RLS が弾く）。押せるものを残すと「まだ変えられる」と読める。
  */
 export function ParentSubmit() {
   const { toast } = useToast();
@@ -44,15 +49,16 @@ export function ParentSubmit() {
   /** 触った生徒だけ入る。入っていない生徒は「サーバーのまま」 */
   const [draft, setDraft] = useState<Record<string, string[]>>({});
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const state = useAsync(async () => {
     /* 確定済みのコマも一緒に読む。**保護者には確定したものしか返ってこない**
        ので（RLS）、1件でもあればその月はもう確定している */
-    const [businesses, slots, deadline, students, prefs, schedule] = await Promise.all([
+    const [businesses, slots, deadline, students, prefs, schedule, submitted] = await Promise.all([
       fetchBusinesses(), fetchBusinessSlots(), fetchDeadline(month, 'parent'),
-      fetchStudents(), fetchPreferences(month), fetchScheduleMonth(month),
+      fetchStudents(), fetchPreferences(month), fetchScheduleMonth(month), fetchSubmitted(month),
     ]);
-    return { businesses, slots, deadline, students, prefs, schedule };
+    return { businesses, slots, deadline, students, prefs, schedule, submitted };
   }, [month]);
 
   // 月を変えたら選択はやり直し。前の月の選択を持ち越すと別の月に書き込む
@@ -96,6 +102,23 @@ export function ParentSubmit() {
     );
   }
 
+  /* 提出済みの月は、出したものだけを出す。**提出は生徒ごと**なので、
+     きょうだいのうち片方だけ提出済み、という状態も普通に起きる。 */
+  if (d.submitted.students.has(kid.id)) {
+    return (
+      <ParentSubmitted
+        month={month}
+        onMonth={setMonth}
+        students={d.students}
+        businesses={d.businesses}
+        kid={kid}
+        onKid={setKidId}
+        openings={openings}
+        picks={d.prefs.filter((p) => p.studentId === kid.id)}
+      />
+    );
+  }
+
   const closed = !d.deadline || !d.deadline.active
     || new Date(d.deadline.deadlineAt).getTime() < Date.now();
 
@@ -115,8 +138,11 @@ export function ParentSubmit() {
     });
   };
 
+  /** まだ提出していない生徒。提出済みの子は巻き込まない */
+  const pending = d.students.filter((s) => !d.submitted.students.has(s.id));
+
   /** 変更のある生徒だけ。触っただけで内容が同じなら送らない */
-  const changes = d.students.map((s) => {
+  const changes = pending.map((s) => {
     const server = serverOf(s);
     const cur = new Set(pickedOf(s));
     const serverKeys = new Set(server.map((p) => p.key));
@@ -128,10 +154,6 @@ export function ParentSubmit() {
   }).filter((c) => c.remove.length > 0 || c.add.length > 0);
 
   const submit = async () => {
-    if (changes.length === 0) {
-      toast('すでにこの内容で提出済みです。');
-      return;
-    }
     setBusy(true);
     try {
       /* **消してから足す。** 同じコマの二重登録は一意制約が見ているので、
@@ -145,13 +167,18 @@ export function ParentSubmit() {
           await addPreference(c.student.id, month, date!, Number(slotNo));
         }
       }
+      /* **最後に鍵をかける。** 先に書くと、続く希望の書き込みを自分で弾く。
+         0件の子にも行を作る ―― 行が無いと「まだ出していない」と区別が付かない */
+      await markSubmitted(month, { studentIds: pending.map((s) => s.id) });
       toast(`${formatMonthJa(month)}の受講希望を提出しました`);
       setDraft({});
+      setConfirming(false);
       state.reload();
     } catch (e) {
       // 途中で失敗すると一部だけ反映されている。読み直して実際の状態を出す
       toast(toMessage(e));
       setDraft({});
+      setConfirming(false);
       state.reload();
     } finally {
       setBusy(false);
@@ -207,19 +234,17 @@ export function ParentSubmit() {
       )}
 
       {/* **選んだ数では止めない。** 0件でも出せる（「今月は通えない」も伝える内容）。
-          止めるのは締め切りだけ */}
+          止めるのは締め切りだけ。
+          **押しても即座には出さない。** 提出は取り消せないので確認をはさむ
+          （→ SubmitConfirmSheet） */}
       <Button
         variant="primary"
         block
         className="mt-sm"
         disabled={closed || busy}
-        onClick={() => void submit()}
+        onClick={() => setConfirming(true)}
       >
-        {picked.length === 0
-          ? '希望なしで提出する'
-          : changes.length > 1
-            ? `この内容で提出する（${changes.length}名ぶん）`
-            : 'この内容で提出する'}
+        {picked.length === 0 ? '希望なしで提出する' : 'この内容で提出する'}
       </Button>
 
       <Note>
@@ -228,10 +253,22 @@ export function ParentSubmit() {
         このうち<strong className="text-ink">月{kid.sessionsPerMonth}コマ</strong>を教室が決めます
         （{kid.name}さんのコースの回数です）。
         <strong className="text-ink">多めに出していただくほど組みやすくなります。</strong>
-        {d.students.length > 1
+        {pending.length > 1
           ? 'お子さまを切り替えて選んだぶんも、まとめて提出されます。'
           : null}
+        <br />
+        <strong className="text-ink">提出は1回きりです。</strong>
+        出したあとは締め切り前でも変更できません。
       </Note>
+
+      <SubmitConfirmSheet
+        open={confirming}
+        month={formatMonthJa(month)}
+        lines={pending.map((s) => ({ id: s.id, name: s.name, count: pickedOf(s).length }))}
+        busy={busy}
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => void submit()}
+      />
     </div>
   );
 }
