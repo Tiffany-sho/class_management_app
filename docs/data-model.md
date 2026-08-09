@@ -39,7 +39,7 @@
 
 | テーブル | 主なカラム |
 |---------|-----------|
-| `fees` | id, student_id, year_month, amount, status, paid_date, note ／ `amount` は生成時にコースの月額が入るが **管理者が上書きできる**。手入力した理由は `note` に残す |
+| `fees` | id, student_id, year_month, amount, **base_amount**, status, paid_date, note ／ `amount` は生成時にコースの月額が入るが **管理者が上書きできる**。手入力した理由は `note` に残す。`base_amount` は**発行時の額で、以後動かさない** ―― `amount` と違えば「調整された月」 |
 | `announcements` | id, title, body, author_id, target_role, business_id (null=全体), created_at, **scheduled_at, sent_at** ／ 予約投稿用。`sent_at` が null かつ `scheduled_at` が未来 = 予約中で、対象者にはまだ見せない。送信は `pg_cron` で定期的に拾う |
 | `deadline_rules` | id, type (parent/employee), day_of_month, time_of_day, active ／ **2行だけ**。「対象月の前月◯日◯時」の繰り返しルール。ここから `deadlines` を毎月生成する |
 | `deadlines` | id, year_month, type (parent/employee), deadline_at, **active** ／ **事業共通**なので business_id は持たない。`deadline_rules` から**対象月の前月1日に自動生成**される。`active=false` = その月は受け付けない |
@@ -70,6 +70,7 @@
 - **`deadline_rules` と `deadlines` を分ける（ルールから行を生成する）** — 判定側（`is_submission_open()` と RLS）は「その月の行があるか」だけを見れば済むまま変えずにおきたい。ルールを直接評価する作りにすると、特定月だけの変更や停止をルール側で表現する羽目になり、条件が複雑になる。**ルールは行を作るためだけに使い、判定は今までどおり行を見る。** 例外はできた行を直接いじって対応する。
 - **`payrolls` は確定額をコピーして持つ（`fees.amount` と同じ考え方）** — 時給を改定したときに、過去に支給済みの金額まで再計算で書き変わってしまうのを防ぐ。締め前は計算、締めた後はコピーした値が正。
 - **`fees.amount` はコースを参照せずコピーして持ち、上書きも許す** — 月謝は固定月額だが、月の途中のコース変更など例外は必ず起きる。加えて、常に `courses.monthly_fee` を join して表示する作りにすると、**料金改定したときに過去の請求額まで書き変わってしまう**。生成時にコピーし、以後は独立した値として扱う。
+- **「調整されたか」を判定するために `fees.base_amount` を別に持つ** — 上書きを許した結果、`amount` の値だけからは**上書きされたのかどうかが分からない**。保護者の画面は金額を出さない方針なので、判定できないと調整した月に保護者が何も気づけない（[`domain.md`](domain.md) 機能7・10）。`courses.monthly_fee` と突き合わせるのは誤り ―― 料金を改定した瞬間、一度も触っていない過去の全月が「調整された」ことになる。**発行時の額を別の列に取っておき、以後動かさない。** 既存行は「調整の有無が分からない」ので `amount` をそのまま入れて調整なし扱いにした（証明できないことを画面に書かない）。
 - **配列カラムを使わない** — 外部キー制約が効かず、RLS も書けなくなるため。
 - **日付カラムは `session_date`**（`date` にしない） — `date` は型名と同じで、関数やビューの中で読みづらくなるため。
 - **事業をまたぐ割り当ては複合外部キーで禁止** — 日曜は2事業が並行開催されるため、イラストのコマにプログラミングの生徒を入れる事故が起こりうる。`(id, business_id)` を参照する複合外部キーで DB レベルで防ぐ。従業員も同様に、担当できない事業には割り当てられない。
@@ -127,6 +128,10 @@
 | `20260807090000_schedule_employees_user_fk.sql` | `schedule_employees.employee_id` → `users` の外部キー（埋め込みに必要） |
 | `20260808090000_fees_and_notifications.sql` | 月謝の発行と、通知のトリガー4本 |
 | `20260808100000_fix_announcement_notify_cast.sql` | お知らせ通知の型不一致（`user_role` = `text`）の修正 |
+| `20260809090000_fix_deadline_tz_and_payroll_lock.sql` | 締め切り判定のタイムゾーンと、締めた給与の書き換え防止 |
+| `20260809100000_preferences_no_limit.sql` | 受講希望の件数上限と「1日1コマ」を撤廃（ドメインルール2） |
+| `20260809110000_fix_notification_date_format.sql` | 通知の日付が「8月F02日」になるのを修正（`FM` は2文字の接頭辞） |
+| `20260809120000_fees_base_amount.sql` | `fees.base_amount`（発行時の額）を追加し、`generate_fees` が入れるようにした |
 
 適用は `npx supabase db push`。`.env` に `SUPABASE_DB_PASSWORD` があれば対話なしで通る。
 
