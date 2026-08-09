@@ -1,18 +1,15 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/AdminLayout';
-import { Button, Loading, ErrorNote, MonthNav, Note, useToast } from '@/components/ui';
+import { Loading, ErrorNote, MonthNav, Note } from '@/components/ui';
 import { useAsync } from '@/hooks/useAsync';
-import { toMessage } from '@/lib/supabase';
 import {
   fetchBusinesses, fetchFees, fetchMonthlyPay, fetchStudents, fetchWorkSlotSummary,
-  generateFees,
 } from '@/lib/queries';
-import { currentMonthKey, formatMonthJa } from '@/lib/date';
+import { currentMonthKey } from '@/lib/date';
 import { yen } from '@/lib/format';
 import { StatCards } from './StatCards';
 import { BusinessBreakdown } from './BusinessBreakdown';
-import { FeeTable } from './FeeTable';
-import { FeePaymentSheet, type FeeTarget } from './FeePaymentSheet';
 
 /**
  * 収入・収益。
@@ -20,14 +17,12 @@ import { FeePaymentSheet, type FeeTarget } from './FeePaymentSheet';
  * 収入は月謝（固定月額）の合計、支出は**確定したコマから計算した人件費**。
  * どちらも他の画面と同じデータを見ているので数字が食い違わない。
  *
- * 2つの表は**必ず縦に並べる**。横に並べると片方が狭くなり、
- * 金額の桁が折り返して比べられなくなる。
+ * **1件ずつの入金記録はここに置かない**（→ features/fees）。ここは「今月いくら
+ * 残ったか」を見る画面で、月に一度あれば足りる。督促のたびに収支の数字を
+ * かき分けて表まで下りることになっていた。
  */
 export function RevenuePage() {
-  const { toast } = useToast();
   const [month, setMonth] = useState(currentMonthKey());
-  const [busy, setBusy] = useState(false);
-  const [fee, setFee] = useState<FeeTarget | null>(null);
 
   const state = useAsync(async () => {
     const [businesses, students, fees, workByBiz, pays] = await Promise.all([
@@ -42,21 +37,6 @@ export function RevenuePage() {
   const d = state.data;
   if (!d) return null;
 
-  const issue = async () => {
-    setBusy(true);
-    try {
-      const n = await generateFees(month);
-      toast(n === 0
-        ? 'すでに全員ぶん発行済みです。'
-        : `${formatMonthJa(month)}の月謝を ${n}件 発行しました`);
-      state.reload();
-    } catch (e) {
-      toast(toMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const income = [...d.fees.values()].reduce((a, f) => a + f.amount, 0);
   const collected = [...d.fees.values()].reduce((a, f) => a + (f.status === 'paid' ? f.amount : 0), 0);
   const labor = d.pays.reduce((a, p) => a + p.total, 0);
@@ -70,19 +50,8 @@ export function RevenuePage() {
     <div>
       <PageHeader
         title="収入・収益"
-        actions={
-          <div className="flex items-center gap-sm">
-            <MonthNav value={month} onChange={setMonth} />
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={busy || unbilled === 0}
-              onClick={() => void issue()}
-            >
-              {unbilled === 0 ? '全員ぶん発行済み' : `月謝を発行（${unbilled}名）`}
-            </Button>
-          </div>
-        }
+        description="月謝の請求額と人件費の差引。"
+        actions={<MonthNav value={month} onChange={setMonth} />}
       />
 
       <StatCards stats={[
@@ -102,31 +71,20 @@ export function RevenuePage() {
         costByBusiness={d.workByBiz}
       />
 
-      <FeeTable
-        businesses={d.businesses}
-        students={d.students}
-        fees={d.fees}
-        onPick={({ student, fee: f }) => setFee({
-          studentId: student.id,
-          studentName: student.name,
-          parentName: student.parentName ?? null,
-          yearMonth: month,
-          amount: f.amount,
-          baseAmount: f.baseAmount,
-          status: f.status,
-          paidDate: f.paidDate,
-          note: f.note,
-        })}
-      />
-
-      <Note>
-        月謝は<strong className="text-ink">固定月額</strong>で、欠席が多くても日割りにはなりません。
-        請求額は発行時にコピーして保存しているので、あとから料金を改定しても過去の月は変わりません。
-        <strong className="text-ink">入金を受け取ったら、上の表の行を押して記録してください。</strong>
-        記録すると保護者のマイページにもすぐ反映されます。
+      {/* **未請求が残っていると収入が小さく出る。** 数字を見て「減った」と読む前に、
+          発行し忘れかどうかが分かるようにしておく */}
+      <Note icon={unbilled ? 'warning' : 'info'}>
+        {unbilled ? (
+          <>
+            <strong className="text-ink">この月はまだ {unbilled}名ぶんの月謝を発行していません。</strong>
+            そのぶん収入が小さく出ています。
+            <Link to="/fees" className="text-primary underline">月謝</Link>から発行してください。<br />
+          </>
+        ) : null}
+        入金の記録・金額の調整は<Link to="/fees" className="text-primary underline">月謝</Link>で行います。
+        人件費は<strong className="text-ink">確定したコマから計算した見込み</strong>で、
+        締めると<code>payrolls</code>に記録した金額が正になります。
       </Note>
-
-      <FeePaymentSheet target={fee} onClose={() => setFee(null)} onSaved={state.reload} />
     </div>
   );
 }

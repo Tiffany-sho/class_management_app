@@ -43,6 +43,9 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     group: '経営',
     items: [
+      /* 月謝は収入・収益から分けてある。あちらは「今月いくら残ったか」を月に一度
+         見る画面で、こちらは毎月の入金を1件ずつ記録していく作業。開く回数が違う。 */
+      { to: '/fees', label: '月謝', icon: 'yen' },
       { to: '/revenue', label: '収入・収益', icon: 'trending-up' },
       { to: '/payroll', label: '給与計算・締め処理', icon: 'calculator' },
     ],

@@ -16,6 +16,7 @@ import { StaffPage } from './features/staff/StaffPage';
 import { OvertimePage } from './features/requests/OvertimePage';
 import { PromotionPage } from './features/requests/PromotionPage';
 import { InboxPage } from './features/inbox/InboxPage';
+import { FeesPage } from './features/fees/FeesPage';
 import { RevenuePage } from './features/revenue/RevenuePage';
 import { PayrollPage } from './features/payroll/PayrollPage';
 import { AnnouncementsPage } from './features/announcements/AnnouncementsPage';
@@ -80,6 +81,7 @@ export function App() {
           <Route path="staff" element={<StaffPage />} />
           <Route path="overtime" element={<OvertimePage />} />
           <Route path="promotion" element={<PromotionPage />} />
+          <Route path="fees" element={<FeesPage />} />
           <Route path="revenue" element={<RevenuePage />} />
           <Route path="payroll" element={<PayrollPage />} />
           <Route path="inbox" element={<InboxPage />} />
