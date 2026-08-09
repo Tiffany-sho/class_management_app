@@ -99,14 +99,51 @@ for (const size of SIZES) {
   const tooSmall = tiers.filter((n) => fonts[n] < 11);
   ck(tooSmall.length === 0, `11px 未満の文字が無い（${tooSmall.join(',') || 'なし'}）`);
 
-  /* ボトムタブを1つずつ回る。ホームだけ見て「問題なし」にすると、
-     いちばん詰まりやすいカレンダーと表を一度も測らないまま終わる。 */
-  const tabs = await page.$$eval('nav[aria-label="メインメニュー"] a',
-    (as) => as.map((a) => a.textContent.trim()));
-  for (const tab of (tabs.length ? tabs : ['(タブ無し)'])) {
+  /* 画面を1つずつ回る。ホームだけ見て「問題なし」にすると、いちばん詰まりやすい
+     カレンダーと表を一度も測らないまま終わる。
+     保護者・講師はボトムタブ、管理者はサイドバー（狭い画面では引き出しの中）。 */
+  const NAV = (await page.locator('nav[aria-label="メインメニュー"] a').count())
+    ? 'nav[aria-label="メインメニュー"] a'
+    : 'aside nav a';
+  /* 狭い画面ではサイドバーが引き出しに入っている。`-translate-x-full` で画面外へ
+     ずらしてあるだけなので **isVisible() は true を返す**。開いているかどうかは
+     **左端が画面内にあるか**で見る。
+     開け閉めは DOM から直接押す ―― 引き出しが開くと今度は開くボタンがその下に
+     隠れて、座標で押すと「別の要素が横取りする」で止まる。 */
+  const isOpen = () => page.evaluate(() => {
+    const a = document.querySelector('aside');
+    return a ? a.getBoundingClientRect().left >= 0 : false;
+  });
+  const narrow = () => page.evaluate(() =>
+    Boolean(document.querySelector('button[aria-label="メニューを開く"]')?.offsetParent));
+  const drawer = async () => {
+    if (NAV !== 'aside nav a' || !(await narrow()) || await isOpen()) return;
+    await page.evaluate(() =>
+      document.querySelector('button[aria-label="メニューを開く"]')?.click());
+    await page.waitForTimeout(500);
+  };
+  const closeDrawer = async () => {
+    if (NAV !== 'aside nav a' || !(await narrow()) || !(await isOpen())) return;
+    await page.evaluate(() =>
+      document.querySelector('aside')?.parentElement
+        ?.querySelector('[aria-hidden].fixed.inset-0')?.click());
+    await page.waitForTimeout(400);
+  };
+  await drawer();
+  const tabs = await page.$$eval(NAV, (as) => as.map((a) => a.textContent.trim()));
+  for (const [i, tab] of (tabs.length ? tabs : ['(1画面のみ)']).entries()) {
     if (tabs.length) {
-      await page.click(`nav[aria-label="メインメニュー"] a:has-text("${tab}")`);
+      await drawer();
+      /* **DOM 経由で押す。** 引き出しの中のリンクは、上のヘッダーに重なる位置まで
+         スクロールされると「別の要素がクリックを横取りする」で押せない。
+         ここで見たいのは押せるかどうかではなく、開いたあとの寸法。 */
+      await page.evaluate(
+        ([sel, n]) => document.querySelectorAll(sel)[n]?.click(),
+        [NAV, i],
+      );
       await page.waitForTimeout(2600);
+      // 引き出しは開いたままだと本文に重なる。閉じてから測る
+      await closeDrawer();
     }
     console.log(`--- ${tab}`);
 

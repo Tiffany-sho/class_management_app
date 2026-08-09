@@ -23,14 +23,15 @@ export function BusinessBreakdown({ businesses, students, fees, costByBusiness }
     <section className="mb-lg">
       <SectionLabel>事業別の内訳</SectionLabel>
       <Panel className="overflow-x-auto p-0">
-        <table className="w-full border-collapse">
+        {/* DataTable と同じ扱い。枠に合わせて縮めると、セルの中で語が折れる */}
+              <table className="w-max min-w-full border-collapse">
           <thead>
             <tr className="border-b border-hairline text-ui-sm text-muted">
-              <th className="px-md py-sm text-left font-medium">事業</th>
-              <th className="px-md py-sm text-right font-medium">生徒</th>
-              <th className="px-md py-sm text-right font-medium">月謝収入</th>
-              <th className="px-md py-sm text-right font-medium">コマ人件費</th>
-              <th className="px-md py-sm text-right font-medium">差引</th>
+              <th className="whitespace-nowrap px-md py-sm text-left font-medium">事業</th>
+              <th className="whitespace-nowrap px-md py-sm text-right font-medium">生徒</th>
+              <th className="whitespace-nowrap px-md py-sm text-right font-medium">月謝収入</th>
+              <th className="whitespace-nowrap px-md py-sm text-right font-medium">コマ人件費</th>
+              <th className="whitespace-nowrap px-md py-sm text-right font-medium">差引</th>
             </tr>
           </thead>
           <tbody>
@@ -40,7 +41,7 @@ export function BusinessBreakdown({ businesses, students, fees, costByBusiness }
               const cost = costByBusiness.get(b.id)?.amount ?? 0;
               return (
                 <tr key={b.id} className="border-b border-hairline last:border-0">
-                  <td className="px-md py-sm">
+                  <td className="whitespace-nowrap px-md py-sm">
                     <span className="inline-flex items-center gap-[6px]">
                       <span
                         aria-hidden
@@ -49,10 +50,10 @@ export function BusinessBreakdown({ businesses, students, fees, costByBusiness }
                       {b.name}
                     </span>
                   </td>
-                  <td className="px-md py-sm text-right tnum">{heads.length}名</td>
-                  <td className="px-md py-sm text-right tnum">{yen(inc)}</td>
-                  <td className="px-md py-sm text-right tnum">{yen(cost)}</td>
-                  <td className="px-md py-sm text-right tnum text-ink">{yen(inc - cost)}</td>
+                  <td className="whitespace-nowrap px-md py-sm text-right tnum">{heads.length}名</td>
+                  <td className="whitespace-nowrap px-md py-sm text-right tnum">{yen(inc)}</td>
+                  <td className="whitespace-nowrap px-md py-sm text-right tnum">{yen(cost)}</td>
+                  <td className="whitespace-nowrap px-md py-sm text-right tnum text-ink">{yen(inc - cost)}</td>
                 </tr>
               );
             })}

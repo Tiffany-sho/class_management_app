@@ -47,7 +47,8 @@ export function DayCard({ day, businesses, selected, onSelect }: Props) {
     >
       <div className="flex items-baseline gap-[4px]">
         <span className="text-ui-xl font-medium text-ink tnum">{d}</span>
-        <span className={`text-ui-sm ${w === 0 ? 'text-coral' : w === 6 ? 'text-info' : 'text-muted'}`}>
+        <span className={`whitespace-nowrap text-ui-sm
+          ${w === 0 ? 'text-coral' : w === 6 ? 'text-info' : 'text-muted'}`}>
           日（{WEEKDAY_JA[w]}）
         </span>
         <span className="flex-1" />
@@ -60,7 +61,8 @@ export function DayCard({ day, businesses, selected, onSelect }: Props) {
           return (
             <span
               key={businessId}
-              className={`rounded-sm px-[5px] py-[1px] text-ui-2xs leading-tight text-on-dark
+              className={`whitespace-nowrap rounded-sm px-[5px] py-[1px] text-ui-2xs
+                leading-tight text-on-dark
                 ${b?.colorKey === 'forest' ? 'bg-forest' : 'bg-coral'}`}
             >
               {b?.name?.replace('教室', '') ?? '—'} {count}

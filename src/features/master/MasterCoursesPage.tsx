@@ -69,14 +69,15 @@ export function MasterCoursesPage() {
               {b.name}
             </h3>
             <Panel className="overflow-x-auto p-0">
-              <table className="w-full border-collapse">
+              {/* DataTable と同じ扱い。枠に合わせて縮めると、セルの中で語が折れる */}
+              <table className="w-max min-w-full border-collapse">
                 <thead>
                   <tr className="border-b border-hairline text-ui-sm text-muted">
-                    <th className="px-md py-sm text-left font-medium">学年区分</th>
-                    <th className="px-md py-sm text-right font-medium">対象学年</th>
-                    <th className="px-md py-sm text-right font-medium">月2回</th>
-                    <th className="px-md py-sm text-right font-medium">月3回</th>
-                    <th className="w-[40px] px-md py-sm" />
+                    <th className="whitespace-nowrap px-md py-sm text-left font-medium">学年区分</th>
+                    <th className="whitespace-nowrap px-md py-sm text-right font-medium">対象学年</th>
+                    <th className="whitespace-nowrap px-md py-sm text-right font-medium">月2回</th>
+                    <th className="whitespace-nowrap px-md py-sm text-right font-medium">月3回</th>
+                    <th className="whitespace-nowrap w-[40px] px-md py-sm" />
                   </tr>
                 </thead>
                 <tbody>
@@ -102,13 +103,13 @@ export function MasterCoursesPage() {
                         className="cursor-pointer border-b border-hairline last:border-0
                           hover:bg-surface-soft focus:bg-surface-soft focus:outline-none"
                       >
-                        <td className="px-md py-sm text-ink">{label}</td>
-                        <td className="px-md py-sm text-right text-ui-sm text-muted tnum">
+                        <td className="whitespace-nowrap px-md py-sm text-ink">{label}</td>
+                        <td className="whitespace-nowrap px-md py-sm text-right text-ui-sm text-muted tnum">
                           {range ? `${range.gradeMin}〜${range.gradeMax}` : '—'}
                         </td>
-                        <td className="px-md py-sm text-right">{feeCell(two)}</td>
-                        <td className="px-md py-sm text-right">{feeCell(three)}</td>
-                        <td className="px-md py-sm text-right text-muted">
+                        <td className="whitespace-nowrap px-md py-sm text-right">{feeCell(two)}</td>
+                        <td className="whitespace-nowrap px-md py-sm text-right">{feeCell(three)}</td>
+                        <td className="whitespace-nowrap px-md py-sm text-right text-muted">
                           <Icon name="chevron-right" size={16} />
                         </td>
                       </tr>

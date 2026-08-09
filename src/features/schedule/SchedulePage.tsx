@@ -131,7 +131,9 @@ export function SchedulePage() {
           <SectionLabel>
             開催日 {days.length}日{attention > 0 ? ` ・ 要対応 ${attention}コマ` : ''}
           </SectionLabel>
-          <div className="mb-lg grid grid-cols-2 gap-xs sm:grid-cols-4 app:grid-cols-6 lg:grid-cols-8">
+          {/* 列を増やしすぎない。8列にすると PC でも1枚 120px ほどになり、
+              「プログラミング 2」のチップが入らず折り返す。**1枚 160px は残す** */}
+          <div className="mb-lg grid grid-cols-2 gap-xs sm:grid-cols-3 app:grid-cols-4 lg:grid-cols-6">
             {days.map((day) => (
               <DayCard
                 key={day.date}

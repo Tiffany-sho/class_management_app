@@ -122,7 +122,11 @@ export function PageHeader({
 }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
     <header className="mb-lg flex flex-wrap items-start gap-md">
-      <div className="min-w-0 flex-1">
+      {/* **見出しに最低幅を与える。** min-w-0 だとボタンに幅を全部取られ、
+          flex-wrap があっても「幅0でも収まっている」ことになって折り返さず、
+          「スケジュール確定」が1文字ずつ8行に縦積みされる。
+          最低幅があると、入らないときにボタンが次の行へ落ちる。 */}
+      <div className="min-w-[220px] flex-1">
         <h1 className="text-title-md">{title}</h1>
         {description ? (
           <p className="mt-[4px] text-ui-base leading-relaxed text-muted">{description}</p>

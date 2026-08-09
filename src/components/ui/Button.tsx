@@ -33,7 +33,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-xs border font-medium leading-tight
+      className={`inline-flex items-center justify-center gap-xs whitespace-nowrap border font-medium leading-tight
         transition-colors disabled:opacity-45 disabled:cursor-not-allowed
         ${VARIANT[variant]} ${SIZE[size]} ${block ? 'w-full' : ''} ${className}`}
       {...rest}
