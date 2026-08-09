@@ -1,6 +1,7 @@
 import { calendarCells, splitDate, isToday, WEEKDAY_JA } from '@/lib/date';
 import { Icon } from '@/components/ui';
 import { DayCellChips, type CellMode } from './DayCellChips';
+import { MonthDayList } from './MonthDayList';
 import type { Business, ScheduleSlot } from '@/types/domain';
 
 export interface DayState {
@@ -19,6 +20,14 @@ interface Props {
   showStatus?: boolean;
   /** マスの中身。既定は事業ごとのコマ数（管理者向け）。→ DayCellChips */
   cell?: CellMode;
+  /**
+   * 狭い画面での出し方。
+   * `list`（既定）… 升目をやめて日ごとの一覧にする（→ MonthDayList）
+   * `none` … 何も出さない。**呼ぶ側が狭い画面で別のものを見せているとき**に使う
+   *   （講師の予定は下に「予定 / 終了」の一覧があるので、日ごとの一覧を出すと
+   *    同じコマが2回並ぶ）。描かないので DOM にも残らない
+   */
+  narrow?: 'list' | 'none';
 }
 
 /**
@@ -32,11 +41,29 @@ interface Props {
  */
 export function MonthCalendar({
   monthKey, byDate, businesses, onSelect, showStatus = false, cell = { kind: 'business' },
+  narrow = 'list',
 }: Props) {
   const cells = calendarCells(monthKey);
 
   return (
-    <div className="overflow-hidden rounded-md border border-hairline bg-canvas shadow-card">
+    <>
+      {/* 狭い画面は升目をやめて日ごとの一覧にする（→ MonthDayList）。
+          土日しか開かないので、7列にすると月〜金の5列が空のまま幅の 5/7 を占め、
+          残りが 53px になって数字1つしか置けなくなる。 */}
+      {narrow === 'list' ? (
+      <div className="sm:hidden">
+        <MonthDayList
+          dates={cells.filter((c): c is string => Boolean(c))}
+          byDate={byDate}
+          businesses={businesses}
+          onSelect={onSelect}
+          showStatus={showStatus}
+          cell={cell}
+        />
+      </div>
+      ) : null}
+
+    <div className="hidden overflow-hidden rounded-md border border-hairline bg-canvas shadow-card sm:block">
       <div className="grid grid-cols-7 border-b border-hairline">
         {WEEKDAY_JA.map((w, i) => (
           <div
@@ -105,6 +132,7 @@ export function MonthCalendar({
         </div>
       ))}
     </div>
+    </>
   );
 }
 
@@ -126,8 +154,11 @@ export function CalendarLegend({ businesses, showStatus = true }: {
           {b.name}
         </span>
       ))}
+      {/* 破線チップも面の色も**升目にしか出てこない**。狭い画面は日ごとの一覧に
+          切り替わり、確定/未確定は行に文字で書いてあるので、ここで色の説明をすると
+          画面に無いものを探させることになる */}
       {showStatus ? (
-        <>
+        <span className="hidden flex-wrap items-center gap-md sm:flex">
           <span className="inline-flex items-center gap-[5px]">
             <i className="h-[11px] w-[14px] rounded-sm border border-dashed border-border-strong" />
             未確定のコマ
@@ -140,7 +171,7 @@ export function CalendarLegend({ businesses, showStatus = true }: {
             <i className="h-[11px] w-[14px] rounded-sm bg-state-pending shadow-[inset_4px_0_0_theme(colors.coral)]" />
             未確定を含む日
           </span>
-        </>
+        </span>
       ) : null}
     </div>
   );

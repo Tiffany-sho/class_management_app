@@ -69,23 +69,33 @@ export function EmployeePlan() {
     <div>
       <MonthHeader month={month} onChange={setMonth} />
 
-      <MonthCalendar
-        monthKey={month}
-        byDate={byDate}
-        businesses={d.businesses}
-        onSelect={(date) => setDetail({ date, ids: null })}
-        cell={{ kind: 'assignment' }}
-      />
+      {/* **カレンダーは広い画面だけ。** 狭い画面ではカレンダーも日ごとの一覧になり、
+          下の「予定 / 終了」とまったく同じコマが2回並ぶ。下の一覧のほうが
+          予定と終了に分かれていて情報が多いので、そちらだけ残す。
+          月の中でどの日に入っているかを俯瞰する値打ちは、升目で見えるときだけある。 */}
+      <div className="hidden sm:block">
+        <MonthCalendar
+          monthKey={month}
+          byDate={byDate}
+          businesses={d.businesses}
+          onSelect={(date) => setDetail({ date, ids: null })}
+          cell={{ kind: 'assignment' }}
+          narrow="none"
+        />
 
-      {/* 掛け持ちしていない人には色の凡例が要らない（1色しか出ない） */}
-      {showBusiness ? (
-        <div className="mt-sm">
-          <CalendarLegend businesses={d.businesses} showStatus={false} />
-        </div>
-      ) : null}
+        {/* 掛け持ちしていない人には色の凡例が要らない（1色しか出ない） */}
+        {showBusiness ? (
+          <div className="mt-sm">
+            <CalendarLegend businesses={d.businesses} showStatus={false} />
+          </div>
+        ) : null}
+
+        <p className="mt-sm text-ui-sm leading-relaxed text-muted">
+          マスの数字は<strong className="text-ink">その回に来る生徒の人数</strong>です。
+        </p>
+      </div>
 
       <p className="mb-lg mt-sm text-ui-sm leading-relaxed text-muted">
-        数字は<strong className="text-ink">その回に来る生徒の人数</strong>です。
         押すと生徒・出欠・一緒に入る講師が見られます。
       </p>
 

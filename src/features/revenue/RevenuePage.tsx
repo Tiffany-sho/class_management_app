@@ -12,6 +12,7 @@ import { yen } from '@/lib/format';
 import { StatCards } from './StatCards';
 import { BusinessBreakdown } from './BusinessBreakdown';
 import { FeeTable } from './FeeTable';
+import { FeePaymentSheet, type FeeTarget } from './FeePaymentSheet';
 
 /**
  * 収入・収益。
@@ -26,6 +27,7 @@ export function RevenuePage() {
   const { toast } = useToast();
   const [month, setMonth] = useState(currentMonthKey());
   const [busy, setBusy] = useState(false);
+  const [fee, setFee] = useState<FeeTarget | null>(null);
 
   const state = useAsync(async () => {
     const [businesses, students, fees, workByBiz, pays] = await Promise.all([
@@ -100,12 +102,30 @@ export function RevenuePage() {
         costByBusiness={d.workByBiz}
       />
 
-      <FeeTable businesses={d.businesses} students={d.students} fees={d.fees} />
+      <FeeTable
+        businesses={d.businesses}
+        students={d.students}
+        fees={d.fees}
+        onPick={({ student, fee: f }) => setFee({
+          studentId: student.id,
+          studentName: student.name,
+          parentName: student.parentName ?? null,
+          yearMonth: month,
+          amount: f.amount,
+          status: f.status,
+          paidDate: f.paidDate,
+          note: f.note,
+        })}
+      />
 
       <Note>
         月謝は<strong className="text-ink">固定月額</strong>で、欠席が多くても日割りにはなりません。
         請求額は発行時にコピーして保存しているので、あとから料金を改定しても過去の月は変わりません。
+        <strong className="text-ink">入金を受け取ったら、上の表の行を押して記録してください。</strong>
+        記録すると保護者のマイページにもすぐ反映されます。
       </Note>
+
+      <FeePaymentSheet target={fee} onClose={() => setFee(null)} onSaved={state.reload} />
     </div>
   );
 }

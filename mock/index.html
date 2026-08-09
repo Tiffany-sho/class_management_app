@@ -295,9 +295,20 @@
   .mlegend span{display:inline-flex;align-items:center;gap:6px;}
   .mlegend i{width:14px;height:11px;border-radius:3px;display:inline-block;flex:none;}
   @media(max-width:900px){ .cell{min-height:88px;} }
+  /* 狭い画面は7列の升目をやめて、コマのある日だけを縦に並べる。
+     土日しか開かないので、月〜金の5列が空のまま幅の 5/7 を占め、
+     残った2列は 375px の端末で 53px にしかならず、数字が1つ置けるだけになる。 */
+  .cal-list{display:none;border:1px solid var(--hairline);border-radius:var(--r-md);
+            background:var(--canvas);overflow:hidden;}
+  .cal-list button{display:flex;width:100%;align-items:center;gap:10px;padding:12px 14px;
+            text-align:left;background:none;border:0;border-bottom:1px solid var(--hairline);}
+  .cal-list button:last-child{border-bottom:0;}
+  .cal-list .dl-day{color:var(--ink);white-space:nowrap;}
+  .cal-list .dl-rows{display:flex;flex-direction:column;gap:2px;margin-top:3px;}
+  .cal-list .dl-rows span{display:flex;align-items:center;gap:6px;color:var(--muted);}
   @media(max-width:640px){
-    .cell{min-height:76px;padding:4px;gap:3px;}
-    .ev{font-size:clamp(11px, 10.2px + 0.21vw, 13px);padding:2px 5px;} .ev .t{display:none;}
+    .calendar{display:none;} .cal-list{display:block;}
+    .mlegend .state-only{display:none;}
     .home-lower{grid-template-columns:1fr !important;}
   }
   @media(max-width:900px){ .rev-cols{grid-template-columns:1fr !important;} }
@@ -487,9 +498,9 @@
           <div class="mlegend">
             <span><span class="dot prog"></span> プログラミング教室</span>
             <span><span class="dot illust"></span> イラスト教室</span>
-            <span><i style="border:1px dashed var(--border-strong)"></i> 未確定のコマ</span>
-            <span><i style="background:#eef7f1;box-shadow:inset 4px 0 0 var(--forest)"></i> 確定した日</span>
-            <span><i style="background:#fdeeeb;box-shadow:inset 4px 0 0 var(--coral)"></i> 未確定を含む日</span>
+            <span class="state-only"><i style="border:1px dashed var(--border-strong)"></i> 未確定のコマ</span>
+            <span class="state-only"><i style="background:#eef7f1;box-shadow:inset 4px 0 0 var(--forest)"></i> 確定した日</span>
+            <span class="state-only"><i style="background:#fdeeeb;box-shadow:inset 4px 0 0 var(--coral)"></i> 未確定を含む日</span>
           </div>
         </div>
         <div class="calendar">
@@ -499,6 +510,8 @@
           </div>
           <div id="adminCal"></div>
         </div>
+        <!-- 狭い画面用。升目の代わりにコマのある日だけを並べる -->
+        <div class="cal-list" id="adminCalList"></div>
         <p class="muted" style="margin-top:12px;">
           チップは<strong>教室ごとの開催コマ数</strong>です。教室のある日をクリックすると、その日の<strong>従業員と生徒</strong>が見られます。
           <strong>両方の教室が確定して初めて「確定した日」</strong>になり、片方でも未確定なら未確定の扱いです。
@@ -1123,6 +1136,8 @@
             <button class="iconbtn" onclick="shiftMonth('emp',1)">›</button>
           </div>
         </div>
+        <!-- **狭い画面ではカレンダーを出さない。** 下の勤務一覧と同じコマが2回並ぶ。
+             あちらは「予定 / 終了」に分かれていて情報が多いので、そちらだけ残す -->
         <div class="calendar">
           <div class="cal-head">
             <div class="sun">日</div><div>月</div><div>火</div><div>水</div>
@@ -2198,6 +2213,38 @@ function buildCal(targetId, mode, me, m){
   }
   while (n % 7 !== 0) push('<div class="cell dim"></div>');
   document.getElementById(targetId).innerHTML = html;
+
+  /* 狭い画面用の一覧。**升目と同じデータを1日1行で出す。**
+     横幅がまるごと使えるので、教室名も件数も状態も言葉のまま入る。 */
+  const listEl = document.getElementById(targetId + 'List');
+  if (!listEl) return;
+  let rows = '';
+  for (let d = 1; d <= M.days; d++) {
+    const st = stateOf(m, d);
+    let slots = slotsOf(m, d);
+    if (mode === 'employee') slots = slots.filter(s => s.ok && s.emps.includes(me));
+    if (!slots.length) continue;
+    const allOk = slots.every(s => s.ok);
+    const inner = mode === 'admin'
+      ? [PROG, ILLU].filter(b => slots.some(s => s.b === b)).map(b => {
+          const ss = slots.filter(s => s.b === b);
+          return `<span><span class="dot ${b.key}"></span>${b.name} ${ss.length}コマ</span>`;
+        }).join('')
+      : slots.map(s => `<span><span class="dot ${s.b.key}"></span>${s.time} ・ 生徒${s.studs.length}名</span>`).join('');
+    rows += `<button onclick="openDay(${m},${d},'${mode}','${me || ''}')"
+        style="box-shadow:inset 4px 0 0 var(--${allOk ? 'forest' : 'coral'});">
+      <span style="flex:1;min-width:0;">
+        <span class="dl-day">${dayLabel(m, d)}</span>
+        ${mode === 'admin'
+          ? `<span style="margin-left:8px;color:var(--${allOk ? 'forest' : 'coral'});">
+               ${allOk ? '✓ 確定' : '未確定'}</span>` : ''}
+        <span class="dl-rows">${inner}</span>
+      </span>
+      <span class="muted">›</span>
+    </button>`;
+  }
+  listEl.innerHTML = rows
+    || '<div class="muted" style="padding:18px;text-align:center;">この月に開催日はありません。</div>';
 }
 
 /* 月の切り替え */

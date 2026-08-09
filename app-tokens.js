@@ -17,22 +17,25 @@
  * 一緒に大きくなるため**。px 固定にすると、その設定を無視してしまう。
  *
  * 目安（375px のスマホ → 1280px の PC）:
- *   ui-2xs 11→13 / ui-xs 12→14 / ui-sm 13→15 / ui-base 14→16 / ui-md 15→17
- *   ui-lg 17→19 / ui-xl 21→25 / ui-2xl 24→29 / ui-3xl 30→38
+ *   ui-2xs 12→14 / ui-xs 13→15 / ui-sm 14→16 / ui-base 15→17 / ui-md 16→18
+ *   ui-lg 18→20 / ui-xl 22→26 / ui-2xl 25→30 / ui-3xl 31→39
+ *
+ * **一度 11→13 で入れたが、実機で見てスマホが小さいという指摘を受け、
+ * 下限を1px ずつ上げた。** 上限も同じだけ上げて、広い画面での伸びしろは残す。
  *
  * **どの段も、置き換え前の固定 px より小さくならないようにしてある。**
  * 「大きくしたのに一部だけ小さくなった」が起きると、直したことにならない。
  */
 export const uiFontSize = {
-  'ui-2xs':  ['clamp(0.6875rem, 0.639rem + 0.213vw, 0.8125rem)', { lineHeight: '1.35' }],
-  'ui-xs':   ['clamp(0.75rem, 0.702rem + 0.213vw, 0.875rem)',    { lineHeight: '1.4' }],
-  'ui-sm':   ['clamp(0.8125rem, 0.764rem + 0.213vw, 0.9375rem)', { lineHeight: '1.5' }],
-  'ui-base': ['clamp(0.875rem, 0.827rem + 0.213vw, 1rem)',       { lineHeight: '1.55' }],
-  'ui-md':   ['clamp(0.9375rem, 0.889rem + 0.213vw, 1.0625rem)', { lineHeight: '1.5' }],
-  'ui-lg':   ['clamp(1.0625rem, 1.014rem + 0.213vw, 1.1875rem)', { lineHeight: '1.4' }],
-  'ui-xl':   ['clamp(1.3125rem, 1.216rem + 0.426vw, 1.5625rem)', { lineHeight: '1.3' }],
-  'ui-2xl':  ['clamp(1.5rem, 1.38rem + 0.53vw, 1.8125rem)',      { lineHeight: '1.25' }],
-  'ui-3xl':  ['clamp(1.875rem, 1.68rem + 0.85vw, 2.375rem)',     { lineHeight: '1.15' }],
+  'ui-2xs':  ['clamp(0.75rem, 0.702rem + 0.213vw, 0.875rem)',    { lineHeight: '1.35' }],
+  'ui-xs':   ['clamp(0.8125rem, 0.764rem + 0.213vw, 0.9375rem)', { lineHeight: '1.4' }],
+  'ui-sm':   ['clamp(0.875rem, 0.827rem + 0.213vw, 1rem)',       { lineHeight: '1.5' }],
+  'ui-base': ['clamp(0.9375rem, 0.889rem + 0.213vw, 1.0625rem)', { lineHeight: '1.55' }],
+  'ui-md':   ['clamp(1rem, 0.952rem + 0.213vw, 1.125rem)',       { lineHeight: '1.5' }],
+  'ui-lg':   ['clamp(1.125rem, 1.077rem + 0.213vw, 1.25rem)',    { lineHeight: '1.4' }],
+  'ui-xl':   ['clamp(1.375rem, 1.278rem + 0.426vw, 1.625rem)',   { lineHeight: '1.3' }],
+  'ui-2xl':  ['clamp(1.5625rem, 1.442rem + 0.53vw, 1.875rem)',   { lineHeight: '1.25' }],
+  'ui-3xl':  ['clamp(1.9375rem, 1.742rem + 0.85vw, 2.4375rem)',  { lineHeight: '1.15' }],
 };
 
 export default { uiFontSize };

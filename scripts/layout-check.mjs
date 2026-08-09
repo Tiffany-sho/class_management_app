@@ -96,8 +96,8 @@ for (const size of SIZES) {
   const tiers = Object.keys(fonts).sort();
   ck(tiers.length > 0, '可変の文字サイズが効いている: '
     + tiers.map((n) => `${n.replace('text-ui-', '')}=${fonts[n].toFixed(1)}`).join(' '));
-  const tooSmall = tiers.filter((n) => fonts[n] < 11);
-  ck(tooSmall.length === 0, `11px 未満の文字が無い（${tooSmall.join(',') || 'なし'}）`);
+  const tooSmall = tiers.filter((n) => fonts[n] < 12);
+  ck(tooSmall.length === 0, `12px 未満の文字が無い（${tooSmall.join(',') || 'なし'}）`);
 
   /* 画面を1つずつ回る。ホームだけ見て「問題なし」にすると、いちばん詰まりやすい
      カレンダーと表を一度も測らないまま終わる。

@@ -15,6 +15,8 @@ interface Props {
   businesses: Business[];
   students: Student[];
   fees: Map<string, StudentFee>;
+  /** 行を押したときに開くもの。請求前（fee が無い）行は押しても何も起きない */
+  onPick?: (row: { student: Student; fee: StudentFee }) => void;
 }
 
 /**
@@ -22,8 +24,13 @@ interface Props {
  *
  * 並びは**未払いが先**。この表を見るのは督促する時なので、
  * 名前順にすると探し直すことになる。
+ *
+ * **表の中では切り替えない。** 行を押してシートを開いてから記録する。
+ * 一覧は探すために眺める場所で、そこに切り替えが並んでいると、探している途中で
+ * 別の生徒を支払い済みにしてしまう。月謝には変更履歴が無いので、
+ * 気づかないまま変わると誰も気づけない。
  */
-export function FeeTable({ businesses, students, fees }: Props) {
+export function FeeTable({ businesses, students, fees, onPick }: Props) {
   const [query, setQuery] = useState('');
   const [biz, setBiz] = useState('all');
   const [unpaidOnly, setUnpaidOnly] = useState(false);
@@ -100,8 +107,15 @@ export function FeeTable({ businesses, students, fees }: Props) {
         columns={columns}
         rows={rows}
         rowKey={(s) => s.id}
+        onRowClick={onPick ? (s) => { if (s.fee) onPick({ student: s, fee: s.fee }); } : undefined}
         empty="条件に合う生徒がいません。"
       />
+      {onPick ? (
+        <p className="mt-xs text-ui-sm text-muted">
+          行を押すと<strong className="text-ink">入金を記録</strong>できます。
+          「請求前」の行は、先に上の「月謝を発行」を押してください。
+        </p>
+      ) : null}
     </section>
   );
 }

@@ -154,12 +154,30 @@ export async function generateFees(yearMonth: string): Promise<number> {
   return data ?? 0;
 }
 
-export async function setFeeStatus(
-  studentId: string, yearMonth: string, status: 'paid' | 'unpaid',
+/**
+ * 月謝の1件を直す（入金の記録・金額の調整）。
+ *
+ * **入金日は渡してもらう。** 「今日」を勝手に入れると、あとから記録したときに
+ * 実際の入金日とずれ、通帳と突き合わせられなくなる。
+ *
+ * 金額を直せるようにしてあるのはドメインルール10（月の途中のコース変更を
+ * 日割り計算に寄せず、管理者が手で調整する）のため。**理由は `note` に残す** ――
+ * 説明の無い増減は、保護者のマイページにそのまま出て問い合わせになる。
+ */
+export async function updateFee(
+  studentId: string,
+  yearMonth: string,
+  patch: { status: 'paid' | 'unpaid'; paidDate: string | null; amount: number; note: string | null },
 ): Promise<void> {
   const { error } = await supabase
     .from('fees')
-    .update({ status, paid_date: status === 'paid' ? new Date().toISOString().slice(0, 10) : null })
+    .update({
+      status: patch.status,
+      // 未入金に戻したら入金日も消す（残すと「未払いなのに入金日がある」行になる）
+      paid_date: patch.status === 'paid' ? patch.paidDate : null,
+      amount: patch.amount,
+      note: patch.note,
+    })
     .eq('student_id', studentId)
     .eq('year_month', yearMonth);
   if (error) throw error;
