@@ -40,6 +40,7 @@
 | テーブル | 主なカラム |
 |---------|-----------|
 | `fees` | id, student_id, year_month, amount, **base_amount**, status, paid_date, note ／ `amount` は生成時にコースの月額が入るが **管理者が上書きできる**。手入力した理由は `note` に残す。`base_amount` は**発行時の額で、以後動かさない** ―― `amount` と違えば「調整された月」 |
+| `submissions` | id, year_month, student_id（保護者ぶん）, employee_id（講師ぶん）, submitted_at ／ **希望を提出した事実**。行があるとその年月は本人が編集できない（RLS）。どちらか一方だけが入る（`num_nonnulls = 1`） |
 | `announcements` | id, title, body, author_id, target_role, business_id (null=全体), created_at, **scheduled_at, sent_at** ／ 予約投稿用。`sent_at` が null かつ `scheduled_at` が未来 = 予約中で、対象者にはまだ見せない。送信は `pg_cron` で定期的に拾う |
 | `deadline_rules` | id, type (parent/employee), day_of_month, time_of_day, active ／ **2行だけ**。「対象月の前月◯日◯時」の繰り返しルール。ここから `deadlines` を毎月生成する |
 | `deadlines` | id, year_month, type (parent/employee), deadline_at, **active** ／ **事業共通**なので business_id は持たない。`deadline_rules` から**対象月の前月1日に自動生成**される。`active=false` = その月は受け付けない |
@@ -71,6 +72,7 @@
 - **`payrolls` は確定額をコピーして持つ（`fees.amount` と同じ考え方）** — 時給を改定したときに、過去に支給済みの金額まで再計算で書き変わってしまうのを防ぐ。締め前は計算、締めた後はコピーした値が正。
 - **`fees.amount` はコースを参照せずコピーして持ち、上書きも許す** — 月謝は固定月額だが、月の途中のコース変更など例外は必ず起きる。加えて、常に `courses.monthly_fee` を join して表示する作りにすると、**料金改定したときに過去の請求額まで書き変わってしまう**。生成時にコピーし、以後は独立した値として扱う。
 - **「調整されたか」を判定するために `fees.base_amount` を別に持つ** — 上書きを許した結果、`amount` の値だけからは**上書きされたのかどうかが分からない**。保護者の画面は金額を出さない方針なので、判定できないと調整した月に保護者が何も気づけない（[`domain.md`](domain.md) 機能7・10）。`courses.monthly_fee` と突き合わせるのは誤り ―― 料金を改定した瞬間、一度も触っていない過去の全月が「調整された」ことになる。**発行時の額を別の列に取っておき、以後動かさない。** 既存行は「調整の有無が分からない」ので `amount` をそのまま入れて調整なし扱いにした（証明できないことを画面に書かない）。
+- **「提出したかどうか」を `submissions` の行で持つ（希望の件数で判定しない）** — **0件で提出できる**（「今月は通えない」も伝える内容 ―― ドメインルール2）ので、0件のときに未提出と区別が付かない。行が無い＝まだ出していない、行がある＝もう直せない、と1つの基準で判定する。生徒ぶんと講師ぶんを1テーブルにまとめてあるのは、判定も RLS も「その年月の行があるか」だけで済むため。**取り消せるのは管理者だけ**（間違えて出した人を助ける唯一の口）。
 - **配列カラムを使わない** — 外部キー制約が効かず、RLS も書けなくなるため。
 - **日付カラムは `session_date`**（`date` にしない） — `date` は型名と同じで、関数やビューの中で読みづらくなるため。
 - **事業をまたぐ割り当ては複合外部キーで禁止** — 日曜は2事業が並行開催されるため、イラストのコマにプログラミングの生徒を入れる事故が起こりうる。`(id, business_id)` を参照する複合外部キーで DB レベルで防ぐ。従業員も同様に、担当できない事業には割り当てられない。
@@ -87,6 +89,7 @@
 | 開催していない曜日・コマは選べない | `preferences` / `work_preferences` / `schedules` のトリガー |
 | 事業をまたぐ割り当ての禁止 | 複合外部キー |
 | 締め切り後は保護者・従業員が編集不可 | RLS（`is_submission_open()`） |
+| 提出したらその月はもう編集不可 | RLS（`student_submitted()` / `employee_submitted()`）。締め切り前でも弾く |
 | 定員 = 担当従業員数 × 係数 | ビュー `schedule_capacity` |
 | 進級でコース変更が要る生徒の検出 | ビュー `students_needing_course_change` |
 | 月謝の発行（在籍生徒ぶんを作る） | 関数 `generate_fees(year_month)`。**既存行は書き換えない** |
@@ -132,6 +135,7 @@
 | `20260809100000_preferences_no_limit.sql` | 受講希望の件数上限と「1日1コマ」を撤廃（ドメインルール2） |
 | `20260809110000_fix_notification_date_format.sql` | 通知の日付が「8月F02日」になるのを修正（`FM` は2文字の接頭辞） |
 | `20260809120000_fees_base_amount.sql` | `fees.base_amount`（発行時の額）を追加し、`generate_fees` が入れるようにした |
+| `20260809130000_submissions.sql` | `submissions`（提出した事実）を追加。提出済みの月は本人が希望を編集できないよう RLS を張り替えた |
 
 適用は `npx supabase db push`。`.env` に `SUPABASE_DB_PASSWORD` があれば対話なしで通る。
 
