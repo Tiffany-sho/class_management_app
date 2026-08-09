@@ -6,10 +6,20 @@ import {
 } from '@/lib/queries';
 import type { DaySummary } from './DayCard';
 
-/** カードに出す候補。**提出された希望だけを出す**（下の hidden* を参照） */
+/**
+ * カードのチップに出す1人。
+ *
+ * **希望を出した人だけでなく、割り当てられている人も必ず入れる。**
+ * 以前は希望を出した人だけをチップにし、それ以外は人数だけ添えていたが、
+ * **希望を出していないのに割り当てられている人を外す手段が画面に無かった。**
+ * 実際に「講師を全部外したのに、外せないコマだけが残って確定された」事故が起きた
+ * （山本えみ / 2026-09。希望を出した日は外せて、出していない 9/12・9/20 が残った）。
+ */
 export interface Candidate {
   id: string;
   name: string;
+  /** 希望を出しているか。false = 希望を出していないのに割り当てられている人 */
+  wanted: boolean;
 }
 
 /** 1コマぶんの「希望」と「仮確定」を束ねたもの */
@@ -21,30 +31,21 @@ export interface SlotGroup {
   /** まだコマの行が無いこともある（希望だけ出ている状態）。押したときに作る */
   scheduleId: string | null;
   status: 'draft' | 'confirmed';
-  wantStudents: Candidate[];
-  wantEmployees: Candidate[];
+  /** チップに出す人。希望を出した人＋割り当てられている人（→ Candidate） */
+  students: Candidate[];
+  employees: Candidate[];
   pickedStudents: string[];
   pickedEmployees: string[];
   capacity: number;
   isOverCapacity: boolean;
-  /**
-   * 希望を出していないのに割り当てられている人数。
-   *
-   * この画面は**提出された希望を確定に変える場所**なので、希望の無い人はチップに出さない。
-   * ただし人数と定員は DB の実際の割り当てから来るので、出さないまま黙っていると
-   * 「2名と書いてあるのにチップが1つ」になる。数だけ添えて辻褄を合わせる。
-   */
-  hiddenStudents: number;
-  hiddenEmployees: number;
 }
 
 function blank(key: string, businessId: string, sessionDate: string, slotNo: number): SlotGroup {
   return {
     key, businessId, sessionDate, slotNo,
     scheduleId: null, status: 'draft',
-    wantStudents: [], wantEmployees: [], pickedStudents: [], pickedEmployees: [],
+    students: [], employees: [], pickedStudents: [], pickedEmployees: [],
     capacity: 0, isOverCapacity: false,
-    hiddenStudents: 0, hiddenEmployees: 0,
   };
 }
 
@@ -83,13 +84,13 @@ export function useScheduleBoard(month: string, bizFilter: string) {
     for (const p of d.prefs) {
       const k = keyOf(p.businessId, p.sessionDate, p.slotNo);
       const g = map.get(k) ?? blank(k, p.businessId, p.sessionDate, p.slotNo);
-      g.wantStudents.push({ id: p.studentId, name: p.studentName });
+      g.students.push({ id: p.studentId, name: p.studentName, wanted: true });
       map.set(k, g);
     }
     for (const w of d.workPrefs) {
       const k = keyOf(w.businessId, w.sessionDate, w.slotNo);
       const g = map.get(k) ?? blank(k, w.businessId, w.sessionDate, w.slotNo);
-      g.wantEmployees.push({ id: w.employeeId, name: w.employeeName ?? '—' });
+      g.employees.push({ id: w.employeeId, name: w.employeeName ?? '—', wanted: true });
       map.set(k, g);
     }
     for (const s of d.slots) {
@@ -101,12 +102,21 @@ export function useScheduleBoard(month: string, bizFilter: string) {
       g.pickedEmployees = s.employees.map((x) => x.id);
       g.capacity = s.capacity;
       g.isOverCapacity = s.isOverCapacity;
-      /* 希望を出していない人はチップに出さない（この画面は希望を確定に変える場所）。
-         数だけ持って、人数とチップの数が食い違って見えないようにする。 */
-      g.hiddenStudents = s.students.filter(
-        (st) => !g.wantStudents.some((x) => x.id === st.studentId)).length;
-      g.hiddenEmployees = s.employees.filter(
-        (e) => !g.wantEmployees.some((x) => x.id === e.id)).length;
+      /* **割り当てられている人は、希望を出していなくても必ずチップにする。**
+         希望を出した人だけを出していたころは、そうでない人を外す手段が
+         画面のどこにも無かった（人数だけが増えて見える）。
+         希望は後から取り消せるし、管理者が当日の変更で足すこともあるので、
+         「割り当てはあるが希望は無い」は普通に起きる状態。 */
+      for (const st of s.students) {
+        if (!g.students.some((x) => x.id === st.studentId)) {
+          g.students.push({ id: st.studentId, name: st.studentName, wanted: false });
+        }
+      }
+      for (const e of s.employees) {
+        if (!g.employees.some((x) => x.id === e.id)) {
+          g.employees.push({ id: e.id, name: e.name, wanted: false });
+        }
+      }
       map.set(k, g);
     }
 
@@ -137,5 +147,21 @@ export function useScheduleBoard(month: string, bizFilter: string) {
     return [...m.values()].sort((a, b) => a.date.localeCompare(b.date));
   }, [groups]);
 
-  return { state, groups, days };
+  /**
+   * 「希望と突き合わせられるか」。
+   *
+   * **その月に希望が1件も出ていなければ、「希望を出していない」は何も言っていない。**
+   * 済んだ月は希望のデータが無いことがあり、そこで全員に！を付けると、
+   * 直しようのない印だけが並ぶ（実際、確定済みの月で全チップが！になった）。
+   * 比べる相手があるときだけ印を付ける。
+   */
+  const compare = useMemo(
+    () => ({
+      students: (state.data?.prefs.length ?? 0) > 0,
+      employees: (state.data?.workPrefs.length ?? 0) > 0,
+    }),
+    [state.data],
+  );
+
+  return { state, groups, days, compare };
 }

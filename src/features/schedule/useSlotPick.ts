@@ -2,33 +2,31 @@ import { useState } from 'react';
 import { useToast } from '@/components/ui';
 import { ensureSchedule, toggleScheduleStudent, toggleScheduleEmployee } from '@/lib/queries';
 import { toMessage } from '@/lib/supabase';
-import type { RemoveTarget } from './RemovePickSheet';
 import type { SlotGroup } from './useScheduleBoard';
 
 type Kind = 'student' | 'employee';
 
-/** 確認シートに出す内容と、確定したときに叩く対象をひとまとめにする */
-type Removing = RemoveTarget & { group: SlotGroup };
-
 /**
  * コマへの割り当て操作。
  *
- * **確認をはさむのは「確定済みのコマから外すとき」だけ。**
- * 確定済みは保護者・講師の画面にもう出ていて、講師なら給与にも効いている。
- * 見ているだけのつもりで触れて黙って消えるのは、そこが一番まずい。
+ * **確定したコマはここでは動かせない。** 確定は保護者・講師の画面にもう出ていて、
+ * 講師なら給与にも効いている。翌月を組んでいる途中に今月の実績が動くのは、
+ * 同じ画面・同じ操作でできてしまうことが原因なので、**画面ごと分ける**。
+ * 直すのは「当日の変更」（→ features/daychange）。
  *
- * **下書きは今までどおり1クリックで出し入れできる。** 組み立てている最中は
- * 入れて外してを何度も繰り返すので、そこに確認を挟むと作業にならない。
+ * 以前は確定済みでも確認シートを出せば外せるようにしていた。**確認では防げない** ――
+ * 外すつもりで押した人は確認も通すので、止まるのは誤操作だけで、
+ * 「そもそもここで直してはいけない」という区別は伝わらない。
+ *
+ * **下書きは1クリックで出し入れできる。** 組み立てている最中は入れて外してを
+ * 何度も繰り返すので、そこに確認を挟むと作業にならない。
  * まだ誰にも出していないので、間違えても押し直せば済む。
- *
- * 確認の状態はページに持たせずここに閉じ込める。ページはデータ取得と配置に徹する。
  */
 export function useSlotPick(reload: () => void) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
-  const [removing, setRemoving] = useState<Removing | null>(null);
 
-  async function apply(kind: Kind, g: SlotGroup, id: string, isPicked: boolean, ok?: string) {
+  async function apply(kind: Kind, g: SlotGroup, id: string, isPicked: boolean) {
     setBusy(true);
     try {
       // 希望だけの状態ではコマの行がまだ無い。押したときに作る
@@ -40,8 +38,6 @@ export function useSlotPick(reload: () => void) {
       } else {
         await toggleScheduleEmployee(scheduleId, g.businessId, id, isPicked);
       }
-      setRemoving(null);
-      if (ok) toast(ok);
       reload();
     } catch (e) {
       toast(toMessage(e));
@@ -50,36 +46,17 @@ export function useSlotPick(reload: () => void) {
     }
   }
 
-  /** チップを押したとき。確定済みのコマから外すときだけ確認シートを開く */
-  function pick(kind: Kind, g: SlotGroup, id: string, businessName: string) {
+  /** チップを押したとき。確定したコマは断る（チップも disabled にしてある） */
+  function pick(kind: Kind, g: SlotGroup, id: string) {
+    if (g.status === 'confirmed') {
+      toast('確定したコマはここでは変えられません。「当日の変更」から直してください。');
+      return;
+    }
     const isPicked = kind === 'student'
       ? g.pickedStudents.includes(id)
       : g.pickedEmployees.includes(id);
-
-    if (!isPicked || g.status !== 'confirmed') { void apply(kind, g, id, isPicked); return; }
-
-    const c = (kind === 'student' ? g.wantStudents : g.wantEmployees).find((x) => x.id === id);
-    setRemoving({
-      kind,
-      id,
-      name: c?.name ?? 'この人',
-      businessName,
-      sessionDate: g.sessionDate,
-      slotNo: g.slotNo,
-      overCapacity: g.isOverCapacity,
-      lastEmployee: kind === 'employee' && g.pickedEmployees.length === 1,
-      group: g,
-    });
+    void apply(kind, g, id, isPicked);
   }
 
-  function confirmRemove() {
-    const r = removing;
-    if (!r) return;
-    void apply(r.kind, r.group, r.id, true,
-      r.kind === 'employee'
-        ? `${r.name} を担当から外しました。このコマぶんの給与は付きません`
-        : `${r.name} をこのコマの受講から外しました`);
-  }
-
-  return { busy, removing, pick, confirmRemove, cancelRemove: () => setRemoving(null) };
+  return { busy, pick };
 }

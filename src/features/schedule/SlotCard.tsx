@@ -1,11 +1,13 @@
-import { Badge, Card } from '@/components/ui';
+import { Badge, Card, Icon } from '@/components/ui';
 import type { Business } from '@/types/domain';
-import type { SlotGroup } from './useScheduleBoard';
+import type { Candidate, SlotGroup } from './useScheduleBoard';
 
 interface Props {
   group: SlotGroup;
   business?: Business;
   busy: boolean;
+  /** その月に希望が出ているか。出ていない月は！を付けない（→ useScheduleBoard） */
+  compare: { students: boolean; employees: boolean };
   onToggleStudent: (id: string) => void;
   onToggleEmployee: (id: string) => void;
 }
@@ -15,17 +17,23 @@ interface Props {
  * 希望＝点線、仮確定＝塗りつぶし。クリックで行き来する。
  * 定員は DB のビューが返した値をそのまま出す（ここで再計算しない）。
  *
- * **チップに出すのは提出された希望だけ。** ここは希望を確定に変える画面なので、
- * 希望を出していない人を混ぜると「誰が出したのか」が読めなくなる。
- * ただし人数と定員は実際の割り当てから来るので、出さないぶんは数だけ添える。
+ * **割り当てられている人は、希望を出していなくても必ずチップに出す。**
+ * 以前は希望を出した人だけを出して、それ以外は人数だけ添えていた。その結果
+ * **希望を出していないのに割り当てられている人を外す手段が画面に無く**、
+ * 「全部外したつもりのコマだけが残って確定される」事故が起きた。
+ * 見分けはつくようにする（！つきのチップ）が、**外せることを優先する**。
  *
- * **確定済みのコマから外すときだけ、ページ側が確認をはさむ。**
- * 下書きは押した時点で入る／外れる。
+ * **確定したコマはここでは触れない。** 確定は保護者・講師の画面にもう出ていて、
+ * 講師なら給与にも効いている。組み立て中の月と同じ操作で動かせると、
+ * 翌月を作っている途中に今月の実績が変わる。直すのは「当日の変更」から。
  */
-export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEmployee }: Props) {
+export function SlotCard({
+  group: g, business, busy, compare, onToggleStudent, onToggleEmployee,
+}: Props) {
   const isProg = business?.colorKey === 'forest';
   const picked = g.pickedStudents.length;
   const noEmployee = g.pickedEmployees.length === 0;
+  const done = g.status === 'confirmed';
 
   return (
     <Card className="p-md">
@@ -43,7 +51,7 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
           <Badge tone="danger">担当未定</Badge>
         ) : g.isOverCapacity ? (
           <Badge tone="danger">定員超過</Badge>
-        ) : g.status === 'confirmed' ? (
+        ) : done ? (
           <Badge tone="success">確定</Badge>
         ) : (
           <Badge tone="neutral">下書き</Badge>
@@ -57,23 +65,16 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
         </span>
       </div>
       <div className="mb-md">
-        <div className="flex flex-wrap gap-xs">
-          {g.wantEmployees.length === 0 ? (
-            <span className="text-ui-sm text-muted">勤務希望が出ていません</span>
-          ) : (
-            g.wantEmployees.map((e) => (
-              <PickChip
-                key={e.id}
-                label={e.name}
-                picked={g.pickedEmployees.includes(e.id)}
-                tone={isProg ? 'forest' : 'coral'}
-                disabled={busy}
-                onClick={() => onToggleEmployee(e.id)}
-              />
-            ))
-          )}
-        </div>
-        <HiddenNote count={g.hiddenEmployees} what="担当" />
+        <ChipRow
+          people={g.employees}
+          pickedIds={g.pickedEmployees}
+          empty="勤務希望が出ていません"
+          isProg={isProg}
+          disabled={busy || done}
+          mark={compare.employees}
+          onToggle={onToggleEmployee}
+        />
+        <UnwantedNote people={g.employees} what="勤務希望" locked={done} mark={compare.employees} />
       </div>
 
       <div className="mb-xs flex items-baseline gap-xs text-ui-xs font-medium tracking-[0.08em] text-muted">
@@ -82,56 +83,109 @@ export function SlotCard({ group: g, business, busy, onToggleStudent, onToggleEm
           {picked}名{g.capacity > 0 ? ` ／ 定員 ${g.capacity}名` : ''}
         </span>
       </div>
-      <div className="flex flex-wrap gap-xs">
-        {g.wantStudents.length === 0 ? (
-          <span className="text-ui-sm text-muted">受講希望が出ていません</span>
-        ) : (
-          g.wantStudents.map((s) => (
-            <PickChip
-              key={s.id}
-              label={s.name}
-              picked={g.pickedStudents.includes(s.id)}
-              tone={isProg ? 'forest' : 'coral'}
-              disabled={busy}
-              onClick={() => onToggleStudent(s.id)}
-            />
-          ))
-        )}
-      </div>
-      <HiddenNote count={g.hiddenStudents} what="受講" />
+      <ChipRow
+        people={g.students}
+        pickedIds={g.pickedStudents}
+        empty="受講希望が出ていません"
+        isProg={isProg}
+        disabled={busy || done}
+        mark={compare.students}
+        onToggle={onToggleStudent}
+      />
+      <UnwantedNote people={g.students} what="受講希望" locked={done} mark={compare.students} />
 
       {g.isOverCapacity ? (
         <p className="mt-sm text-ui-sm text-coral">
           定員を {picked - g.capacity}名 超えています。講師を追加すると定員が伸びます。
         </p>
       ) : null}
+
+      {/* **押せない理由と行き先を必ず書く。** 押しても何も起きないだけだと、
+          不具合と読まれるか、押し続けられる */}
+      {done ? (
+        <p className="mt-sm flex items-start gap-[6px] text-ui-sm text-muted">
+          <Icon name="lock" size={14} className="mt-[2px] shrink-0" />
+          <span>
+            このコマは確定済みです。保護者・講師の画面にもう出ています。
+            担当や受講を直すときは<strong className="text-ink">「当日の変更」</strong>から行ってください。
+          </span>
+        </p>
+      ) : null}
     </Card>
   );
 }
 
+function ChipRow({ people, pickedIds, empty, isProg, disabled, mark, onToggle }: {
+  people: Candidate[];
+  pickedIds: string[];
+  empty: string;
+  isProg: boolean;
+  disabled: boolean;
+  mark: boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-xs">
+      {people.length === 0 ? (
+        <span className="text-ui-sm text-muted">{empty}</span>
+      ) : (
+        people.map((p) => (
+          <PickChip
+            key={p.id}
+            person={p}
+            picked={pickedIds.includes(p.id)}
+            tone={isProg ? 'forest' : 'coral'}
+            disabled={disabled}
+            mark={mark}
+            onClick={() => onToggle(p.id)}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
 /**
- * 希望を出していないのに割り当てられている人数。
- * 出さないまま黙っていると「2名と書いてあるのにチップが1つ」になって、
- * 数え違いなのか表示漏れなのか分からなくなる。
+ * 希望を出していないのに割り当てられている人がいることを言葉でも書く。
+ * チップの「！」だけだと、記号の意味を毎回思い出させることになる。
+ *
+ * **戻す場所も書く。** 外すとその人はこの画面の候補から消える（希望を出していない
+ * のだから当然だが、押した直後にチップごと消えるので取り返しがつかなく見える）。
+ * 実際には「当日の変更」に全講師が候補として並ぶので、そこから足し直せる。
  */
-function HiddenNote({ count, what }: { count: number; what: '担当' | '受講' }) {
-  if (count === 0) return null;
+function UnwantedNote({ people, what, locked, mark }: {
+  people: Candidate[];
+  what: '勤務希望' | '受講希望';
+  locked: boolean;
+  mark: boolean;
+}) {
+  const n = mark ? people.filter((p) => !p.wanted).length : 0;
+  if (n === 0) return null;
   return (
     <p className="mt-xs text-ui-sm text-muted">
-      希望を出していない{count}名が{what}に入っています（当日の変更から直せます）。
+      ！のついた{n}名は{what}を出していません。
+      {locked ? '外すときは「当日の変更」から。' : '押すと外せます（戻すときは「当日の変更」から）。'}
     </p>
   );
 }
 
 function PickChip({
-  label, picked, tone, disabled, onClick,
+  person, picked, tone, disabled, mark, onClick,
 }: {
-  label: string; picked: boolean; tone: 'forest' | 'coral'; disabled: boolean; onClick: () => void;
+  person: Candidate;
+  picked: boolean;
+  tone: 'forest' | 'coral';
+  disabled: boolean;
+  mark: boolean;
+  onClick: () => void;
 }) {
   const solid = tone === 'forest' ? 'bg-forest text-on-dark border-forest' : 'bg-coral text-on-dark border-coral';
   const dashed = tone === 'forest'
     ? 'border-dashed border-forest text-forest bg-canvas'
     : 'border-dashed border-coral text-coral bg-canvas';
+
+  const unwanted = mark && !person.wanted;
+  const why = unwanted ? '（希望を出していません）' : '';
 
   return (
     <button
@@ -141,11 +195,16 @@ function PickChip({
       aria-pressed={picked}
       /* 押したときに何が起きるかを、色だけでなく言葉でも出す。
          塗りつぶし＝外れる、点線＝入る、は色を見分けられないと伝わらない */
-      title={picked ? `${label} を外す` : `${label} を仮確定する`}
-      className={`rounded-pill border px-sm py-[3px] text-ui-sm transition-colors
-        disabled:opacity-50 ${picked ? solid : dashed}`}
+      title={disabled
+        ? `${person.name}${why}`
+        : `${person.name}${why} を${picked ? '外す' : '仮確定する'}`}
+      className={`inline-flex items-center gap-[4px] rounded-pill border px-sm py-[3px] text-ui-sm
+        transition-colors disabled:opacity-50 ${picked ? solid : dashed}`}
     >
-      {label}
+      {/* 希望を出していない人の目印。**色を変えるだけにしない** ―― 塗りつぶしの
+          チップの中で色を足しても、並んだときに違いとして読めない */}
+      {unwanted ? <span aria-hidden className="font-medium">！</span> : null}
+      {person.name}
     </button>
   );
 }

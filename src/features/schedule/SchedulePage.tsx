@@ -8,7 +8,6 @@ import { currentMonthKey, shiftMonth, formatDayJa } from '@/lib/date';
 import { toMessage } from '@/lib/supabase';
 import { SlotCard } from './SlotCard';
 import { DayCard } from './DayCard';
-import { RemovePickSheet } from './RemovePickSheet';
 import { useScheduleBoard } from './useScheduleBoard';
 import { useSlotPick } from './useSlotPick';
 
@@ -24,9 +23,9 @@ import { useSlotPick } from './useSlotPick';
  * 定員（担当講師数 × 係数）は DB のビューが返すので、画面では計算しない。
  * 定員超過は警告するだけでブロックしない（実運用で必ず例外が出るため）。
  *
- * **下書きは押すだけで出し入れできる。確認をはさむのは確定済みのコマから外すときだけ。**
- * 組み立て中は入れて外してを繰り返すので、そこに確認を挟むと作業にならない。
- * 確定済みは保護者・講師の画面にもう出ていて、講師なら給与にも効いている。
+ * **触れるのは下書きのコマだけ。確定したコマはここでは動かせない**（→ useSlotPick）。
+ * 直すのは「当日の変更」。この画面は「これからの月を作る」場所で、
+ * あちらは「もう決まった日を直す」場所。
  */
 export function SchedulePage() {
   // 確定するのは翌月ぶんが基本なので、既定を翌月にする
@@ -36,7 +35,7 @@ export function SchedulePage() {
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
 
-  const { state, groups, days } = useScheduleBoard(month, bizFilter);
+  const { state, groups, days, compare } = useScheduleBoard(month, bizFilter);
   const slotPick = useSlotPick(state.reload);
   const locked = busy || slotPick.busy;
 
@@ -109,11 +108,12 @@ export function SchedulePage() {
       <Note>
         <strong className="text-ink">日を押すと、その日のコマだけが下に出ます。</strong>
         カードの赤い数字は<strong className="text-ink">先に直すべきコマの数</strong>です。<br />
-        <strong className="text-ink">提出された希望をクリックすると仮確定できます。</strong>
-        点線＝希望のみ、塗りつぶし＝仮確定です。出るのは<strong className="text-ink">提出された希望だけ</strong>です。<br />
-        下書きのコマは<strong className="text-ink">押すだけで出し入れできます</strong>。
-        <strong className="text-ink">確定済みのコマから外すときだけ確認が出ます</strong>
-        （もう保護者・講師に見えているためです）。<br />
+        <strong className="text-ink">チップを押すと仮確定できます。</strong>
+        点線＝希望のみ、塗りつぶし＝仮確定です。<strong className="text-ink">！のついたチップは、
+        希望を出していないのに割り当てられている人</strong>です（押せば外せます）。<br />
+        <strong className="text-ink">確定したコマはこの画面では変えられません。</strong>
+        もう保護者・講師に出ていて、講師なら給与にも効いているためです。
+        直すときは<strong className="text-ink">「当日の変更」</strong>から行ってください。<br />
         <strong className="text-ink">定員 = 仮確定した講師の人数 × 事業ごとの係数</strong>。
         講師を足すと定員が伸び、超過警告が消えます。<strong className="text-ink">超過してもブロックはしません。</strong><br />
         ここで仮確定した担当が、そのまま<strong className="text-ink">講師の出勤日・勤務時間</strong>になります（給与計算にも使われます）。
@@ -151,15 +151,15 @@ export function SchedulePage() {
               <div className="grid gap-sm md:grid-cols-2">
                 {shown.map((g) => {
                   const biz = d.businesses.find((b) => b.id === g.businessId);
-                  const name = biz?.name ?? '—';
                   return (
                     <SlotCard
                       key={g.key}
                       group={g}
                       business={biz}
                       busy={locked}
-                      onToggleStudent={(id) => slotPick.pick('student', g, id, name)}
-                      onToggleEmployee={(id) => slotPick.pick('employee', g, id, name)}
+                      compare={compare}
+                      onToggleStudent={(id) => slotPick.pick('student', g, id)}
+                      onToggleEmployee={(id) => slotPick.pick('employee', g, id)}
                     />
                   );
                 })}
@@ -169,12 +169,6 @@ export function SchedulePage() {
         </>
       )}
 
-      <RemovePickSheet
-        target={slotPick.removing}
-        busy={slotPick.busy}
-        onCancel={slotPick.cancelRemove}
-        onConfirm={slotPick.confirmRemove}
-      />
     </div>
   );
 }
