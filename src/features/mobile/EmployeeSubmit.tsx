@@ -4,7 +4,7 @@ import { useAsync } from '@/hooks/useAsync';
 import { toMessage } from '@/lib/supabase';
 import {
   addWorkPreference, fetchBusinessSlots, fetchBusinesses, fetchDeadline, fetchEmployees,
-  fetchWorkPreferences, removeWorkPreference,
+  fetchScheduleMonth, fetchWorkPreferences, removeWorkPreference,
 } from '@/lib/queries';
 import {
   currentMonthKey, formatDayJa, formatMonthJa, formatTimeRange, shiftMonth,
@@ -14,6 +14,7 @@ import { multiBusiness } from '@/lib/format';
 import { MonthHeader } from './MonthHeader';
 import { SubmitCounter } from './SubmitCounter';
 import { PickRow } from './PickRow';
+import { EmployeeDecidedMonth } from './EmployeeDecidedMonth';
 import { buildOpenings, openingKey } from './openings';
 
 /**
@@ -24,6 +25,9 @@ import { buildOpenings, openingKey } from './openings';
  *
  * 出せるのは担当できる事業の開催コマだけ。これは複合外部キーで DB 側も担保している。
  * 日曜は2教室が並行開催されるので、同じ日・同じコマ番号でも事業が違えば別の行になる。
+ *
+ * **確定した月は候補を出さない**（→ DecidedDays）。出した希望と実際の担当は別物で、
+ * 確定後に希望のチェックだけが並んでいると「結局どのコマに入るのか」が読み取れない。
  */
 export function EmployeeSubmit() {
   const { toast } = useToast();
@@ -34,11 +38,13 @@ export function EmployeeSubmit() {
   const [busy, setBusy] = useState(false);
 
   const state = useAsync(async () => {
-    const [businesses, slots, deadline, employees, work] = await Promise.all([
+    /* 確定済みのコマも一緒に読む。**講師に届く schedules は確定したものだけ**
+       （RLS）なので、1件でもあればその月はもう確定している */
+    const [businesses, slots, deadline, employees, work, schedule] = await Promise.all([
       fetchBusinesses(), fetchBusinessSlots(), fetchDeadline(month, 'employee'),
-      fetchEmployees(), fetchWorkPreferences(month),
+      fetchEmployees(), fetchWorkPreferences(month), fetchScheduleMonth(month),
     ]);
-    return { businesses, slots, deadline, employees, work };
+    return { businesses, slots, deadline, employees, work, schedule };
   }, [month]);
 
   // 月を変えたら選択はやり直し。持ち越すと別の月に書き込む
@@ -55,6 +61,22 @@ export function EmployeeSubmit() {
   if (!d) return null;
 
   const me = d.employees.find((e) => e.id === user?.id);
+
+  /* 確定した月は候補を出さず、担当が決まった日だけを出す。
+     出した希望と実際の担当は別物なので、確定後に希望のチェックだけが並んでいると
+     「結局どのコマに入るのか」が読み取れない。 */
+  if (d.schedule.some((s) => s.status === 'confirmed')) {
+    return (
+      <EmployeeDecidedMonth
+        month={month}
+        onMonth={setMonth}
+        businesses={d.businesses}
+        schedule={d.schedule}
+        employeeId={user?.id}
+      />
+    );
+  }
+
   const mine = d.work
     .filter((w) => w.employeeId === user?.id)
     .map((w) => ({

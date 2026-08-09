@@ -4,7 +4,7 @@ import { useAsync } from '@/hooks/useAsync';
 import { toMessage } from '@/lib/supabase';
 import {
   addPreference, fetchBusinessSlots, fetchBusinesses, fetchDeadline, fetchPreferences,
-  fetchStudents, removePreference,
+  fetchScheduleMonth, fetchStudents, removePreference,
 } from '@/lib/queries';
 import {
   currentMonthKey, formatDayJa, formatMonthJa, formatTimeRange, shiftMonth,
@@ -13,6 +13,7 @@ import { MonthHeader } from './MonthHeader';
 import { KidSwitch } from './KidSwitch';
 import { SubmitCounter } from './SubmitCounter';
 import { PickRow } from './PickRow';
+import { ParentDecidedMonth } from './ParentDecidedMonth';
 import { buildOpenings, openingKey } from './openings';
 import type { Student } from '@/types/domain';
 
@@ -32,6 +33,9 @@ import type { Student } from '@/types/domain';
  * 締め切りの判定は DB に任せる。締め切りを過ぎていたり、その月の締め切り行が
  * まだ無ければ RLS が書き込みを弾く。画面でも日付を判定すると判定が二重になり、
  * 必ずどちらかがずれる。ここでは「押せるか」ではなく「なぜ押せなかったか」を出す。
+ *
+ * **確定した月は候補を出さない**（→ DecidedDays）。決まったあとに候補が並んでいると、
+ * 出した希望のチェックだけが見えて「結局どの日になったのか」が読み取れない。
  */
 export function ParentSubmit() {
   const { toast } = useToast();
@@ -42,11 +46,13 @@ export function ParentSubmit() {
   const [busy, setBusy] = useState(false);
 
   const state = useAsync(async () => {
-    const [businesses, slots, deadline, students, prefs] = await Promise.all([
+    /* 確定済みのコマも一緒に読む。**保護者には確定したものしか返ってこない**
+       ので（RLS）、1件でもあればその月はもう確定している */
+    const [businesses, slots, deadline, students, prefs, schedule] = await Promise.all([
       fetchBusinesses(), fetchBusinessSlots(), fetchDeadline(month, 'parent'),
-      fetchStudents(), fetchPreferences(month),
+      fetchStudents(), fetchPreferences(month), fetchScheduleMonth(month),
     ]);
-    return { businesses, slots, deadline, students, prefs };
+    return { businesses, slots, deadline, students, prefs, schedule };
   }, [month]);
 
   // 月を変えたら選択はやり直し。前の月の選択を持ち越すと別の月に書き込む
@@ -72,6 +78,24 @@ export function ParentSubmit() {
   }
 
   const kid = d.students.find((s) => s.id === kidId) ?? d.students[0]!;
+
+  /* 確定した月は候補を出さず、決まった日だけを出す。
+     **保護者に届く schedules は確定したものだけ**（RLS）なので、1件でもあれば
+     その月はもう確定している。 */
+  if (d.schedule.some((s) => s.status === 'confirmed')) {
+    return (
+      <ParentDecidedMonth
+        month={month}
+        onMonth={setMonth}
+        students={d.students}
+        businesses={d.businesses}
+        kid={kid}
+        onKid={setKidId}
+        schedule={d.schedule}
+      />
+    );
+  }
+
   const closed = !d.deadline || !d.deadline.active
     || new Date(d.deadline.deadlineAt).getTime() < Date.now();
 
