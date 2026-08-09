@@ -99,5 +99,48 @@ ck(!/第\d+コマ/.test(parentText), '保護者の画面に「第〇コマ」が
 ck(!/¥[\d,]+/.test(d.getElementById('feeCard')?.textContent ?? ''),
    '月謝カードに金額（生の数字）が出ていない');
 
+/* --- 6. 金額を調整した月だけ「見直しました」を出す --------------------------
+   **出ることと出ないことを両方見る。** 出ることだけ見ると、無条件に出す作りでも
+   通ってしまい、「毎月出る＝意味が消える」を検査で拾えない。 */
+const feeText = () => (d.getElementById('feeCard')?.textContent ?? '').replace(/\s+/g, ' ');
+const adjustedMonth = feeText();
+ck(/金額を見直しました/.test(adjustedMonth), `調整した月に見直しの案内が出る（${adjustedMonth.slice(0, 46)}）`);
+ck(/増額|減額/.test(adjustedMonth), '増えたか減ったかまで書いてある');
+ck(!/¥[\d,]+/.test(adjustedMonth), '見直しの案内にも金額（生の数字）が出ていない');
+dom.window.shiftKidMonth(-1);                       // 調整していない月へ
+const plainMonth = feeText();
+ck(!/金額を見直しました/.test(plainMonth),
+   `調整していない月には出ない（${plainMonth.slice(0, 40)}）`);
+dom.window.shiftKidMonth(1);
+
+/* --- 7. 確定した月の希望提出は「決まった日」だけを出す ----------------------
+   確定後も候補を並べたままだと、出した希望にチェックが付いた状態だけが見えて
+   「結局どの日に決まったのか」がどこにも書かれない。
+   ここでも**受付中と確定済みの両方**を見る（片方だけだと入れ替えを検査できない）。 */
+const submitState = () => ({
+  pPick: !d.getElementById('pPicking').hidden,
+  pDone: !d.getElementById('pDecided').hidden,
+  ePick: !d.getElementById('ePicking').hidden,
+  eDone: !d.getElementById('eDecided').hidden,
+});
+const open = submitState();
+ck(open.pPick && !open.pDone && open.ePick && !open.eDone,
+   '受付中の月（9月）は候補を出す');
+
+dom.window.shiftSub(-1);                            // 8月 = 確定済み
+const done = submitState();
+ck(!done.pPick && done.pDone && !done.ePick && done.eDone,
+   '確定した月は候補を出さず、決まった日に入れ替わる');
+const pDays = d.querySelectorAll('#pDecidedList .pick').length;
+const eDays = d.querySelectorAll('#eDecidedList .pick').length;
+ck(pDays > 0, `保護者の決まった日が中身つきで出る（${pDays}件）`);
+ck(eDays > 0, `講師の決まった日が中身つきで出る（${eDays}件）`);
+const pDone = d.getElementById('pDecidedList').textContent.replace(/\s+/g, ' ');
+ck(!/第\d+コマ/.test(pDone), `決まった日にも「第〇コマ」が出ていない（${pDone.slice(0, 40)}）`);
+ck(/生徒\d+名/.test(d.getElementById('eDecidedList').textContent),
+   '講師の決まった日には人数が出る');
+dom.window.shiftSub(1);
+ck(submitState().pPick, '受付中の月に戻せる');
+
 console.log(bad ? `\n=== 問題 ${bad} 件 ===` : '\n=== 問題 0 件 ===');
 process.exit(bad ? 1 : 0);

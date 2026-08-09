@@ -214,6 +214,12 @@
   .pick.on .box{background:var(--forest);border-color:var(--forest);}
   .pick.on.illust .box{background:var(--coral);border-color:var(--coral);}
   .pick .d{font-size:clamp(15px, 14.2px + 0.21vw, 17px);color:var(--ink);} .pick .tm{font-size:clamp(13px, 12.2px + 0.21vw, 15px);color:var(--muted);margin-top:2px;}
+  /* 確定した月の「決まった日」。選ぶものではないので、チェックは四角ではなく丸にする。
+     済んだ回は面の色を落とす（色だけに頼らず「終了」の字も併記する） */
+  .pick .box.round{border-radius:var(--r-pill);}
+  .pick.done{background:var(--canvas);border-color:var(--hairline);}
+  .pick.done .d{color:var(--muted);}
+  .pick.done .box{background:var(--surface-soft);border-color:var(--hairline);color:var(--muted);}
 
   /* 出席マーク */
   .att{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--hairline);}
@@ -1013,22 +1019,45 @@
         </div>
       </section>
 
+      <!-- 希望提出は月ごとに2つの顔を持つ。
+           受付中の月 = 候補から選ぶ / 確定した月 = 決まった日だけを出す。
+           確定したあとも候補を並べたままにすると、出した希望にチェックが付いた
+           状態だけが見えて「結局どの日に決まったのか」がどこにも書いていない。 -->
       <section class="screen" id="p-submit">
+        <div class="toolbar" style="margin-bottom:10px;">
+          <div class="monthnav">
+            <button class="iconbtn" onclick="shiftSub(-1)">‹</button>
+            <div class="m" id="pSubMonth">2026年 9月</div>
+            <button class="iconbtn" onclick="shiftSub(1)">›</button>
+          </div>
+        </div>
         <div class="lbl">お子さま</div>
         <div class="kidswitch" id="kidSwitch2"></div>
-        <div class="counter">
-          <div><div class="muted">選択中</div><div class="c"><span id="pickCount">2</span> / <span id="pickMax">2</span> コマ</div></div>
-          <div class="spacer" style="flex:1"></div>
-          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--ink);">8月20日 23:59</div></div>
+
+        <div id="pDecided" hidden>
+          <div class="lbl" id="pDecidedLbl">2026年9月 決まった日 0件</div>
+          <div id="pDecidedList"></div>
+          <p class="muted" style="margin-top:12px;">
+            この月は<strong>予定が確定しました</strong>。希望の受付は終わっています。
+            お休みの連絡は<strong>「予定」</strong>から、変更が必要な場合は教室にご連絡ください。
+          </p>
         </div>
-        <div class="lbl" id="pickHint">2026年9月 の候補日</div>
-        <div id="pickList"></div>
-        <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="toast('9月分の受講希望を提出しました')">この内容で提出する</button>
-        <p class="muted" style="margin-top:12px;">
-          <strong>同じ日に2コマは受講できません（1日1コマまで）。</strong>
-          コースの上限を超える選択もできません。
-          締切を過ぎると編集できなくなります（管理者は締切後も変更できます）。
-        </p>
+
+        <div id="pPicking">
+          <div class="counter">
+            <div><div class="muted">選択中</div><div class="c"><span id="pickCount">2</span> / <span id="pickMax">2</span> コマ</div></div>
+            <div class="spacer" style="flex:1"></div>
+            <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--ink);">8月20日 23:59</div></div>
+          </div>
+          <div class="lbl" id="pickHint">2026年9月 の候補日</div>
+          <div id="pickList"></div>
+          <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="toast('9月分の受講希望を提出しました')">この内容で提出する</button>
+          <p class="muted" style="margin-top:12px;">
+            通える日を<strong>いくつでも</strong>選べます（0件でも提出できます）。同じ日の別の時間も選べます。
+            そのうちコースの回数ぶんを教室が決めます。
+            締切を過ぎると編集できなくなります（管理者は締切後も変更できます）。
+          </p>
+        </div>
       </section>
 
       <section class="screen" id="p-schedule">
@@ -1115,17 +1144,36 @@
       </section>
 
       <section class="screen" id="e-submit">
-        <div class="counter">
-          <div><div class="muted">選択中</div><div class="c"><span id="ePickCount">5</span> コマ</div></div>
-          <div class="spacer" style="flex:1"></div>
-          <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--ink);">8月25日 23:59</div></div>
+        <div class="toolbar" style="margin-bottom:10px;">
+          <div class="monthnav">
+            <button class="iconbtn" onclick="shiftSub(-1)">‹</button>
+            <div class="m" id="eSubMonth">2026年 9月</div>
+            <button class="iconbtn" onclick="shiftSub(1)">›</button>
+          </div>
         </div>
-        <div class="lbl">2026年9月 勤務可能なコマ</div>
-        <div id="ePickList"></div>
-        <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="toast('9月分の勤務希望を提出しました')">この内容で提出する</button>
-        <p class="muted" style="margin-top:12px;">
-          担当できる事業の開催日だけが出ます。<strong>日曜は2教室が並行開催</strong>されるため、事業ごとに分かれています。
-        </p>
+
+        <div id="eDecided" hidden>
+          <div class="lbl" id="eDecidedLbl">2026年9月 決まった日 0件</div>
+          <div id="eDecidedList"></div>
+          <p class="muted" style="margin-top:12px;">
+            この月は<strong>シフトが確定しました</strong>。勤務希望の受付は終わっています。
+            担当の中身は<strong>「予定」</strong>から見られます。変更が必要な場合は管理者にご連絡ください。
+          </p>
+        </div>
+
+        <div id="ePicking">
+          <div class="counter">
+            <div><div class="muted">選択中</div><div class="c"><span id="ePickCount">5</span> コマ</div></div>
+            <div class="spacer" style="flex:1"></div>
+            <div style="text-align:right;"><div class="muted">締切</div><div style="font-size:clamp(14px, 13.2px + 0.21vw, 16px);color:var(--ink);">8月25日 23:59</div></div>
+          </div>
+          <div class="lbl">2026年9月 勤務可能なコマ</div>
+          <div id="ePickList"></div>
+          <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="toast('9月分の勤務希望を提出しました')">この内容で提出する</button>
+          <p class="muted" style="margin-top:12px;">
+            担当できる事業の開催日だけが出ます。<strong>日曜は2教室が並行開催</strong>されるため、事業ごとに分かれています。
+          </p>
+        </div>
       </section>
 
       <section class="screen" id="e-schedule">
@@ -2567,19 +2615,29 @@ const attData = students.map(s => {
 const feeMonths = ['2026-04','2026-05','2026-06','2026-07','2026-08'];
 /* 8月分の支払状況。未払いは 高橋 芽依・伊藤 陸・松本 楓 の3名 */
 const feeState  = [1,1,1,0,1,1,1,0,1,1,1,1,0,1,1];
-/* 月謝ログ: 8月分だけ未払いの生徒がいる。4号（高橋）は7月にコース変更で差額調整あり */
+/* 月謝ログ: 8月分だけ未払いの生徒がいる。
+   金額を調整した月は「発行時の額（base）との差」で判定する。
+   **コースの月額と突き合わせてはいけない** ―― 料金を改定した瞬間、一度も
+   触っていない過去の全月が「調整された」ことになる（fees.base_amount と同じ考え方）。 */
+const feeAdjust = {
+  '3|2026-07': [-2000, '月途中のコース変更により差額調整'],
+  /* 保護者の月謝カードに「金額を見直しました」が出る見本。
+     8/16 は休講日（MONTHS[8].off）で、田中 陽翔はプログラミング＝日曜開催 */
+  '0|2026-08': [-1500, '8/16 の休講分を差し引きました'],
+};
 function feeLog(i){
   const s = students[i];
   return feeMonths.map((m, j) => {
     const last = j === feeMonths.length - 1;
     const paid = last ? feeState[i] : 1;
-    const adj  = (i === 3 && m === '2026-07');
+    const adj  = feeAdjust[`${i}|${m}`];
     return {
       m,
-      amount: adj ? s.fee - 2000 : s.fee,
+      base: s.fee,                                   // 発行時の額。以後動かさない
+      amount: s.fee + (adj ? adj[0] : 0),
       paid,
       date: paid ? m.replace('-', '/') + '/10' : null,
-      note: adj ? '月途中のコース変更により差額調整' : ''
+      note: adj ? adj[1] : ''
     };
   });
 }
@@ -2738,8 +2796,10 @@ function renderKids(){
 
   renderAttendSummary();
 
+  /* 候補が出るのは受付中の月だけ。この見本で受付中なのは9月しかない
+     （7月・8月は確定済み → 決まった日の一覧に入れ替わる。→ renderSubmit） */
   pickHint.textContent = `2026年9月 の候補日（${k.b.short}／${k.b.key==='prog'?'日曜のみ':'土日'}）`;
-  renderPicks();
+  renderSubmit();
 
   parentSched.innerHTML = (k.b.key==='prog'
     ? [['9月6日（日）','13:00〜14:30'],['9月20日（日）','13:00〜14:30']]
@@ -2777,11 +2837,17 @@ function kidSessions(m){
 }
 /* 月謝カード。受講状況と同じ月を出す（月を切り替えたあとに戻ってきたとき、
    どの月の金額を見ているのか分からなくなるため、カードに月を必ず書く）。
-   未払いのときだけ面を赤系にする ―― 色だけに頼らず「未払い」の文字も併記する。 */
+   未払いのときだけ面を赤系にする ―― 色だけに頼らず「未払い」の文字も併記する。
+
+   **金額は出さないが、その月だけ額が動いたことは必ず知らせる。**
+   金額を出さない方針のままだと、管理者が調整した月に保護者が何も気づけず、
+   請求書が届いてから問い合わせになる。増えたか減ったかまでは書く ――
+   「見直しました」だけでは、慌てて確かめるべきかどうかが分からない。 */
 function renderFeeCard(){
   const k = kids[kid], f = feeOf(students.indexOf(k), kidMonth);
   const unpaid = !f.unbilled && !f.paid;
   const label = f.unbilled ? '請求前' : f.paid ? '支払い済み' : '未払い';
+  const adjusted = !f.unbilled && f.amount !== f.base;
   document.getElementById('feeCard').innerHTML = `
     <div class="card" style="padding:18px;margin-bottom:16px;
         ${unpaid ? 'border-color:var(--coral);background:#f7e8e8;' : ''}">
@@ -2793,10 +2859,19 @@ function renderFeeCard(){
       </div>
       ${f.unbilled ? '' : `
         ${f.date ? `<div class="muted" style="margin-top:4px;">${f.date} 入金</div>` : ''}
-        ${f.note ? `<div style="color:var(--body);margin-top:10px;
+        ${adjusted ? `
+          <div style="margin-top:14px;border:1px solid var(--hairline);background:var(--surface-soft);
+              border-radius:var(--r-sm);padding:8px 10px;">
+            <div style="color:var(--ink);font-weight:500;">ℹ️ この月は金額を見直しました（${
+              f.amount > f.base ? '増額' : '減額'}）</div>
+            <div style="color:var(--body);margin-top:3px;">${
+              f.note || 'くわしくは教室にお問い合わせください。'}</div>
+          </div>`
+        : f.note ? `<div style="color:var(--body);margin-top:10px;
           border-left:2px solid var(--hairline);padding-left:10px;">${f.note}</div>` : ''}`}
       <p class="muted" style="margin-top:10px;">
         ${f.unbilled ? '請求されると、ここに支払い状況が出ます。'
+          : adjusted ? 'ふだんの月謝は<strong>固定月額</strong>です。この月だけ金額が違います。'
                      : '月謝は<strong>固定月額</strong>です。お休みされても変わりません。'}</p>
     </div>`;
 }
@@ -2967,12 +3042,61 @@ function renderPicks(){
   }).join('') + `<p class="muted" style="margin-top:8px;">
       このうち<strong>月${k.sess}コマ</strong>を教室が決めます。多めに出していただくほど組みやすくなります。</p>`;
 }
+/* **件数では止めない。** 希望は候補で、回数を決めるのは確定のほう（ドメインルール2）。
+   以前あった「コースの上限まで」の判定はここから消した ―― 上限で止めると
+   保護者が通う日まで決めることになり、管理者に動かせる余地が残らない。 */
 function togglePick(i){
   const sel = picks[kid];
   const at = sel.indexOf(i);
-  if(at >= 0){ sel.splice(at,1); renderPicks(); return; }
-  if(sel.length >= k.sess){ toast('コースの上限は月'+k.sess+'コマです'); return; }
-  sel.push(i); renderPicks();
+  if(at >= 0) sel.splice(at,1); else sel.push(i);
+  renderPicks();
+}
+
+/* ---- 希望提出の月送り。受付中の月と確定した月で中身がまるごと入れ替わる ---- */
+let subMonth = 9;                                   // 既定は来月（受付中）
+function shiftSub(dir){
+  if (!MONTHS[subMonth + dir]) return;
+  subMonth += dir;
+  renderSubmit();
+}
+/* 決まった日の1枚。選ぶものではないのでチェックは丸、済んだ回は面の色を落とす */
+function decidedCard(m, d, b, time, meta){
+  const done = isPast(m, d);
+  return `<div class="pick ${done ? 'done' : 'on'} ${b.key==='illust'?'illust':''}">
+    <span class="box round">✓</span>
+    <span style="flex:1"><span class="d">${dayLabel(m, d)}</span>
+    <div class="tm">${time}${meta ? ' ・ ' + meta : ''}</div></span>
+    ${done ? '<span class="muted">終了</span>' : ''}
+  </div>`;
+}
+function renderSubmit(){
+  const label = MONTHS[subMonth].label;
+  const decided = MONTHS[subMonth].conf === 'all';
+  pSubMonth.textContent = label;
+  eSubMonth.textContent = label;
+  pDecided.hidden = !decided; pPicking.hidden = decided;
+  eDecided.hidden = !decided; ePicking.hidden = decided;
+  if (!decided) { renderPicks(); return; }
+
+  /* 保護者: その子の決まったコマだけ。教室名もコマ番号も出さない */
+  const mine = kidSessions(subMonth);
+  pDecidedLbl.textContent = `${label.replace(/\s/g,'')} 決まった日 ${mine.length}件`;
+  pDecidedList.innerHTML = mine.length
+    ? mine.map(s => decidedCard(s.m, s.d, s.sl.b, s.sl.time, '')).join('')
+    : `<div class="card" style="padding:18px;"><p class="muted">${kids[kid].n}さんの受講日は、この月にはありません。お心当たりがない場合は教室にお問い合わせください。</p></div>`;
+
+  /* 講師: 自分の担当コマだけ。1行は「いつ・何時から・何人来るか」 */
+  const shifts = [];
+  for (let d = 1; d <= MONTHS[subMonth].days; d++) {
+    for (const s of slotsOf(subMonth, d)) {
+      if (s.ok && s.emps.includes(EMP_ME)) shifts.push({d, s});
+    }
+  }
+  eDecidedLbl.textContent = `${label.replace(/\s/g,'')} 決まった日 ${shifts.length}件`;
+  eDecidedList.innerHTML = shifts.length
+    ? shifts.map(x => decidedCard(subMonth, x.d, x.s.b, x.s.time,
+        `${x.s.b.short} ・ 生徒${x.s.studs.length}名`)).join('')
+    : '<div class="card" style="padding:18px;"><p class="muted">この月の担当はありません。</p></div>';
 }
 
 /* ========== 従業員 ========== */
@@ -3345,7 +3469,7 @@ function renderRevenue(){
 function feeOf(i, m){
   const key = `2026-${String(m).padStart(2, '0')}`;
   return feeLog(i).find(f => f.m === key)
-      || {m:key, amount:students[i].fee, paid:0, date:null, note:'', unbilled:true};
+      || {m:key, amount:students[i].fee, base:students[i].fee, paid:0, date:null, note:'', unbilled:true};
 }
 const revF = {biz:'all', pay:'all', q:''};
 function setRevF(k, v, el){
@@ -3377,7 +3501,10 @@ function renderRevFees(){
       <td class="name">${s.n}<div class="sub">${s.parent}</div></td>
       <td>${bBadge(s.b)}</td>
       <td>${s.label}<div class="sub">月${s.sess}回</div></td>
-      <td class="num">${yen(f.amount)}</td>
+      <!-- 発行時から動かした月は印を付ける。**保護者の画面には「金額を見直しました」と
+           出ている**ので、どの行がそうなのかを記録する側が分かるようにしておく -->
+      <td class="num">${yen(f.amount)}${
+        !f.unbilled && f.amount !== f.base ? '<div class="sub">調整あり</div>' : ''}</td>
       <td>${badge}</td>
       <td class="muted" style="font-variant-numeric:tabular-nums;">${f.date || '—'}</td>
       <td class="muted">${f.note || ''}</td>
