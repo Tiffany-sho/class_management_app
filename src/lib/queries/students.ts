@@ -117,16 +117,29 @@ export async function fetchUserNames(ids: string[]): Promise<Map<string, string>
 export interface StudentFee {
   studentId: string;
   amount: number;
+  /** 発行時の額。`amount` と違えば管理者が調整した月（→ isAdjusted） */
+  baseAmount: number;
   status: 'paid' | 'unpaid';
   paidDate: string | null;
   note: string | null;
+}
+
+/**
+ * その月の金額が発行時から動いているか。
+ *
+ * **コースの月額（courses.monthly_fee）と比べてはいけない。** 料金を改定した
+ * 瞬間、一度も触っていない過去の全月が「調整された」ことになる。
+ * 比べるのは発行時にコピーしておいた `base_amount`（→ migration 20260809120000）。
+ */
+export function isAdjusted(fee: { amount: number; baseAmount: number }): boolean {
+  return fee.amount !== fee.baseAmount;
 }
 
 /** 指定月の月謝。行が無い生徒は「まだ請求していない」＝ undefined になる */
 export async function fetchFees(yearMonth: string): Promise<Map<string, StudentFee>> {
   const { data, error } = await supabase
     .from('fees')
-    .select('student_id, amount, status, paid_date, note')
+    .select('student_id, amount, base_amount, status, paid_date, note')
     .eq('year_month', yearMonth);
   if (error) throw error;
   return new Map(
@@ -135,6 +148,7 @@ export async function fetchFees(yearMonth: string): Promise<Map<string, StudentF
       {
         studentId: f.student_id,
         amount: f.amount,
+        baseAmount: f.base_amount,
         status: f.status,
         paidDate: f.paid_date,
         note: f.note,

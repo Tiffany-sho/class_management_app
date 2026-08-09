@@ -112,6 +112,7 @@ export function RevenuePage() {
           parentName: student.parentName ?? null,
           yearMonth: month,
           amount: f.amount,
+          baseAmount: f.baseAmount,
           status: f.status,
           paidDate: f.paidDate,
           note: f.note,

@@ -55,6 +55,12 @@ begin
   select public.generate_fees('1999-06') into n;
   perform pg_temp.eq('D05', '月謝発行: 2回目は0件（増えない）', n::text, '0');
 
+  /* 発行時は amount と base_amount が同じ。**ここがずれていると、発行しただけの月に
+     「金額を見直しました」が保護者に出る**（→ src/features/mobile/FeeCard.tsx）。 */
+  perform pg_temp.eq('D04b', '月謝発行: 発行時は請求額と発行時の額が一致する',
+    (select count(*)::text from public.fees
+      where year_month = '1999-06' and amount is distinct from base_amount), '0');
+
   perform pg_temp.ng('D06', '月謝発行: 年月の形が不正なら弾く',
     'select public.generate_fees(''2026-13'')', '');
 
@@ -67,6 +73,11 @@ begin
   select amount into amt from public.fees where student_id = s_id and year_month = '1999-06';
   perform pg_temp.eq('D07', '月謝発行: 料金を改定しても発行済みの請求額は動かない',
     amt::text, fee0::text);
+  /* 発行時の額も動かない。ここが動くと、料金改定をしただけで過去の全月が
+     「調整された」ことになり、保護者に一斉に「見直しました」が出る */
+  perform pg_temp.eq('D07b', '月謝発行: 料金を改定しても発行時の額は動かない',
+    (select base_amount::text from public.fees
+      where student_id = s_id and year_month = '1999-06'), fee0::text);
   update public.courses set monthly_fee = monthly_fee - 5000 where id = c_id;
 
   ---------------------------------------------------------------- generate_deadlines

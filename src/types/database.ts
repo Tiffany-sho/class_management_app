@@ -444,6 +444,7 @@ export type Database = {
       fees: {
         Row: {
           amount: number
+          base_amount: number
           created_at: string
           id: string
           note: string | null
@@ -455,6 +456,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          base_amount: number
           created_at?: string
           id?: string
           note?: string | null
@@ -466,6 +468,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          base_amount?: number
           created_at?: string
           id?: string
           note?: string | null

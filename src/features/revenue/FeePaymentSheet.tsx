@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Badge, Button, Field, Note, Sheet, TextArea, TextInput, useToast,
 } from '@/components/ui';
-import { updateFee } from '@/lib/queries';
+import { isAdjusted, updateFee } from '@/lib/queries';
 import { formatMonthJa, todayIso } from '@/lib/date';
 import { yen } from '@/lib/format';
 import { toMessage } from '@/lib/supabase';
@@ -14,6 +14,8 @@ export interface FeeTarget {
   parentName: string | null;
   yearMonth: string;
   amount: number;
+  /** 発行時の額。動かさない列なので、ここに入れて画面から送り返さない */
+  baseAmount: number;
   status: FeeStatus;
   paidDate: string | null;
   note: string | null;
@@ -38,7 +40,8 @@ interface Props {
  *
  * 金額も直せる（ドメインルール10）。月の途中でコースが変わったときの差額は
  * 日割り計算に寄せず手で入れる、と決めているため。**直したら理由を残す** ――
- * メモは保護者のマイページにそのまま出る。
+ * 発行時の額から動かすと、保護者の画面に「金額を見直しました」が出る（→ FeeCard）。
+ * メモを空のままにすると、そこに「教室にお問い合わせください」としか書けない。
  */
 export function FeePaymentSheet({ target, onClose, onSaved }: Props) {
   const { toast } = useToast();
@@ -81,7 +84,13 @@ export function FeePaymentSheet({ target, onClose, onSaved }: Props) {
   };
 
   const paid = target?.status === 'paid';
-  const changed = target ? Number(amount) !== target.amount : false;
+  /** 保存済みの状態。保護者の画面に「見直しました」が出ているかどうかと同じ判定 */
+  const adjusted = target ? isAdjusted(target) : false;
+  /**
+   * **保存したらどうなるか**で警告する（今この場で変えたかどうかではない）。
+   * 「前に金額だけ直してメモを消した」月を、次に開いたときも捕まえたい。
+   */
+  const willAdjust = target ? Number(amount) !== target.baseAmount : false;
 
   return (
     <Sheet
@@ -106,11 +115,20 @@ export function FeePaymentSheet({ target, onClose, onSaved }: Props) {
     >
       {target ? (
         <>
-          <div className="mb-lg flex items-center gap-sm rounded-md border border-hairline
-            bg-surface-soft px-md py-sm">
-            <span className="text-ui-2xl font-medium text-ink tnum">{yen(target.amount)}</span>
-            <span className="flex-1" />
-            <Badge tone={paid ? 'success' : 'danger'}>{paid ? '支払済' : '未払い'}</Badge>
+          <div className="mb-lg rounded-md border border-hairline bg-surface-soft px-md py-sm">
+            <div className="flex items-center gap-sm">
+              <span className="text-ui-2xl font-medium text-ink tnum">{yen(target.amount)}</span>
+              <span className="flex-1" />
+              <Badge tone={paid ? 'success' : 'danger'}>{paid ? '支払済' : '未払い'}</Badge>
+            </div>
+            {/* 発行時の額から動いている月だけ出す。**保護者の画面にも
+                「金額を見直しました」と出ている**ので、どの月がそうなのかを
+                記録する側が知らないままにしない（→ FeeCard） */}
+            {adjusted ? (
+              <div className="mt-[4px] text-ui-sm text-muted tnum">
+                発行時 {yen(target.baseAmount)} から調整済み ・ 保護者にも「見直し」と表示中
+              </div>
+            ) : null}
           </div>
 
           <Field label="入金日" hint="通帳を見ながら後から記録するときは、実際の入金日に直してください。">
@@ -145,10 +163,12 @@ export function FeePaymentSheet({ target, onClose, onSaved }: Props) {
             />
           </Field>
 
-          {changed && !note.trim() ? (
+          {willAdjust && !note.trim() ? (
             <Note icon="warning">
-              金額を変えています。<strong className="text-ink">理由をメモに残してください。</strong>
-              説明の無い増減は、そのまま保護者に届いて問い合わせになります。
+              発行時の額（{yen(target.baseAmount)}）と違います。
+              <strong className="text-ink">理由をメモに残してください。</strong>
+              保護者の画面には<strong className="text-ink">「金額を見直しました」</strong>と出ます。
+              メモが空だと「教室にお問い合わせください」としか出せず、そのまま問い合わせになります。
             </Note>
           ) : (
             <Note>

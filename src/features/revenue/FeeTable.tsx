@@ -4,7 +4,7 @@ import {
 } from '@/components/ui';
 import { FEE_LABEL, yen } from '@/lib/format';
 import type { Business, Student } from '@/types/domain';
-import type { StudentFee } from '@/lib/queries';
+import { isAdjusted, type StudentFee } from '@/lib/queries';
 
 interface Row extends Student {
   fee?: StudentFee;
@@ -64,8 +64,17 @@ export function FeeTable({ businesses, students, fees, onPick }: Props) {
     { key: 'course', header: 'コース', render: (s) => (
       <span className="text-ui-sm text-muted">{s.gradeLabel} 月{s.sessionsPerMonth}回</span>
     ) },
+    /* 発行時から動かした月は印を付ける。**保護者の画面には「金額を見直しました」と
+       出ている**ので、どの行がそうなのかを一覧で分かるようにしておく（→ FeeCard） */
     { key: 'amount', header: '請求額', numeric: true, render: (s) => (
-      s.fee ? <span className="tnum">{yen(s.fee.amount)}</span> : <span className="text-muted">—</span>
+      !s.fee ? <span className="text-muted">—</span> : (
+        <div>
+          <span className="tnum">{yen(s.fee.amount)}</span>
+          {isAdjusted(s.fee) ? (
+            <div className="text-ui-sm text-muted">調整あり</div>
+          ) : null}
+        </div>
+      )
     ) },
     { key: 'status', header: '状況', render: (s) => (
       !s.fee ? <Badge tone="neutral">請求前</Badge>
