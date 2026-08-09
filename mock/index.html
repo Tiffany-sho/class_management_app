@@ -466,6 +466,7 @@
       <button data-s="overtime"><span class="ic">🏠</span>時間外勤務 申請<span class="navbadge" id="navOt">0</span></button>
       <button data-s="promotion"><span class="ic">🎓</span>進級処理<span class="navbadge">4</span></button>
       <div class="grp">経営</div>
+      <button data-s="fees"><span class="ic">💴</span>月謝</button>
       <button data-s="revenue"><span class="ic">📈</span>収入・収益</button>
       <button data-s="payroll"><span class="ic">🧮</span>給与計算・締め処理</button>
       <div class="grp">連絡</div>
@@ -733,6 +734,28 @@
           </div>
         </div>
 
+        <p class="muted" style="margin-top:12px;">
+          <strong>収入は固定月額の合計</strong>です。欠席や休講があっても変わりません（日割り・繰越なし）。
+          <strong>支出はスケジュール確定で割り当てたコマから計算</strong>しているので、
+          <strong>未確定の月は見込み</strong>です。確定すると数字が動きます。
+          家賃・光熱費・教材費などの固定費は<strong>まだ入っていません</strong>。
+        </p>
+      </section>
+
+      <!-- ===== 月謝 =====
+           収入・収益から分けてある。あちらは「今月いくら残ったか」を月に一度見る画面で、
+           こちらは毎月の入金を1件ずつ記録していく作業。開く回数も見る単位も違う。 -->
+      <section class="screen" id="s-fees">
+        <div class="toolbar">
+          <div class="monthnav">
+            <button class="iconbtn" onclick="shiftRev(-1)">‹</button>
+            <div class="m" id="feeMonthLabel" style="min-width:150px;">2026年 8月</div>
+            <button class="iconbtn" onclick="shiftRev(1)">›</button>
+          </div>
+          <div class="spacer" style="flex:1"></div>
+          <button class="btn btn-primary btn-sm" onclick="toast('未請求の生徒ぶんの月謝を発行しました')">月謝を発行</button>
+        </div>
+        <div class="summ" id="feeSumm"></div>
         <div class="toolbar" style="margin-top:26px;">
           <div>
             <h2 style="font-size:clamp(17px, 15.8px + 0.32vw, 19px);margin-bottom:4px;">月謝の支払い状況</h2>
@@ -763,10 +786,10 @@
           </table>
         </div>
         <p class="muted" style="margin-top:12px;">
-          <strong>収入は固定月額の合計</strong>です。欠席や休講があっても変わりません（日割り・繰越なし）。
-          <strong>支出はスケジュール確定で割り当てたコマから計算</strong>しているので、
-          <strong>未確定の月は見込み</strong>です。確定すると数字が動きます。
-          家賃・光熱費・教材費などの固定費は<strong>まだ入っていません</strong>。
+          月謝は<strong>固定月額</strong>で、欠席が多くても日割りにはなりません。
+          <strong>入金を受け取ったら、行を押して記録します。</strong>記録すると保護者のマイページにもすぐ反映されます。
+          金額を発行時から動かすと、保護者の画面に<strong>「金額を見直しました」</strong>と出ます。
+          <strong>理由はメモに残してください</strong>（そのまま保護者に出ます）。
         </p>
       </section>
 
@@ -1037,6 +1060,16 @@
         <div class="lbl">お子さま</div>
         <div class="kidswitch" id="kidSwitch2"></div>
 
+        <div id="pSubmitted" hidden>
+          <div class="lbl" id="pSubmittedLbl">2026年9月 提出した希望 0件</div>
+          <div id="pSubmittedList"></div>
+          <p class="muted" style="margin-top:12px;">
+            この月は<strong>提出済み</strong>です。提出後は変更できません。
+            このうちコースの回数ぶんを教室が決め、確定すると<strong>「予定」</strong>に出ます。
+            変更が必要な場合は教室にご連絡ください。
+          </p>
+        </div>
+
         <div id="pDecided" hidden>
           <div class="lbl" id="pDecidedLbl">2026年9月 決まった日 0件</div>
           <div id="pDecidedList"></div>
@@ -1153,6 +1186,16 @@
             <div class="m" id="eSubMonth">2026年 9月</div>
             <button class="iconbtn" onclick="shiftSub(1)">›</button>
           </div>
+        </div>
+
+        <div id="eSubmitted" hidden>
+          <div class="lbl" id="eSubmittedLbl">2026年9月 提出した希望 0件</div>
+          <div id="eSubmittedList"></div>
+          <p class="muted" style="margin-top:12px;">
+            この月は<strong>提出済み</strong>です。提出後は変更できません。
+            出した希望がそのままシフトになるわけではなく、教室が調整して確定します。
+            変更が必要な場合は管理者にご連絡ください。
+          </p>
         </div>
 
         <div id="eDecided" hidden>
@@ -3103,14 +3146,49 @@ function decidedCard(m, d, b, time, meta){
     ${done ? '<span class="muted">終了</span>' : ''}
   </div>`;
 }
+/* 提出したかどうか。**希望の件数では判定できない**（0件でも提出できるため）ので、
+   提出した事実を別に持つ。行があるとその月はもう本人が直せない。
+   **両方の状態を見本に残す** ―― 片方だけだと画面の顔が1つしか出せない。 */
+const submitted = { students: ['田中 咲希'], employee: false };
+
 function renderSubmit(){
   const label = MONTHS[subMonth].label;
   const decided = MONTHS[subMonth].conf === 'all';
+  const pDone = !decided && submitted.students.includes(kids[kid].n);
+  const eDone = !decided && submitted.employee;
   pSubMonth.textContent = label;
   eSubMonth.textContent = label;
-  pDecided.hidden = !decided; pPicking.hidden = decided;
-  eDecided.hidden = !decided; ePicking.hidden = decided;
-  if (!decided) { renderPicks(); return; }
+  pDecided.hidden = !decided; pSubmitted.hidden = !pDone; pPicking.hidden = decided || pDone;
+  eDecided.hidden = !decided; eSubmitted.hidden = !eDone; ePicking.hidden = decided || eDone;
+
+  if (!decided) {
+    /* 提出済みの月は、出したものだけを出す（候補も提出ボタンも出さない）。
+       押せるものを残すと「まだ変えられる」と読める。 */
+    if (pDone) {
+      const cands = candidates(), sel = picks[kid] || [];
+      pSubmittedLbl.textContent = `${label.replace(/\s/g,'')} 提出した希望 ${sel.length}件`;
+      pSubmittedList.innerHTML = sel.length
+        ? sel.slice().sort((a,b) => a-b).map(i => {
+            const [d,,t] = cands[i];
+            return `<div class="pick on ${kids[kid].b.key==='illust'?'illust':''}">
+              <span class="box round">✓</span>
+              <span style="flex:1"><span class="d">${d}</span><div class="tm">${t}</div></span>
+            </div>`;
+          }).join('')
+        : `<div class="card" style="padding:18px;"><p class="muted">${kids[kid].n}さんは「希望なし」で提出しています。この月は通えない、と教室に伝わっています。</p></div>`;
+    }
+    if (eDone) {
+      const on = eCands.filter(c => c[3]);
+      eSubmittedLbl.textContent = `${label.replace(/\s/g,'')} 提出した希望 ${on.length}件`;
+      eSubmittedList.innerHTML = on.map(([d,b,no]) => `
+        <div class="pick on ${b.key==='illust'?'illust':''}">
+          <span class="box round">✓</span>
+          <span style="flex:1"><span class="d">${d} 第${no}コマ</span><div class="tm">${b.short}</div></span>
+        </div>`).join('');
+    }
+    if (!pDone || !eDone) renderPicks();
+    return;
+  }
 
   /* 保護者: その子の決まったコマだけ。教室名もコマ番号も出さない */
   const mine = kidSessions(subMonth);
@@ -3275,7 +3353,7 @@ empSched.innerHTML =
 
 /* ========== 画面遷移 ========== */
 const titles = {home:'ホーム', schedule:'スケジュール確定', students:'生徒',
-  overtime:'時間外勤務 申請', revenue:'収入・収益', payroll:'給与計算・締め処理',
+  overtime:'時間外勤務 申請', fees:'月謝', revenue:'収入・収益', payroll:'給与計算・締め処理',
   inbox:'受信ボックス', announce:'お知らせ', deadlines:'締め切り設定', promotion:'進級処理',
   courses:'コース・料金', slots:'開催枠', staff:'講師', users:'ユーザー・招待'};
 
@@ -3512,7 +3590,26 @@ function setRevF(k, v, el){
   el.classList.add('active');
   renderRevFees();
 }
+/* 月謝の画面のまとめ。**未入金を先に出す** ―― この画面を開く理由はたいてい督促 */
+function renderFeeSumm(){
+  const all = students.map((s2, i) => feeOf(i, revMonth));
+  const billed = all.reduce((a, f) => a + f.amount, 0);
+  const got    = all.reduce((a, f) => a + (f.paid ? f.amount : 0), 0);
+  const unpaid = all.filter(f => !f.unbilled && !f.paid);
+  const unbilled = all.filter(f => f.unbilled).length;
+  const adj = all.filter(f => !f.unbilled && f.amount !== f.base).length;
+  document.getElementById('feeMonthLabel').textContent = MONTHS[revMonth].label;
+  document.getElementById('feeSumm').innerHTML = [
+    ['未入金', unpaid.length + '名', yen(unpaid.reduce((a, f) => a + f.amount, 0))],
+    ['入金済み', yen(got), (all.length - unpaid.length - unbilled) + ' / ' + all.length + '名'],
+    ['請求合計', yen(billed), adj ? `うち ${adj}名は金額を調整` : '調整なし'],
+    ['未請求', unbilled + '名', unbilled ? '「月謝を発行」で作られます' : '全員ぶん発行済み'],
+  ].map(([k, v, h]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div>
+      <div class="muted" style="margin-top:2px;">${h}</div></div>`).join('');
+}
+
 function renderRevFees(){
+  renderFeeSumm();
   const all = students.map((s, i) => ({...s, i, fee:feeOf(i, revMonth)}));
   let list = all;
   if (revF.q) list = list.filter(s => s.n.includes(revF.q) || s.parent.includes(revF.q));

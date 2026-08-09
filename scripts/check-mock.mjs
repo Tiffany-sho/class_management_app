@@ -39,6 +39,7 @@ const AREAS = [
   ['schedList', '管理者/スケジュール確定'],
   ['studentRows', '管理者/生徒'],
   ['revFeeRows', '管理者/月謝の支払い状況'],
+  ['feeSumm', '管理者/月謝のまとめ'],
   ['promoRows', '管理者/進級処理'],
   ['courseRows', '管理者/コース料金'],
   ['slotRows', '管理者/開催枠'],
@@ -141,6 +142,40 @@ ck(/生徒\d+名/.test(d.getElementById('eDecidedList').textContent),
    '講師の決まった日には人数が出る');
 dom.window.shiftSub(1);
 ck(submitState().pPick, '受付中の月に戻せる');
+
+/* --- 7-2. 提出したら編集できない ------------------------------------------
+   提出は取り消せないので、押せるものを残すと「まだ変えられる」と読める。
+   **提出済みと未提出が両方ある見本**で見る（片方だけだと入れ替えを検査できない）。 */
+const subState = () => ({
+  pick: !d.getElementById('pPicking').hidden,
+  done: !d.getElementById('pSubmitted').hidden,
+  kid: d.querySelector('#kidSwitch2 button.on')?.textContent.trim() ?? '',
+});
+const kid0 = subState();
+dom.window.setKid(kid0.done ? 0 : 1);
+const kid1 = subState();
+ck(kid0.done !== kid1.done && kid0.pick !== kid1.pick,
+   `子ごとに提出状態が違う（${kid0.kid.slice(0, 6)}=${kid0.done ? '提出済' : '受付中'} / ${kid1.kid.slice(0, 6)}=${kid1.done ? '提出済' : '受付中'}）`);
+
+dom.window.setKid(kid0.done ? 0 : 1);
+const doneKid = subState().done ? subState() : (dom.window.setKid(1), subState());
+ck(doneKid.done, '提出済みの子を選べる');
+const doneText = d.getElementById('pSubmitted').textContent.replace(/\s+/g, ' ');
+ck(/提出した希望 \d+件/.test(doneText), `「提出した希望 N件」が出る（${(doneText.match(/提出した希望 \d+件/) || [''])[0]}）`);
+ck(/提出後は変更できません/.test(doneText), '変更できないと書いてある');
+ck(d.querySelectorAll('#pSubmittedList .pick:not([disabled])').length > 0
+   && d.querySelectorAll('#pSubmittedList button').length === 0,
+   '提出済みの一覧に押せるものが1つも無い');
+ck(!/選択中/.test(d.getElementById('pSubmitted').textContent), '選択の帯が出ていない');
+
+/* --- 7-3. 月謝は独立した画面にある ---------------------------------------- */
+ck(Boolean(d.getElementById('s-fees')), '月謝の画面がある');
+ck(d.getElementById('s-fees')?.contains(d.getElementById('revFeeRows')),
+   '月謝の支払い状況は月謝の画面にある');
+ck(!d.getElementById('s-revenue')?.contains(d.getElementById('revFeeRows')),
+   '収入・収益からは外れている');
+ck([...d.querySelectorAll('.sidebar button[data-s]')].some((b) => b.dataset.s === 'fees'),
+   'サイドバーに月謝がある');
 
 /* --- 8. スケジュール確定: 確定したコマは触れない / 希望の無い割り当ても出す -----
    希望を出した人だけをチップにしていたころ、**希望を出していないのに割り当てられて
