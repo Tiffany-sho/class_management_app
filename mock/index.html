@@ -143,6 +143,9 @@
   .wish.on.emp{background:var(--surface-dark);border-color:var(--surface-dark);}
   .wish.on.prog{background:var(--forest);border-color:var(--forest);}
   .wish.on.illust{background:var(--coral);border-color:var(--coral);}
+  /* 確定したコマは触れない。押せないことを見た目でも示す（理由は下に文で書く） */
+  .wish[disabled]{opacity:.5;cursor:default;}
+  .wish[disabled]:hover{border-color:var(--hairline);}
   .wish.on:hover{filter:brightness(1.12);color:#fff;}
 
   /* ===== 保護者・従業員: モバイル shell ===== */
@@ -1465,14 +1468,23 @@ const gradeName = g => g <= 6 ? '小' + g : '中' + (g - 6);
 /* 9月のスケジュール（定員 = 担当従業員数 × 3）
    empWish / studWish = 提出された希望。emps / studs = 管理者が仮確定した分。
    中村＝両教室担当、小林＝イラストのみ。担当外の事業には希望を出せない。 */
+/* done:true = 確定済み。**確定したコマはこの画面では触れない**（当日の変更から直す）。
+   emps / studs に empWish / studWish に無い人が混ざっている行があるのは意図的。
+   希望を出していないのに割り当てられている人はチップに出ないと外せない。 */
 const sched = [
   {date:'9月5日（土）', slots:[
     {b:ILLU, no:1, time:'13:00〜14:30',
      empWish:['小林'],        studWish:['伊藤 陸','渡辺 心春','山本 大和'],
-     emps:['小林'],           studs:['伊藤 陸','渡辺 心春']},
+     /* 伊藤（講師）と松本 楓は希望を出していないのに入っている。！が付く */
+     emps:['小林','伊藤'],    studs:['伊藤 陸','渡辺 心春','松本 楓']},
     {b:ILLU, no:2, time:'15:00〜16:30',
      empWish:['小林','中村'], studWish:['山本 大和','田中 咲希'],
      emps:[],                 studs:['山本 大和']},
+  ]},
+  {date:'8月30日（日）', done:true, slots:[
+    {b:PROG, no:1, time:'13:00〜14:30', done:true,
+     empWish:['中村'],        studWish:['田中 陽翔','佐藤 結衣'],
+     emps:['中村'],           studs:['田中 陽翔','佐藤 結衣']},
   ]},
   {date:'9月6日（日）', slots:[
     {b:PROG, no:1, time:'13:00〜14:30',
@@ -1528,19 +1540,32 @@ function renderSched(){
         ${d.slots.map((s, si) => {
           const cap = s.emps.length * 3, over = s.studs.length > cap;
           const pct = cap === 0 ? 100 : Math.min(100, s.studs.length / cap * 100);
-          const wish = (list, picked, kind, fn) => list.length
-            ? list.map(x => {
-                const on = picked.includes(x);
-                return `<button class="wish ${on ? 'on ' + kind : ''}"
-                  onclick="${fn}(${di},${si},'${x}')">${on ? '✓ ' : ''}${x}</button>`;
-              }).join('')
-            : '<span class="muted">希望なし</span>';
+          /* **割り当てられている人は、希望を出していなくても必ずチップにする。**
+             希望を出した人だけを出していたころは、それ以外を外す手段が画面に無く、
+             「全部外したつもりのコマだけが残って確定される」事故が起きた。 */
+          const chips = (wishList, picked, kind, fn) => {
+            const all = [...wishList, ...picked.filter(x => !wishList.includes(x))];
+            if (!all.length) return '<span class="muted">希望なし</span>';
+            return all.map(x => {
+              const on = picked.includes(x);
+              const mark = wishList.includes(x) ? '' : '！';
+              return `<button class="wish ${on ? 'on ' + kind : ''}" ${s.done ? 'disabled' : ''}
+                title="${x}${mark ? '（希望を出していません）' : ''}"
+                onclick="${fn}(${di},${si},'${x}')">${on ? '✓ ' : ''}${mark}${x}</button>`;
+            }).join('');
+          };
+          const unwanted = (wishList, picked) => {
+            const n = picked.filter(x => !wishList.includes(x)).length;
+            return n ? `<div class="muted" style="margin-top:6px;">！のついた${n}名は希望を出していません。${
+              s.done ? '外すときは「当日の変更」から。' : '押すと外せます（戻すときは「当日の変更」から）。'}</div>` : '';
+          };
           return `<div class="slot">
             <div class="sh"><span class="dot ${s.b.key}"></span>
               <span class="t">${s.b.short} 第${s.no}コマ</span>
               <span class="time">${s.time}</span>
               <span style="flex:1"></span>
-              ${!s.emps.length ? '<span class="badge unpaid">担当未定</span>'
+              ${s.done ? '<span class="badge paid">確定</span>'
+                     : !s.emps.length ? '<span class="badge unpaid">担当未定</span>'
                      : over ? '<span class="badge over">定員超過</span>'
                      : '<span class="badge draft">仮確定</span>'}</div>
             <div class="sb">
@@ -1548,10 +1573,15 @@ function renderSched(){
                 <span>${s.studs.length} / ${cap} 名</span>
                 <span class="capbar ${over ? 'over' : ''}"><i style="width:${pct}%"></i></span>
               </div>
-              <div class="lbl">勤務希望を出した従業員</div>
-              <div class="row">${wish(s.empWish, s.emps, 'emp', 'togEmp')}</div>
-              <div class="lbl">受講希望を出した生徒</div>
-              <div class="row">${wish(s.studWish, s.studs, s.b.key, 'togStu')}</div>
+              <div class="lbl">担当従業員</div>
+              <div class="row">${chips(s.empWish, s.emps, 'emp', 'togEmp')}</div>
+              ${unwanted(s.empWish, s.emps)}
+              <div class="lbl">受講生徒</div>
+              <div class="row">${chips(s.studWish, s.studs, s.b.key, 'togStu')}</div>
+              ${unwanted(s.studWish, s.studs)}
+              ${s.done ? `<div class="muted" style="margin-top:10px;">🔒 このコマは確定済みです。
+                保護者・講師の画面にもう出ています。担当や受講を直すときは
+                <strong>「当日の変更」</strong>から行ってください。</div>` : ''}
             </div></div>`;
         }).join('')}
       </div>
@@ -1561,8 +1591,11 @@ function toggle(arr, name){
   const i = arr.indexOf(name);
   if (i >= 0) arr.splice(i, 1); else arr.push(name);
 }
+/* 確定したコマはここでは動かせない。直すのは「当日の変更」。
+   この画面は「これからの月を作る」場所で、あちらは「もう決まった日を直す」場所。 */
 function togEmp(di, si, name){
   const s = sched[di].slots[si];
+  if (s.done) { toast('確定したコマはここでは変えられません。「当日の変更」から直してください。'); return; }
   toggle(s.emps, name);
   renderSched();
   toast(s.emps.includes(name)
@@ -1571,6 +1604,7 @@ function togEmp(di, si, name){
 }
 function togStu(di, si, name){
   const s = sched[di].slots[si];
+  if (s.done) { toast('確定したコマはここでは変えられません。「当日の変更」から直してください。'); return; }
   toggle(s.studs, name);
   renderSched();
   if (s.studs.length > s.emps.length * 3) toast('定員を超えています。従業員を追加してください');

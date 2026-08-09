@@ -142,5 +142,40 @@ ck(/生徒\d+名/.test(d.getElementById('eDecidedList').textContent),
 dom.window.shiftSub(1);
 ck(submitState().pPick, '受付中の月に戻せる');
 
+/* --- 8. スケジュール確定: 確定したコマは触れない / 希望の無い割り当ても出す -----
+   希望を出した人だけをチップにしていたころ、**希望を出していないのに割り当てられて
+   いる人を外す手段が画面に無かった**。「全部外したつもりのコマだけが残って確定される」
+   事故が実際に起きたので、ここは両方の状態が見本に含まれていることまで見る。 */
+const slotCards = [...d.querySelectorAll('#schedList .slot')];
+const doneCards = slotCards.filter((s) => (s.querySelector('.badge')?.textContent ?? '').trim() === '確定');
+const openCards = slotCards.filter((s) => !doneCards.includes(s));
+ck(doneCards.length > 0 && openCards.length > 0,
+   `確定したコマと下書きのコマが両方ある（確定 ${doneCards.length} / 下書き ${openCards.length}）`);
+
+const chipsIn = (card) => [...card.querySelectorAll('.wish')];
+ck(doneCards.every((c) => chipsIn(c).every((b) => b.disabled)),
+   '確定したコマのチップは全部押せない');
+ck(openCards.some((c) => chipsIn(c).some((b) => !b.disabled)),
+   '下書きのコマのチップは押せる');
+ck(doneCards.some((c) => /このコマは確定済みです/.test(c.textContent))
+   && doneCards.some((c) => /「当日の変更」から/.test(c.textContent)),
+   '確定したコマに理由と行き先が書いてある');
+
+const marked = slotCards.flatMap(chipsIn).filter((b) => b.textContent.includes('！'));
+ck(marked.length > 0, `希望を出していない割り当てがチップに出ている（${marked.length}件）`);
+ck(marked.every((b) => b.textContent.includes('✓')),
+   '！が付くのは割り当てられている人だけ（希望だけの人には付かない）');
+ck(/！のついた\d+名は希望を出していません/.test(d.getElementById('schedList').textContent),
+   '記号の意味が言葉でも書いてある');
+
+/* 確定したコマは押しても何も起きない（見た目を無効にしただけで済ませない） */
+const doneChip = chipsIn(doneCards[0])[0];
+const before = doneChip.textContent;
+doneChip.disabled = false;
+doneChip.click();
+ck(chipsIn([...d.querySelectorAll('#schedList .slot')].find(
+  (s) => (s.querySelector('.badge')?.textContent ?? '').trim() === '確定'))[0].textContent === before,
+   '無効化を外して押しても確定したコマは変わらない');
+
 console.log(bad ? `\n=== 問題 ${bad} 件 ===` : '\n=== 問題 0 件 ===');
 process.exit(bad ? 1 : 0);
