@@ -163,6 +163,7 @@ npm run typecheck         # tsc -b --noEmit
 npm run build
 npm run check:queries     # DB に投げるものを本物のスキーマに当てる
 npm run check:layout      # 本物のブラウザで実寸を測る（先に npm run preview）
+npm run check:mock        # モックが壊れていないか（仕様の実物なので）
 npm run gen:types         # supabase link 済みであること
 ```
 
@@ -185,6 +186,12 @@ npm run gen:types         # supabase link 済みであること
 **手書きの fixture ではこの種の間違いは永久に出ない。** 埋め込み結果を人が作り込んでいるので関係の解決を経ず、知らない列でのフィルタも素通りする。**自分で書いた fixture は自分の思い込みをそのまま写すので、思い込みを反証できない。**
 
 > **複合外部キーは列名では引けない。** `schedule_students → schedules` は `(schedule_id, business_id)` の複合キーなので、`schedules:schedule_id` と書くと 400 になる。`schedules!schedule_students_schedule_fk` と**制約名**で指定する。複合キーの一覧は `pg_constraint` を `array_length(conkey,1) > 1` で引けば出る。
+
+### モックを検査する（`npm run check:mock`）
+
+`mock/index.html` は**仕様の実物**だが、単一の静的 HTML なので型検査もビルドも通らない。**壊しても誰も気づかないまま「これが仕様です」と残り続ける。** jsdom で実際に動かして、各画面が中身つきで描かれるか、そして**アプリと同じ判断になっているか**（担当0名のときは定員超過ではなく担当未定を出す、受講希望は候補ぜんぶまで選べる、保護者の画面に第〇コマと金額を出さない）まで見る。
+
+---
 
 ### 見た目を検査する（`npm run check:layout`）
 

@@ -10,6 +10,7 @@
     "typecheck": "tsc -b --noEmit",
     "check:queries": "node scripts/check-queries.mjs",
     "check:layout": "node scripts/layout-check.mjs",
+    "check:mock": "node scripts/check-mock.mjs",
     "lint": "eslint src",
     "gen:types": "supabase gen types typescript --linked > src/types/database.ts"
   },
@@ -29,6 +30,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "jsdom": "^30.0.1",
     "pg": "^8.22.0",
     "playwright-core": "^1.62.1",
     "postcss": "^8.4.47",
